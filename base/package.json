@@ -2,9 +2,6 @@
   "name": "@falcondev-oss/nuxt-layers-base",
   "type": "module",
   "private": true,
-  "scripts": {
-    "postinstall": "nuxt prepare"
-  },
   "dependencies": {
     "@falcondev-oss/form-core": "^0.18.5",
     "@falcondev-oss/form-vue": "^0.18.5",
