@@ -8,6 +8,8 @@
 
 ```ts
 export default defineNuxtConfig({
-  extends: ["github:falcondev-oss/nuxt-layers/base#<commit-or-tag-or-branch>"],
+  extends: [
+    ['github:falcondev-oss/nuxt-layers/base#<commit-or-tag-or-branch>', { install: true }]
+  ],
 })
 ```
