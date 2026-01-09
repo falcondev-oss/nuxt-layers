@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+@import '@nuxt/ui';
+
+@layer base {
+  html,
+  body,
+  #__nuxt {
+    height: 100%;
+    isolation: isolate;
+  }
+
+  body {
+    background: var(--ui-color-neutral-50);
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  label:has(input[type='checkbox']:not(:disabled)) {
+    cursor: pointer;
+  }
+
+  fieldset > label {
+    cursor: pointer;
+  }
+}
