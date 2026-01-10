@@ -1,0 +1,5 @@
+.playground/
+
+eslint.config.js
+.prettierignore
+prettier.config.js

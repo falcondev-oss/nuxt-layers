@@ -30,6 +30,11 @@ export default defineNuxtConfig({
         from: '@falcondev-oss/form-vue',
         name: 'useForm',
       },
+      {
+        name: 'useToast',
+        from: path.join(currentDir, './app/composables/useToast'),
+        priority: 10,
+      },
     ],
   },
 

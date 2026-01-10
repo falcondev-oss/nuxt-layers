@@ -1,7 +1,12 @@
 {
   "name": "@falcondev-oss/nuxt-layers-base",
   "type": "module",
-  "private": true,
+  "version": "0.1.0",
+  "main": "./nuxt.config.ts",
+  "scripts": {
+    "dev": "nuxi dev .playground",
+    "dev:prepare": "nuxt prepare .playground"
+  },
   "dependencies": {
     "@falcondev-oss/form-core": "^0.18.5",
     "@falcondev-oss/form-vue": "^0.18.5",
@@ -35,6 +40,7 @@
     "type-fest": "^5.3.1",
     "typescript": "^5.9.3",
     "vue": "^3.5.26",
-    "vue-router": "^4.6.4"
+    "vue-router": "^4.6.4",
+    "zod": "^4.3.5"
   }
 }

@@ -68,7 +68,113 @@ const columns = useTableColumns<typeof data>(
 </script>
 
 <template>
-  <UContainer class="flex flex-col gap-4 p-4">
+  <LayoutDashboard
+    :sidebar="{
+      items: [
+        {
+          label: 'Home',
+          icon: 'i-lucide-house',
+          active: true,
+        },
+        {
+          label: 'Inbox',
+          icon: 'i-lucide-inbox',
+          badge: '4',
+        },
+        {
+          label: 'Contacts',
+          icon: 'i-lucide-users',
+        },
+        {
+          label: 'Settings',
+          icon: 'i-lucide-settings',
+          defaultOpen: true,
+          children: [
+            {
+              label: 'General',
+            },
+            {
+              label: 'Members',
+            },
+            {
+              label: 'Notifications',
+            },
+          ],
+        },
+      ],
+      bottomItems: [
+        {
+          label: 'Home',
+          icon: 'i-lucide-house',
+          active: true,
+        },
+        {
+          label: 'Inbox',
+          icon: 'i-lucide-inbox',
+          badge: '4',
+        },
+        {
+          label: 'Contacts',
+          icon: 'i-lucide-users',
+        },
+        {
+          label: 'Settings',
+          icon: 'i-lucide-settings',
+          defaultOpen: true,
+          children: [
+            {
+              label: 'General',
+            },
+            {
+              label: 'Members',
+            },
+            {
+              label: 'Notifications',
+            },
+          ],
+        },
+      ],
+      userMenu: {
+        name: 'Benjamin Canac',
+        avatarSrc: 'https://github.com/benjamincanac.png',
+      },
+    }"
+    :navbar="{
+      title: 'Dashboard',
+    }"
+    :toolbar="{
+      items: [
+        {
+          label: 'General',
+          icon: 'i-lucide-user',
+          active: true,
+        },
+        {
+          label: 'Members',
+          icon: 'i-lucide-users',
+        },
+        {
+          label: 'Notifications',
+          icon: 'i-lucide-bell',
+        },
+      ],
+      itemsEnd: [
+        {
+          label: 'General',
+          icon: 'i-lucide-user',
+          active: true,
+        },
+        {
+          label: 'Members',
+          icon: 'i-lucide-users',
+        },
+        {
+          label: 'Notifications',
+          icon: 'i-lucide-bell',
+        },
+      ],
+    }"
+  >
     <UTableCard>
       <UTable :data :columns @select="() => {}" />
     </UTableCard>
@@ -134,5 +240,5 @@ const columns = useTableColumns<typeof data>(
         <UInputDurationMinutes v-bind="props" />
       </UField>
     </UCard>
-  </UContainer>
+  </LayoutDashboard>
 </template>

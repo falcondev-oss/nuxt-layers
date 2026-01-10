@@ -1,5 +1,6 @@
 import type { DehydratedState, QueryClientConfig, VueQueryPluginOptions } from '@tanstack/vue-query'
 import type { AnyTRPCRouter } from '@trpc/server'
+import type { ObjectPlugin } from 'nuxt/app'
 import { createTRPCVueQueryClient } from '@falcondev-oss/trpc-vue-query'
 import {
   dehydrate,
@@ -18,8 +19,8 @@ interface VueQueryNuxtPluginOptions {
   queryClientOptions: QueryClientConfig
   vuePluginOptions?: VueQueryPluginOptions
 }
-export function defineVueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
-  return defineNuxtPlugin({
+export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
+  return {
     name: 'vue-query',
     setup(nuxt) {
       const vueQueryState = useState<DehydratedState | null>('vue-query')
@@ -41,14 +42,14 @@ export function defineVueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
         })
       }
     },
-  })
+  } satisfies ObjectPlugin
 }
 
 interface TrpcNuxtPluginOptions {
   url: string
 }
-export function defineTrpcPlugin<Router extends AnyTRPCRouter>(opts: TrpcNuxtPluginOptions) {
-  return defineNuxtPlugin({
+export function trpcPlugin<Router extends AnyTRPCRouter>(opts: TrpcNuxtPluginOptions) {
+  return {
     name: 'trpc',
     // eslint-disable-next-line ts/no-unsafe-assignment
     dependsOn: ['vue-query'] as any,
@@ -90,5 +91,5 @@ export function defineTrpcPlugin<Router extends AnyTRPCRouter>(opts: TrpcNuxtPlu
         },
       }
     },
-  })
+  } satisfies ObjectPlugin
 }

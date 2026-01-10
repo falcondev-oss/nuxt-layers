@@ -9,13 +9,7 @@ const emit = defineEmits<{ close: [boolean] }>()
 </script>
 
 <template>
-  <UModal
-    :close="{ onClick: () => emit('close', false) }"
-    :title
-    :description
-    class="max-w-sm"
-    :dismissible="false"
-  >
+  <UModal :close="{ onClick: () => emit('close', false) }" :title :description class="max-w-sm">
     <template #footer>
       <div class="flex w-full justify-end gap-2">
         <UButton
