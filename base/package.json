@@ -21,7 +21,7 @@
     "lint:ci": "eslint --cache --cache-strategy content . && prettier --check --cache --cache-strategy content .",
     "lint:fix": "eslint --fix --cache . && prettier --write --cache ."
   },
-  "dependencies": {
+  "peerDependencies": {
     "@falcondev-oss/form-core": "^0.18.5",
     "@falcondev-oss/form-vue": "^0.18.5",
     "@falcondev-oss/trpc-vue-query": "^0.5.2",
@@ -41,21 +41,21 @@
     "consola": "^3.4.2",
     "defu": "^6.1.4",
     "maska": "^3.2.0",
+    "nuxt": "^4.2.2",
     "reka-ui": "^2.7.0",
     "remeda": "^2.33.1",
     "superjson": "^2.2.6",
     "tailwindcss": "^4.1.18",
-    "trpc-nuxt": "^2.0.1"
+    "trpc-nuxt": "^2.0.1",
+    "type-fest": "^5.4.0",
+    "vue": "^3.5.26",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@falcondev-oss/configs": "^5.0.2",
     "eslint": "^9.39.2",
-    "nuxt": "^4.2.2",
     "prettier": "^3.7.4",
-    "type-fest": "^5.3.1",
     "typescript": "^5.9.3",
-    "vue": "^3.5.26",
-    "vue-router": "^4.6.4",
     "vue-tsc": "^3.2.2",
     "zod": "^4.3.5"
   }

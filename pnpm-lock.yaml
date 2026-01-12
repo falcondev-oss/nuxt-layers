@@ -82,6 +82,9 @@ importers:
       trpc-nuxt:
         specifier: ^2.0.1
         version: 2.0.1(@trpc/client@11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.8.1(typescript@5.9.3))
+      type-fest:
+        specifier: ^5.4.0
+        version: 5.4.0
     devDependencies:
       '@falcondev-oss/configs':
         specifier: ^5.0.2
@@ -95,9 +98,6 @@ importers:
       prettier:
         specifier: ^3.7.4
         version: 3.7.4
-      type-fest:
-        specifier: ^5.3.1
-        version: 5.3.1
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -6018,8 +6018,8 @@ packages:
     resolution: {integrity: sha512-5zknd7Dss75pMSED270A1RQS3KloqRJA9XbXLe0eCxyw7xXFb3rd+9B0UQ/0E+LQT6lnrLviEolYORlRWamn4w==}
     engines: {node: '>=16'}
 
-  type-fest@5.3.1:
-    resolution: {integrity: sha512-VCn+LMHbd4t6sF3wfU/+HKT63C9OoyrSIf4b+vtWHpt2U7/4InZG467YDNMFMR70DdHjAdpPWmw2lzRdg0Xqqg==}
+  type-fest@5.4.0:
+    resolution: {integrity: sha512-wfkA6r0tBpVfGiyO+zbf9e10QkRQSlK9F2UvyfnjoCmrvH2bjHyhPzhugSBOuq1dog3P0+FKckqe+Xf6WKVjwg==}
     engines: {node: '>=20'}
 
   type-level-regexp@0.1.17:
@@ -7276,7 +7276,7 @@ snapshots:
       on-change: 6.0.1
       remeda: 2.33.1
       ts-pattern: 5.9.0
-      type-fest: 5.3.1
+      type-fest: 5.4.0
       zod: 4.3.5
     transitivePeerDependencies:
       - vue
@@ -9908,7 +9908,7 @@ snapshots:
 
   dot-prop@10.1.0:
     dependencies:
-      type-fest: 5.3.1
+      type-fest: 5.4.0
 
   dot-prop@5.3.0:
     dependencies:
@@ -13662,7 +13662,7 @@ snapshots:
 
   type-fest@4.2.0: {}
 
-  type-fest@5.3.1:
+  type-fest@5.4.0:
     dependencies:
       tagged-tag: 1.0.0
 
