@@ -9,14 +9,13 @@ const form = useForm({
   schema: z.object({
     duration: z.number(),
     dateIso: z.string(),
-    options: z.array(z.string()),
   }),
   sourceValues: () => ({
     dateIso: null,
     duration: null,
-    options: null,
   }),
   async submit({ values }) {
+    await new Promise((resolve) => setTimeout(resolve, 2000))
     console.log(values)
   },
 })
@@ -57,7 +56,7 @@ const columns = useTableColumns<typeof data>(
     },
     rowActions: [
       {
-        icon: 'ph:pencil',
+        icon: 'lucide:pencil',
         onClick: () => {
           console.log('Edit row')
         },
@@ -225,20 +224,28 @@ const columns = useTableColumns<typeof data>(
         body: 'flex flex-col gap-4 items-start',
       }"
     >
-      {{ form.data }}
-      <UField
-        v-slot="props"
-        :field="
-          form.fields.dateIso.$use({
-            translate: dateValueIsoTranslator(),
-          })
-        "
+      <UForm
+        :form
+        :success-toast="{
+          title: 'test',
+          description: 'wow',
+        }"
       >
-        <UInputDatePicker v-bind="props" />
-      </UField>
-      <UField v-slot="props" :field="form.fields.duration.$use()">
-        <UInputDurationMinutes v-bind="props" />
-      </UField>
+        {{ form.data }}
+        <UField
+          v-slot="props"
+          :field="
+            form.fields.dateIso.$use({
+              translate: dateValueIsoTranslator(),
+            })
+          "
+        >
+          <UInputDatePicker v-bind="props" />
+        </UField>
+        <UField v-slot="props" :field="form.fields.duration.$use()">
+          <UInputDurationMinutes v-bind="props" />
+        </UField>
+      </UForm>
     </UCard>
   </LayoutDashboard>
 </template>
