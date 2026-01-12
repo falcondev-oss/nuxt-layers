@@ -13,8 +13,11 @@ const config = useRuntimeConfig()
 
 <template>
   <UApp v-bind="forwarded.app" :nonce="config.public.projectId">
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
+    <NuxtLoadingIndicator color="var(--color-brand-secondary, var(--color-brand-primary))" />
+    <Suspense>
+      <NuxtLayout>
+        <NuxtPage />
+      </NuxtLayout>
+    </Suspense>
   </UApp>
 </template>

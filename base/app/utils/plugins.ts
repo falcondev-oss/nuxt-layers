@@ -7,6 +7,7 @@ import {
   hydrate,
   MutationCache,
   QueryClient,
+  useIsFetching,
   useQueryClient,
   VueQueryPlugin,
 } from '@tanstack/vue-query'
@@ -83,6 +84,23 @@ export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
           hydrate(queryClient, vueQueryState.value)
         })
       }
+
+      // global nuxt loading indicator
+      const loadingIndicator = useLoadingIndicator()
+      const isFetching = useIsFetching()
+
+      let timeout: ReturnType<typeof setTimeout> | null = null
+      watch(isFetching, () => {
+        if (isFetching.value > 0) {
+          loadingIndicator.start()
+          timeout = setTimeout(() => {
+            loadingIndicator.set(0)
+          }, 300)
+        } else {
+          if (timeout) clearTimeout(timeout)
+          loadingIndicator.finish()
+        }
+      })
     },
   } satisfies ObjectPlugin
 }
