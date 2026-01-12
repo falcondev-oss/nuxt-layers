@@ -34,10 +34,5 @@ jobs:
           ref: ${{ inputs.ref }}
           registry-url: https://registry.npmjs.org
 
-      - run: pnpm nuxt prepare
-
-      - name: Build
-        run: pnpm build
-
       - name: Publish
         run: pnpm -r publish --access=public --provenance --no-git-checks --tag $(npx simple-dist-tag)

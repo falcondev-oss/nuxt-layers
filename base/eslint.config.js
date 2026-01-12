@@ -17,5 +17,6 @@ export default eslintConfig({
     'prisma/generated/',
     'convex/_generated/',
     'pnpm-lock.yaml',
+    '.playground/',
   ],
 })
