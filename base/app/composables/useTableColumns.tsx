@@ -46,7 +46,7 @@ export function useTableColumns<T extends MaybeRef<Record<string, any>[] | undef
           ]
           if (actions.onDelete)
             rowActions.push({
-              icon: 'ph:trash',
+              icon: 'lucide:trash',
               color: 'error',
               loadingAuto: true,
               onClick: async () => {

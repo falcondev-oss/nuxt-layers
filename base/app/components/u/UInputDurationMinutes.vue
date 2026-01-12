@@ -83,6 +83,6 @@ const maskOptions: MaskOptions = {
       lazy: true,
     }"
     placeholder="HH:mm"
-    trailing-icon="ph:timer"
+    trailing-icon="lucide:timer"
   />
 </template>

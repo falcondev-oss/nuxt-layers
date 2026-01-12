@@ -17,9 +17,9 @@ importers:
       '@falcondev-oss/trpc-vue-query':
         specifier: ^0.5.2
         version: 0.5.2(@tanstack/vue-query@5.92.5(vue@3.5.26(typescript@5.9.3)))(@trpc/client@11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.8.1(typescript@5.9.3))(vue@3.5.26(typescript@5.9.3))
-      '@iconify-json/ph':
+      '@iconify-json/lucide':
         specifier: ^1.2.2
-        version: 1.2.2
+        version: 1.2.84
       '@internationalized/date':
         specifier: ^3.10.1
         version: 3.10.1
@@ -827,8 +827,8 @@ packages:
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
 
-  '@iconify-json/ph@1.2.2':
-    resolution: {integrity: sha512-PgkEZNtqa8hBGjHXQa4pMwZa93hmfu8FUSjs/nv4oUU6yLsgv+gh9nu28Kqi8Fz9CCVu4hj1MZs9/60J57IzFw==}
+  '@iconify-json/lucide@1.2.84':
+    resolution: {integrity: sha512-m45MY1aW2swSK6Neb3J2qdZ+BxZ1VTdN7UeoXENwyMACG9bqGHWYJYxWoFzwoSnCfYLyKWTcBhesBgMd5IrUzQ==}
 
   '@iconify/collections@1.0.637':
     resolution: {integrity: sha512-/RJlWW7VJsqwQufjIM5a3LZ8FpxNZ7IkXML+hOw358Eg2XriBrjJQqSepK9S4WvFfDsSObFYPg/wzQ30iFP/5g==}
@@ -7313,7 +7313,7 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@iconify-json/ph@1.2.2':
+  '@iconify-json/lucide@1.2.84':
     dependencies:
       '@iconify/types': 2.0.0
 

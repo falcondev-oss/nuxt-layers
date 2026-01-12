@@ -4,15 +4,15 @@ import { useToast as useNuxtUiToast } from '#ui/composables'
 const presets = {
   success: {
     color: 'success',
-    icon: 'ph:check-circle',
+    icon: 'lucide:circle-check',
   },
   error: {
     color: 'error',
-    icon: 'ph:x-circle',
+    icon: 'lucide:circle-x',
   },
   warning: {
     color: 'warning',
-    icon: 'ph:warning-circle',
+    icon: 'lucide:circle-alert',
   },
 } as const satisfies Record<string, Partial<Toast>>
 
