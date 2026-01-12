@@ -31,6 +31,7 @@ jobs:
             ${{ matrix.layer }}/node_modules/.cache/prettier/.prettier-cache
           key: eslint-prettier-cache-${{ matrix.layer }}-${{ runner.os }}
 
+      - run: pnpm run nuxt prepare
       - run: pnpm run lint:ci
 
   type-check:
@@ -46,4 +47,5 @@ jobs:
       - name: pnpm install
         uses: falcondev-it/.github/actions/pnpm-install@master
 
+      - run: pnpm run nuxt prepare
       - run: pnpm run type-check
