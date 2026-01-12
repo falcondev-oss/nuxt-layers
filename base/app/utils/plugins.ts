@@ -5,27 +5,69 @@ import { createTRPCVueQueryClient } from '@falcondev-oss/trpc-vue-query'
 import {
   dehydrate,
   hydrate,
+  MutationCache,
   QueryClient,
   useQueryClient,
   VueQueryPlugin,
 } from '@tanstack/vue-query'
-import { httpSubscriptionLink, splitLink } from '@trpc/client'
+import { httpSubscriptionLink, isTRPCClientError, splitLink, TRPCClientError } from '@trpc/client'
 import defu from 'defu'
 import { useState } from 'nuxt/app'
 import superjson from 'superjson'
 import { httpBatchLink, httpLink } from 'trpc-nuxt/client'
 
 interface VueQueryNuxtPluginOptions {
-  queryClientOptions: QueryClientConfig
+  queryClientOptions?: QueryClientConfig
   vuePluginOptions?: VueQueryPluginOptions
 }
 export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
   return {
     name: 'vue-query',
     setup(nuxt) {
+      const toast = useToast()
       const vueQueryState = useState<DehydratedState | null>('vue-query')
 
-      const queryClient = new QueryClient(defu(opts?.queryClientOptions, {}))
+      const queryClient = new QueryClient(
+        defu<QueryClientConfig, QueryClientConfig[]>(opts?.queryClientOptions, {
+          defaultOptions: {
+            queries: {
+              experimental_prefetchInRender: true,
+              retry(failureCount, error) {
+                if (
+                  isTRPCClientError<AnyTRPCRouter>(error) &&
+                  error.data &&
+                  // eslint-disable-next-line ts/no-unsafe-member-access
+                  error.data.httpStatus >= 400 &&
+                  // eslint-disable-next-line ts/no-unsafe-member-access
+                  error.data.httpStatus < 500
+                )
+                  return false
+                return failureCount < 3
+              },
+            },
+          },
+          mutationCache: new MutationCache({
+            onError(err) {
+              console.error(err)
+
+              if (err instanceof TRPCClientError) {
+                toast.add({
+                  preset: 'error',
+                  title: 'Request Error',
+                  description: err.message,
+                  duration: 5000,
+                })
+              }
+
+              toast.add({
+                preset: 'error',
+                title: 'An unknown error occurred',
+                duration: 5000,
+              })
+            },
+          }),
+        }),
+      )
       const options: VueQueryPluginOptions = { queryClient, ...opts?.vuePluginOptions }
 
       nuxt.vueApp.use(VueQueryPlugin, options)
@@ -55,7 +97,6 @@ export function trpcPlugin<Router extends AnyTRPCRouter>(opts: TrpcNuxtPluginOpt
     dependsOn: ['vue-query'] as any,
     setup() {
       const queryClient = useQueryClient()
-      const headers = useRequestHeaders()
 
       const trpc = createTRPCVueQueryClient<Router>({
         queryClient,
@@ -72,13 +113,11 @@ export function trpcPlugin<Router extends AnyTRPCRouter>(opts: TrpcNuxtPluginOpt
                 true: httpLink({
                   transformer: superjson,
                   url: opts.url,
-                  headers,
                 }),
                 false: httpBatchLink({
                   transformer: superjson,
                   url: opts.url,
                   maxURLLength: 2000,
-                  headers,
                 }),
               }),
             }),

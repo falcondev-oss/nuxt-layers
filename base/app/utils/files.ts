@@ -3,7 +3,7 @@ export function downloadStringAsFile({
   fileName,
   contentType,
 }: {
-  content: string
+  content: string | BlobPart
   fileName: string
   contentType: string
 }) {
