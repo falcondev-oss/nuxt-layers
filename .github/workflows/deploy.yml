@@ -33,6 +33,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           registry-url: https://registry.npmjs.org
+          working-directory: ${{ matrix.layer }}
 
       - name: Build
         run: pnpm build
