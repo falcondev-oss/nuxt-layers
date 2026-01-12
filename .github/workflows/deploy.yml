@@ -34,7 +34,7 @@ jobs:
           ref: ${{ inputs.ref }}
           registry-url: https://registry.npmjs.org
 
-      - run: pnpm run nuxt prepare
+      - run: pnpm nuxt prepare
 
       - name: Build
         run: pnpm build
