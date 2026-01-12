@@ -221,7 +221,7 @@ const columns = useTableColumns<typeof data>(
     </UCard>
     <UCard
       :ui="{
-        body: 'flex flex-col gap-4 items-start',
+        body: 'flex flex-col gap-4 items-start ',
       }"
     >
       <UForm

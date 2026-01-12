@@ -20,7 +20,16 @@ export default defineNuxtConfig({
     strict: true,
   },
   nitro: {
+    experimental: {
+      tasks: true,
+    },
     typescript: {
+      tsConfig: {
+        compilerOptions: {
+          noImplicitOverride: true,
+          noUncheckedIndexedAccess: true,
+        },
+      },
       strict: true,
     },
   },

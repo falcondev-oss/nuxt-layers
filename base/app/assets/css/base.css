@@ -1,6 +1,9 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
 
+@import './theme.css';
+@import './utilities.css';
+
 @layer base {
   html,
   body,

@@ -1,0 +1,31 @@
+@theme static {
+  --color-brand-primary-50: color-mix(in oklch, var(--color-brand-primary) 8%, white);
+  --color-brand-primary-100: color-mix(in oklch, var(--color-brand-primary) 16%, white);
+  --color-brand-primary-200: color-mix(in oklch, var(--color-brand-primary) 30%, white);
+  --color-brand-primary-300: color-mix(in oklch, var(--color-brand-primary) 50%, white);
+  --color-brand-primary-400: color-mix(in oklch, var(--color-brand-primary) 80%, white);
+  --color-brand-primary-500: var(--color-brand-primary);
+  --color-brand-primary-600: color-mix(in oklch, var(--color-brand-primary), black 16%);
+  --color-brand-primary-700: color-mix(in oklch, var(--color-brand-primary), black 30%);
+  --color-brand-primary-800: color-mix(in oklch, var(--color-brand-primary), black 42%);
+  --color-brand-primary-900: color-mix(in oklch, var(--color-brand-primary), black 55%);
+  --color-brand-primary-950: color-mix(in oklch, var(--color-brand-primary), black 64%);
+
+  --color-brand-secondary-50: color-mix(in oklch, var(--color-brand-secondary) 8%, white);
+  --color-brand-secondary-100: color-mix(in oklch, var(--color-brand-secondary) 16%, white);
+  --color-brand-secondary-200: color-mix(in oklch, var(--color-brand-secondary) 30%, white);
+  --color-brand-secondary-300: color-mix(in oklch, var(--color-brand-secondary) 50%, white);
+  --color-brand-secondary-400: color-mix(in oklch, var(--color-brand-secondary) 80%, white);
+  --color-brand-secondary-500: var(--color-brand-secondary);
+  --color-brand-secondary-600: color-mix(in oklch, var(--color-brand-secondary), black 16%);
+  --color-brand-secondary-700: color-mix(in oklch, var(--color-brand-secondary), black 30%);
+  --color-brand-secondary-800: color-mix(in oklch, var(--color-brand-secondary), black 42%);
+  --color-brand-secondary-900: color-mix(in oklch, var(--color-brand-secondary), black 55%);
+  --color-brand-secondary-950: color-mix(in oklch, var(--color-brand-secondary), black 64%);
+
+  --color-slate-*: initial;
+  --color-gray-*: initial;
+  --color-zinc-*: initial;
+  --color-neutral-*: initial;
+  --color-stone-*: initial;
+}
