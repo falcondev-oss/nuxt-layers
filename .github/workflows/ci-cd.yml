@@ -22,8 +22,6 @@ jobs:
     steps:
       - name: pnpm install
         uses: falcondev-it/.github/actions/pnpm-install@master
-        with:
-          working-directory: ${{ matrix.layer }}
 
       - name: Cache ESLint & Prettier
         uses: actions/cache@v4
@@ -47,7 +45,5 @@ jobs:
     steps:
       - name: pnpm install
         uses: falcondev-it/.github/actions/pnpm-install@master
-        with:
-          working-directory: ${{ matrix.layer }}
 
       - run: pnpm run type-check

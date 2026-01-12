@@ -6,7 +6,7 @@ settings:
 
 importers:
 
-  .:
+  base:
     dependencies:
       '@falcondev-oss/form-core':
         specifier: ^0.18.5
