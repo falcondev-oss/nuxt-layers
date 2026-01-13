@@ -9,14 +9,6 @@ export default defineNuxtConfig({
 
   // dev
   typescript: {
-    tsConfig: {
-      vueCompilerOptions: {
-        strictTemplates: true,
-        htmlAttributes: ['aria-*'],
-        dataAttributes: ['data-*'],
-        strictVModel: true,
-      },
-    },
     strict: true,
   },
   nitro: {
