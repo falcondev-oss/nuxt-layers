@@ -8,31 +8,48 @@ const open = ref(false)
 </script>
 
 <template>
-  <UInputDate ref="inputDate" v-model="model">
+  <UInputDate
+    ref="inputDate"
+    :model-value="model"
+    :range="false"
+    @update:model-value="
+      (val) => {
+        model = val ?? null
+      }
+    "
+  >
     <template #trailing>
       <UPopover v-model:open="open" :reference="inputDate?.inputsRef[3]?.$el">
-        <UButton
-          color="neutral"
-          variant="link"
-          size="sm"
-          icon="i-lucide-calendar"
-          aria-label="Datum auswählen"
-          class="px-0"
-        />
+        <UButton color="neutral" variant="link" size="sm" icon="i-lucide-calendar" class="px-0" />
 
         <template #content>
-          <UCalendar
-            :model-value="model ?? undefined"
-            :multiple="false"
-            :range="false"
-            class="p-2"
-            @update:model-value="
-              (val) => {
-                model = val ?? null
-                open = false
-              }
-            "
-          />
+          <div class="p-2">
+            <UCalendar
+              :model-value="model ?? undefined"
+              :multiple="false"
+              :range="false"
+              @update:model-value="
+                (val) => {
+                  model = val ?? null
+                  open = false
+                }
+              "
+            />
+            <div v-if="model" class="flex justify-end">
+              <UButton
+                variant="ghost"
+                icon="tabler:trash"
+                color="error"
+                label="Löschen"
+                size="sm"
+                @click="
+                  () => {
+                    model = null
+                  }
+                "
+              />
+            </div>
+          </div>
         </template>
       </UPopover>
     </template>
