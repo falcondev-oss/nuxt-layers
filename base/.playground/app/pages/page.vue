@@ -17,6 +17,6 @@
       ],
     }"
   >
-    content
+    <UContainer>test</UContainer>
   </LayoutPage>
 </template>

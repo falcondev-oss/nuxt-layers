@@ -85,9 +85,7 @@ const omitFooterSlots = [
       </template>
     </UHeader>
     <UMain>
-      <UContainer>
-        <slot />
-      </UContainer>
+      <slot />
     </UMain>
     <UFooter v-if="footer">
       <template #left>
