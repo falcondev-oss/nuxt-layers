@@ -12,17 +12,13 @@ import type {
   InferInput,
   InferOutput,
 } from '@nuxt/ui'
-import type { Merge } from 'type-fest'
 import type { Reactive } from 'vue'
 import { useForwardProps } from 'reka-ui'
 
 const props = defineProps<
-  Merge<
-    AuthFormProps<T, F>,
-    {
-      onSubmit?: (event: FormSubmitEvent<InferOutput<T>>) => void | Promise<void>
-    }
-  >
+  Omit<AuthFormProps<T, F>, 'onSubmit'> & {
+    onSubmit?: (event: FormSubmitEvent<InferOutput<T>>) => void | Promise<void>
+  }
 >()
 const slots = defineSlots<AuthFormSlots<Reactive<InferInput<T>>, F>>()
 
