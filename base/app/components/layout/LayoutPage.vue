@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ButtonProps, FooterSlots, HeaderSlots, NavigationMenuItem } from '@nuxt/ui'
-import { omit } from 'remeda'
+import { omit, pickBy, pipe } from 'remeda'
 
 defineProps<{
   header?: {
@@ -72,9 +72,16 @@ const omitFooterSlots = [
         </slot>
       </template>
 
-      <template v-for="(_, name) in omit(slots, omitHeaderSlots)" #[name]="slotData">
+      <template
+        v-for="(_, name) in pipe(
+          slots,
+          pickBy((_, key) => key.startsWith('header-')),
+          omit(omitHeaderSlots),
+        )"
+        #[name]="slotData"
+      >
         <!-- @vue-ignore -->
-        <slot :name="name" v-bind="slotData || {}" />
+        <slot :name="name.replace('header-', '')" v-bind="slotData || {}" />
       </template>
     </UHeader>
     <UMain>
@@ -98,9 +105,16 @@ const omitFooterSlots = [
         />
       </template>
 
-      <template v-for="(_, name) in omit(slots, omitFooterSlots)" #[name]="slotData">
+      <template
+        v-for="(_, name) in pipe(
+          slots,
+          pickBy((_, key) => key.startsWith('footer-')),
+          omit(omitFooterSlots),
+        )"
+        #[name]="slotData"
+      >
         <!-- @vue-ignore -->
-        <slot :name="name" v-bind="slotData || {}" />
+        <slot :name="name.replace('footer-', '')" v-bind="slotData || {}" />
       </template>
     </UFooter>
   </div>
