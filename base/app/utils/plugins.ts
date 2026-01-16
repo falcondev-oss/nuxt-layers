@@ -1,6 +1,7 @@
 import type { DehydratedState, QueryClientConfig, VueQueryPluginOptions } from '@tanstack/vue-query'
 import type { AnyTRPCRouter } from '@trpc/server'
 import type { ObjectPlugin } from 'nuxt/app'
+import { typedFormDataLink } from '@falcondev-oss/trpc-typed-form-data/client'
 import { createTRPCVueQueryClient } from '@falcondev-oss/trpc-vue-query'
 import {
   dehydrate,
@@ -128,10 +129,15 @@ export function trpcPlugin<Router extends AnyTRPCRouter>(opts: TrpcNuxtPluginOpt
               }),
               false: splitLink({
                 condition: (op) => op.type === 'mutation',
-                true: httpLink({
-                  transformer: superjson,
-                  url: opts.url,
-                }),
+                true: [
+                  typedFormDataLink<AnyTRPCRouter>({
+                    transformer: superjson,
+                  }),
+                  httpLink({
+                    transformer: superjson,
+                    url: opts.url,
+                  }),
+                ],
                 false: httpBatchLink({
                   transformer: superjson,
                   url: opts.url,

@@ -24,6 +24,7 @@
   "peerDependencies": {
     "@falcondev-oss/form-core": "^0.18.5",
     "@falcondev-oss/form-vue": "^0.18.5",
+    "@falcondev-oss/trpc-typed-form-data": "^0.1.1",
     "@falcondev-oss/trpc-vue-query": "^0.5.2",
     "@iconify-json/lucide": "^1.2.2",
     "@internationalized/date": "^3.10.1",
