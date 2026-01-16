@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import type { ButtonProps, FooterSlots, HeaderSlots, NavigationMenuItem } from '@nuxt/ui'
+import type {
+  ButtonProps,
+  FooterProps,
+  FooterSlots,
+  HeaderProps,
+  HeaderSlots,
+  NavigationMenuItem,
+  NavigationMenuProps,
+} from '@nuxt/ui'
 import { omit, pickBy, pipe } from 'remeda'
 
 defineProps<{
@@ -8,12 +16,14 @@ defineProps<{
       src?: string
       iconSrc?: string
     }
-    items?: NavigationMenuItem[]
+    navigation?: NavigationMenuProps
     actions?: ButtonProps[]
+    ui?: HeaderProps['ui']
   }
   footer?: {
     items?: NavigationMenuItem[]
     actions?: ButtonProps[]
+    ui?: FooterProps['ui']
   }
 }>()
 
@@ -44,7 +54,7 @@ const omitFooterSlots = [
 <!-- eslint-disable vue/require-explicit-slots -->
 <template>
   <div>
-    <UHeader v-if="header">
+    <UHeader v-if="header" :ui="header.ui">
       <template v-if="header.logo || slots['header-title']" #title>
         <slot name="header-title">
           <template v-if="header.logo">
@@ -58,7 +68,7 @@ const omitFooterSlots = [
         </slot>
       </template>
 
-      <UNavigationMenu v-if="header.items" :items="header.items" />
+      <UNavigationMenu v-if="header.navigation" v-bind="header.navigation" />
 
       <template v-if="header.actions || slots['header-right']" #right>
         <slot name="header-right">
@@ -87,7 +97,7 @@ const omitFooterSlots = [
     <UMain>
       <slot />
     </UMain>
-    <UFooter v-if="footer">
+    <UFooter v-if="footer" :ui="footer.ui">
       <template #left>
         <p class="text-muted text-sm">Copyright © {{ new Date().getFullYear() }}</p>
       </template>

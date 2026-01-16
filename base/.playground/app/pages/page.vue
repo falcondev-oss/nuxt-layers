@@ -1,12 +1,15 @@
 <template>
   <LayoutPage
     :header="{
-      items: [
-        {
-          label: 'test',
-          to: '/',
-        },
-      ],
+      navigation: {
+        variant: 'pill',
+        items: [
+          {
+            label: 'test',
+            to: '/',
+          },
+        ],
+      },
     }"
     :footer="{
       items: [
@@ -15,6 +18,9 @@
           to: '/',
         },
       ],
+      ui: {
+        root: 'bg-primary-200',
+      },
     }"
   >
     <UContainer>test</UContainer>
