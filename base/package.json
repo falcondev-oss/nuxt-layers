@@ -24,7 +24,7 @@
   "peerDependencies": {
     "@falcondev-oss/form-core": "^0.18.5",
     "@falcondev-oss/form-vue": "^0.18.5",
-    "@falcondev-oss/trpc-typed-form-data": "^0.1.1",
+    "@falcondev-oss/trpc-typed-form-data": "^0.2.0",
     "@falcondev-oss/trpc-vue-query": "^0.5.2",
     "@iconify-json/lucide": "^1.2.2",
     "@internationalized/date": "^3.10.1",
@@ -55,7 +55,7 @@
   "devDependencies": {
     "@falcondev-oss/configs": "^5.0.2",
     "eslint": "^9.39.2",
-    "prettier": "^3.7.4",
+    "prettier": "^3.8.0",
     "typescript": "^5.9.3",
     "vue-tsc": "^3.2.2",
     "zod": "^4.3.5"
