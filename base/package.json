@@ -1,7 +1,7 @@
 {
   "name": "@falcondev-oss/nuxt-layers-base",
   "type": "module",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Nuxt layer with lots of useful helpers and @nuxt/ui components",
   "license": "MIT",
   "repository": "github:falcondev-oss/nuxt-layers",
