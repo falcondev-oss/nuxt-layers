@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import type { NavigationMenuItem } from '@nuxt/ui'
+import type {
+  DashboardNavbarProps,
+  DashboardPanelProps,
+  DashboardSidebarProps,
+  DashboardToolbarProps,
+  NavigationMenuItem,
+} from '@nuxt/ui'
 
 defineProps<{
   sidebar?: {
@@ -13,15 +19,25 @@ defineProps<{
       name: string
       avatarSrc?: string
     }
+    ui?: DashboardSidebarProps['ui']
+    itemsUi?: NavigationMenuItem['ui']
+    bottomItemsUi?: NavigationMenuItem['ui']
   }
-  navbar?: {
-    title?: string
+  panel?: {
+    navbar?: {
+      title?: string
+      ui?: DashboardNavbarProps['ui']
+    }
+    toolbar?: {
+      items?: NavigationMenuItem[]
+      itemsEnd?: NavigationMenuItem[]
+      ui?: DashboardToolbarProps['ui']
+      itemsUi?: NavigationMenuItem['ui']
+      itemsEndUi?: NavigationMenuItem['ui']
+    }
+    container?: boolean
+    ui?: DashboardPanelProps['ui']
   }
-  toolbar?: {
-    items?: NavigationMenuItem[]
-    itemsEnd?: NavigationMenuItem[]
-  }
-  container?: boolean
 }>()
 
 defineSlots<{
@@ -33,7 +49,14 @@ const config = useRuntimeConfig()
 
 <template>
   <UDashboardGroup storage="local" :storage-key="`${config.public.projectId}-dashboard`" unit="rem">
-    <UDashboardSidebar v-if="sidebar" collapsible resizable class="bg-white" mode="drawer">
+    <UDashboardSidebar
+      v-if="sidebar"
+      :ui="sidebar.ui"
+      collapsible
+      resizable
+      class="bg-white"
+      mode="drawer"
+    >
       <template v-if="sidebar.logo?.src || sidebar.logo?.iconSrc" #header="{ collapsed }">
         <img
           v-if="!collapsed && sidebar.logo.src"
@@ -55,6 +78,7 @@ const config = useRuntimeConfig()
           :collapsed="collapsed"
           :items="sidebar.items"
           orientation="vertical"
+          :ui="sidebar.itemsUi"
         />
 
         <UNavigationMenu
@@ -63,6 +87,7 @@ const config = useRuntimeConfig()
           :items="sidebar.bottomItems"
           orientation="vertical"
           class="mt-auto"
+          :ui="sidebar.bottomItemsUi"
         />
       </template>
       <template v-if="sidebar.userMenu" #footer="{ collapsed }">
@@ -81,18 +106,28 @@ const config = useRuntimeConfig()
     </UDashboardSidebar>
     <UDashboardPanel>
       <template #header>
-        <UDashboardNavbar v-if="navbar" class="bg-white" :title="navbar.title">
+        <UDashboardNavbar
+          v-if="panel?.navbar"
+          :ui="panel.navbar.ui"
+          class="bg-white"
+          :title="panel.navbar.title"
+        >
           <template #leading>
             <UDashboardSidebarCollapse />
           </template>
         </UDashboardNavbar>
-        <UDashboardToolbar v-if="toolbar" class="bg-white">
-          <UNavigationMenu :items="toolbar.items" highlight />
-          <UNavigationMenu :items="toolbar.itemsEnd" class="ml-auto" highlight />
+        <UDashboardToolbar v-if="panel?.toolbar" :ui="panel.toolbar.ui" class="bg-white">
+          <UNavigationMenu :items="panel.toolbar.items" highlight :ui="panel.toolbar.itemsUi" />
+          <UNavigationMenu
+            :items="panel.toolbar.itemsEnd"
+            class="ml-auto"
+            highlight
+            :ui="panel.toolbar.itemsEndUi"
+          />
         </UDashboardToolbar>
       </template>
       <template #body>
-        <UContainer v-if="container">
+        <UContainer v-if="panel?.container">
           <slot />
         </UContainer>
         <slot v-else />
