@@ -10,6 +10,11 @@ export default defineNuxtConfig({
   // dev
   typescript: {
     strict: true,
+    tsConfig: {
+      compilerOptions: {
+        allowArbitraryExtensions: true,
+      },
+    },
   },
   nitro: {
     experimental: {

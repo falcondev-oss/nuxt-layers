@@ -13,6 +13,7 @@ import type {
   InferOutput,
 } from '@nuxt/ui'
 import type { Reactive } from 'vue'
+import NuxtUIAuthForm from '@nuxt/ui/components/AuthForm.vue'
 import { useForwardProps } from 'reka-ui'
 
 const props = defineProps<
@@ -22,14 +23,14 @@ const props = defineProps<
 >()
 const slots = defineSlots<AuthFormSlots<Reactive<InferInput<T>>, F>>()
 
-const forwarded = useForwardProps(props)
+const forwarded = useForwardProps(props) as ComputedRef<Omit<typeof props, 'onSubmit'>>
 </script>
 
 <template>
-  <UAuthForm v-bind="forwarded">
+  <NuxtUIAuthForm v-bind="forwarded">
     <template v-for="(_, name) in slots" #[name]="slotData">
       <!-- @vue-ignore -->
       <slot :name="name" v-bind="slotData || {}" />
     </template>
-  </UAuthForm>
+  </NuxtUIAuthForm>
 </template>
