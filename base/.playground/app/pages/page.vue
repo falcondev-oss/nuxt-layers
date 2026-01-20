@@ -24,5 +24,8 @@
     }"
   >
     <UContainer>test</UContainer>
+
+    <template #footer-left>left</template>
+    <template #footer-bottom>bottom</template>
   </LayoutPage>
 </template>

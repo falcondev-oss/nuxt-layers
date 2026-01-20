@@ -8,7 +8,7 @@ import type {
   NavigationMenuItem,
   NavigationMenuProps,
 } from '@nuxt/ui'
-import { omit, pickBy, pipe } from 'remeda'
+import { keys, omit, pickBy, pipe, pullObject } from 'remeda'
 
 defineProps<{
   header?: {
@@ -44,11 +44,37 @@ const omitHeaderSlots = [
   'header-default',
 ] satisfies (keyof typeof slots)[]
 
+const headerSlots = computed(() =>
+  pipe(
+    slots,
+    pickBy((_, key) => key.startsWith('header-')),
+    omit(omitHeaderSlots),
+    keys(),
+    pullObject(
+      (key) => key.replace('header-', ''),
+      (key) => key,
+    ),
+  ),
+)
+
 const omitFooterSlots = [
   'footer-left',
   'footer-right',
   'footer-default',
 ] satisfies (keyof typeof slots)[]
+
+const footerSlots = computed(() =>
+  pipe(
+    slots,
+    pickBy((_, key) => key.startsWith('footer-')),
+    omit(omitFooterSlots),
+    keys(),
+    pullObject(
+      (key) => key.replace('footer-', ''),
+      (key) => key,
+    ),
+  ),
+)
 </script>
 
 <!-- eslint-disable vue/require-explicit-slots -->
@@ -82,16 +108,9 @@ const omitFooterSlots = [
         </slot>
       </template>
 
-      <template
-        v-for="(_, name) in pipe(
-          slots,
-          pickBy((_, key) => key.startsWith('header-')),
-          omit(omitHeaderSlots),
-        )"
-        #[name]="slotData"
-      >
+      <template v-for="(originalName, slotName) in headerSlots" #[slotName]="slotData">
         <!-- @vue-ignore -->
-        <slot :name="name.replace('header-', '')" v-bind="slotData || {}" />
+        <slot :name="originalName" v-bind="slotData || {}" />
       </template>
     </UHeader>
     <UMain>
@@ -99,30 +118,27 @@ const omitFooterSlots = [
     </UMain>
     <UFooter v-if="footer" :ui="footer.ui">
       <template #left>
-        <p class="text-muted text-sm">Copyright © {{ new Date().getFullYear() }}</p>
+        <slot name="footer-left">
+          <p class="text-muted text-sm">Copyright © {{ new Date().getFullYear() }}</p>
+        </slot>
       </template>
 
       <UNavigationMenu v-if="footer.items" :items="footer.items" variant="link" />
 
-      <template v-if="footer.actions" #right>
-        <UActions
-          :actions="footer.actions"
-          :defaults="{
-            variant: 'ghost',
-          }"
-        />
+      <template v-if="footer.actions || slots['footer-right']" #right>
+        <slot name="footer-right">
+          <UActions
+            :actions="footer.actions"
+            :defaults="{
+              variant: 'ghost',
+            }"
+          />
+        </slot>
       </template>
 
-      <template
-        v-for="(_, name) in pipe(
-          slots,
-          pickBy((_, key) => key.startsWith('footer-')),
-          omit(omitFooterSlots),
-        )"
-        #[name]="slotData"
-      >
+      <template v-for="(originalName, slotName) in footerSlots" #[slotName]="slotData">
         <!-- @vue-ignore -->
-        <slot :name="name.replace('footer-', '')" v-bind="slotData || {}" />
+        <slot :name="originalName" v-bind="slotData || {}" />
       </template>
     </UFooter>
   </div>
