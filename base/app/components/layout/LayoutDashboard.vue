@@ -7,7 +7,7 @@ import type {
   DashboardToolbarProps,
   NavigationMenuItem,
 } from '@nuxt/ui'
-import type { AddPropertyPrefix } from '~/types/helpers'
+import type { AddPropertyPrefix } from '../../types/helpers'
 import { keys, omit, pickBy, pipe, pullObject } from 'remeda'
 
 defineProps<{
