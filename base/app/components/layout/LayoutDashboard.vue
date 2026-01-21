@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import type {
   DashboardNavbarProps,
+  DashboardNavbarSlots,
   DashboardPanelProps,
   DashboardSidebarProps,
   DashboardToolbarProps,
   NavigationMenuItem,
 } from '@nuxt/ui'
+import type { AddPropertyPrefix } from '~/types/helpers'
+import { keys, omit, pickBy, pipe, pullObject } from 'remeda'
 
 defineProps<{
   sidebar?: {
@@ -40,9 +43,26 @@ defineProps<{
   }
 }>()
 
-defineSlots<{
-  default: any
-}>()
+const slots = defineSlots<
+  {
+    default: any
+  } & AddPropertyPrefix<DashboardNavbarSlots, 'navbar'>
+>()
+
+const omitNavbarSlots = ['navbar-leading'] satisfies (keyof typeof slots)[]
+
+const navbarSlots = computed(() =>
+  pipe(
+    slots,
+    pickBy((_, key) => key.startsWith('navbar-')),
+    omit(omitNavbarSlots),
+    keys(),
+    pullObject(
+      (key) => key.replace('navbar-', ''),
+      (key) => key,
+    ),
+  ),
+)
 
 const config = useRuntimeConfig()
 </script>
@@ -114,6 +134,11 @@ const config = useRuntimeConfig()
         >
           <template #leading>
             <UDashboardSidebarCollapse />
+          </template>
+
+          <template v-for="(originalName, slotName) in navbarSlots" #[slotName]="slotData">
+            <!-- @vue-ignore -->
+            <slot :name="originalName" v-bind="slotData || {}" />
           </template>
         </UDashboardNavbar>
         <UDashboardToolbar v-if="panel?.toolbar" :ui="panel.toolbar.ui" class="bg-white">

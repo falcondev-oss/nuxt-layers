@@ -138,42 +138,52 @@ const columns = useTableColumns<typeof data>(
         avatarSrc: 'https://github.com/benjamincanac.png',
       },
     }"
-    :navbar="{
-      title: 'Dashboard',
-    }"
-    :toolbar="{
-      items: [
-        {
-          label: 'General',
-          icon: 'i-lucide-user',
-          active: true,
+    :panel="{
+      navbar: {
+        title: 'Dashboard',
+        ui: {
+          root: 'relative',
+          title: 'flex-1 absolute inset-0 w-full',
         },
-        {
-          label: 'Members',
-          icon: 'i-lucide-users',
-        },
-        {
-          label: 'Notifications',
-          icon: 'i-lucide-bell',
-        },
-      ],
-      itemsEnd: [
-        {
-          label: 'General',
-          icon: 'i-lucide-user',
-          active: true,
-        },
-        {
-          label: 'Members',
-          icon: 'i-lucide-users',
-        },
-        {
-          label: 'Notifications',
-          icon: 'i-lucide-bell',
-        },
-      ],
+      },
+      toolbar: {
+        items: [
+          {
+            label: 'General',
+            icon: 'i-lucide-user',
+            active: true,
+          },
+          {
+            label: 'Members',
+            icon: 'i-lucide-users',
+          },
+          {
+            label: 'Notifications',
+            icon: 'i-lucide-bell',
+          },
+        ],
+        itemsEnd: [
+          {
+            label: 'General',
+            icon: 'i-lucide-user',
+            active: true,
+          },
+          {
+            label: 'Members',
+            icon: 'i-lucide-users',
+          },
+          {
+            label: 'Notifications',
+            icon: 'i-lucide-bell',
+          },
+        ],
+      },
     }"
   >
+    <template #navbar-title>
+      <div class="w-full text-center">title</div>
+    </template>
+
     <UTableCard>
       <UTable :data :columns @select="() => {}" />
     </UTableCard>

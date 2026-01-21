@@ -8,6 +8,7 @@ import type {
   NavigationMenuItem,
   NavigationMenuProps,
 } from '@nuxt/ui'
+import type { AddPropertyPrefix } from '~/types/helpers'
 import { keys, omit, pickBy, pipe, pullObject } from 'remeda'
 
 defineProps<{
@@ -33,10 +34,6 @@ const slots = defineSlots<
   } & AddPropertyPrefix<HeaderSlots, 'header'> &
     AddPropertyPrefix<FooterSlots, 'footer'>
 >()
-
-type AddPropertyPrefix<T extends object, P extends string> = {
-  [K in keyof T as `${P}-${K & string}`]: T[K]
-}
 
 const omitHeaderSlots = [
   'header-title',
