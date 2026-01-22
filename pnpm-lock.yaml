@@ -11,11 +11,11 @@ importers:
   base:
     dependencies:
       '@falcondev-oss/form-core':
-        specifier: ^0.18.5
-        version: 0.18.5(vue@3.5.26(typescript@5.9.3))(zod@4.3.5)
+        specifier: ^0.18.6
+        version: 0.18.6(vue@3.5.26(typescript@5.9.3))(zod@4.3.5)
       '@falcondev-oss/form-vue':
-        specifier: ^0.18.5
-        version: 0.18.5(vue@3.5.26(typescript@5.9.3))(zod@4.3.5)
+        specifier: ^0.18.6
+        version: 0.18.6(vue@3.5.26(typescript@5.9.3))(zod@4.3.5)
       '@falcondev-oss/trpc-typed-form-data':
         specifier: ^0.2.0
         version: 0.2.0(@trpc/client@11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.8.1(typescript@5.9.3))
@@ -795,14 +795,14 @@ packages:
     resolution: {integrity: sha512-efVu5W4zN5DoKcpiULArp5hPdjedgg+S2GqNsdXQKu9uJvl6pjCXGtzzIDcDIS/2BkvH4FeZ/4UPlaCZ62OuIA==}
     engines: {node: '22', pnpm: '10'}
 
-  '@falcondev-oss/form-core@0.18.5':
-    resolution: {integrity: sha512-uMQRdfPsDqXtz8dPk1kmOgG7qZ1itkbIsFIssklbytbbtFWEfk7u/QPSCM/VEDsjhtpbaJTxVpIGu9ucWpfodA==}
+  '@falcondev-oss/form-core@0.18.6':
+    resolution: {integrity: sha512-gWeUDLHz0/rekeDzaZwGvIaIAEWgf7witbm7/0z7KygZagbcqSUrUgemtvayfQGZ2QFsmyw1n8rRBa985jXK/Q==}
     engines: {node: '22', pnpm: '10'}
     peerDependencies:
       zod: ^4.0.0
 
-  '@falcondev-oss/form-vue@0.18.5':
-    resolution: {integrity: sha512-iL86Q9WhJ8DonA+nbJjZauJ8Bxutug5pG/zDsgrlRhnJT5rIlgFNEUPWFd2Y89frhk9JDW+SrC2UqzwoR21b9Q==}
+  '@falcondev-oss/form-vue@0.18.6':
+    resolution: {integrity: sha512-UPNi4veKuXftk47YL59Z6pbUllsPK00nTcWBLtqMgo2oGfcP1Pn0EGgUhvu6Q05jI9t7B426t+1NZ+3EwhYOQw==}
     engines: {node: '22', pnpm: '10'}
     peerDependencies:
       vue: ^3.5.13
@@ -7297,7 +7297,7 @@ snapshots:
       - typescript
       - vitest
 
-  '@falcondev-oss/form-core@0.18.5(vue@3.5.26(typescript@5.9.3))(zod@4.3.5)':
+  '@falcondev-oss/form-core@0.18.6(vue@3.5.26(typescript@5.9.3))(zod@4.3.5)':
     dependencies:
       '@standard-schema/spec': 1.1.0
       '@vue/reactivity': 3.5.26
@@ -7308,14 +7308,14 @@ snapshots:
       on-change: 6.0.1
       remeda: 2.33.1
       ts-pattern: 5.9.0
-      type-fest: 5.4.0
+      type-fest: 5.4.1
       zod: 4.3.5
     transitivePeerDependencies:
       - vue
 
-  '@falcondev-oss/form-vue@0.18.5(vue@3.5.26(typescript@5.9.3))(zod@4.3.5)':
+  '@falcondev-oss/form-vue@0.18.6(vue@3.5.26(typescript@5.9.3))(zod@4.3.5)':
     dependencies:
-      '@falcondev-oss/form-core': 0.18.5(vue@3.5.26(typescript@5.9.3))(zod@4.3.5)
+      '@falcondev-oss/form-core': 0.18.6(vue@3.5.26(typescript@5.9.3))(zod@4.3.5)
       hookable: 5.5.3
       vue: 3.5.26(typescript@5.9.3)
     transitivePeerDependencies:
@@ -9947,7 +9947,7 @@ snapshots:
 
   dot-prop@10.1.0:
     dependencies:
-      type-fest: 5.4.0
+      type-fest: 5.4.1
 
   dot-prop@5.3.0:
     dependencies:
