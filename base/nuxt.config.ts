@@ -37,6 +37,10 @@ export default defineNuxtConfig({
         name: 'useForm',
       },
       {
+        from: '@falcondev-oss/trpc-typed-form-data/client',
+        name: 'createTypedFormData',
+      },
+      {
         name: 'useToast',
         from: path.join(currentDir, './app/composables/useToast'),
         priority: 10,
