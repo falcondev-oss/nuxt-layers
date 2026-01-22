@@ -21,9 +21,9 @@
     "lint:ci": "eslint --cache --cache-strategy content . && prettier --check --cache --cache-strategy content .",
     "lint:fix": "eslint --fix --cache . && prettier --write --cache ."
   },
-  "peerDependencies": {
-    "@falcondev-oss/form-core": "^0.18.6",
-    "@falcondev-oss/form-vue": "^0.18.6",
+  "dependencies": {
+    "@falcondev-oss/form-core": "^0.18.7",
+    "@falcondev-oss/form-vue": "^0.18.7",
     "@falcondev-oss/trpc-typed-form-data": "^0.2.0",
     "@falcondev-oss/trpc-vue-query": "^0.5.2",
     "@iconify-json/lucide": "^1.2.2",
