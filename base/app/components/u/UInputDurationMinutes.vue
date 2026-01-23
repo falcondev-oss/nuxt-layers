@@ -5,10 +5,10 @@ import { regex } from 'arkregex'
 import { vMaska } from 'maska/vue'
 import { useForwardPropsEmits } from 'reka-ui'
 
-const props =
-  defineProps<Omit<InputProps<string>, 'modelValue' | 'defaultValue' | 'modelModifiers'>>()
+type Props = Omit<InputProps<string>, 'modelValue' | 'defaultValue' | 'modelModifiers'>
+const props = defineProps<Props>()
 const emit = defineEmits<Omit<InputEmits<string>, 'update:modelValue'>>()
-const forwardedProps = useForwardPropsEmits(props, emit)
+const forwardedProps = useForwardPropsEmits(props as Props, emit)
 
 const model = defineModel<number | null>({
   required: true,
