@@ -20,3 +20,12 @@ export function downloadStringAsFile({
 
   URL.revokeObjectURL(url)
 }
+
+export function downloadFileFromUrl({ url, fileName }: { url: string; fileName?: string }) {
+  const downloadLink = document.createElement('a')
+  downloadLink.href = url
+  if (fileName) downloadLink.setAttribute('download', fileName)
+  document.body.append(downloadLink)
+  downloadLink.click()
+  downloadLink.remove()
+}
