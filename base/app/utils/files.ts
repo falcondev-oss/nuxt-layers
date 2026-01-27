@@ -29,3 +29,10 @@ export function downloadFileFromUrl({ url, fileName }: { url: string; fileName?:
   downloadLink.click()
   downloadLink.remove()
 }
+
+export async function getFileFromUrl(url: string) {
+  const response = await fetch(url)
+  const blob = await response.blob()
+  const filename = url.split('/').pop() || 'file'
+  return new File([blob], filename, { type: blob.type })
+}
