@@ -11,17 +11,17 @@ importers:
   base:
     dependencies:
       '@falcondev-oss/form-core':
-        specifier: ^0.18.7
-        version: 0.18.7(vue@3.5.27(typescript@5.9.3))(zod@4.3.6)
+        specifier: ^0.19.1
+        version: 0.19.1(vue@3.5.27(typescript@5.9.3))(zod@4.3.6)
       '@falcondev-oss/form-vue':
-        specifier: ^0.18.7
-        version: 0.18.7(vue@3.5.27(typescript@5.9.3))(zod@4.3.6)
+        specifier: ^0.19.1
+        version: 0.19.1(vue@3.5.27(typescript@5.9.3))(zod@4.3.6)
       '@falcondev-oss/trpc-typed-form-data':
         specifier: ^0.3.1
-        version: 0.3.1(@trpc/client@11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.8.1(typescript@5.9.3))
+        version: 0.3.1(@trpc/client@11.9.0(@trpc/server@11.9.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.9.0(typescript@5.9.3))
       '@falcondev-oss/trpc-vue-query':
         specifier: ^0.5.2
-        version: 0.5.2(@tanstack/vue-query@5.92.9(vue@3.5.27(typescript@5.9.3)))(@trpc/client@11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.8.1(typescript@5.9.3))(vue@3.5.27(typescript@5.9.3))
+        version: 0.5.2(@tanstack/vue-query@5.92.9(vue@3.5.27(typescript@5.9.3)))(@trpc/client@11.9.0(@trpc/server@11.9.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.9.0(typescript@5.9.3))(vue@3.5.27(typescript@5.9.3))
       '@iconify-json/lucide':
         specifier: ^1.2.87
         version: 1.2.87
@@ -41,11 +41,11 @@ importers:
         specifier: ^5.92.9
         version: 5.92.9(vue@3.5.27(typescript@5.9.3))
       '@trpc/client':
-        specifier: ^11.8.1
-        version: 11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3)
+        specifier: ^11.9.0
+        version: 11.9.0(@trpc/server@11.9.0(typescript@5.9.3))(typescript@5.9.3)
       '@trpc/server':
-        specifier: ^11.8.1
-        version: 11.8.1(typescript@5.9.3)
+        specifier: ^11.9.0
+        version: 11.9.0(typescript@5.9.3)
       '@vue/devtools-api':
         specifier: ^8.0.5
         version: 8.0.5
@@ -74,8 +74,8 @@ importers:
         specifier: ^4.3.0
         version: 4.3.0(@parcel/watcher@2.5.6)(@types/node@25.0.3)(@vue/compiler-sfc@3.5.27)(cac@6.7.14)(db0@0.3.4)(eslint@9.39.2(jiti@2.6.1))(ioredis@5.9.2)(lightningcss@1.31.1)(magicast@0.5.1)(optionator@0.9.4)(rollup@4.56.0)(terser@5.46.0)(typescript@5.9.3)(vite@7.3.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))(vue-tsc@3.2.4(typescript@5.9.3))(yaml@2.8.2)
       reka-ui:
-        specifier: ^2.7.0
-        version: 2.7.0(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
+        specifier: ^2.8.0
+        version: 2.8.0(vue@3.5.27(typescript@5.9.3))
       remeda:
         specifier: ^2.33.4
         version: 2.33.4
@@ -87,10 +87,10 @@ importers:
         version: 4.1.18
       trpc-nuxt:
         specifier: ^2.0.1
-        version: 2.0.1(@trpc/client@11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.8.1(typescript@5.9.3))
+        version: 2.0.1(@trpc/client@11.9.0(@trpc/server@11.9.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.9.0(typescript@5.9.3))
       type-fest:
-        specifier: ^5.4.1
-        version: 5.4.1
+        specifier: ^5.4.2
+        version: 5.4.2
       vue:
         specifier: ^3.5.27
         version: 3.5.27(typescript@5.9.3)
@@ -786,14 +786,14 @@ packages:
     resolution: {integrity: sha512-efVu5W4zN5DoKcpiULArp5hPdjedgg+S2GqNsdXQKu9uJvl6pjCXGtzzIDcDIS/2BkvH4FeZ/4UPlaCZ62OuIA==}
     engines: {node: '22', pnpm: '10'}
 
-  '@falcondev-oss/form-core@0.18.7':
-    resolution: {integrity: sha512-N4uh87gFW2518cRCaVDDcpOw4maJTfCIji3vHPVHTtaekQva4hwkTGPUAYS6MVFHnD+x5eZFy8HuKRAg8tTYKg==}
+  '@falcondev-oss/form-core@0.19.1':
+    resolution: {integrity: sha512-DtmsZjmtCT9pzFOhWQMV+SdNjF+OL0uy98fv1sVZ0XLnttGuxCw4z0XLGaueakK6oVtw6wI07U6AgV/A6Z0XMw==}
     engines: {node: '22', pnpm: '10'}
     peerDependencies:
       zod: ^4.0.0
 
-  '@falcondev-oss/form-vue@0.18.7':
-    resolution: {integrity: sha512-If7rzHua5SG2E7oEpb3JgF5lw6yOjTlg/M/3Eex7h17DYbYzEoYXDrwbV267PlmXG5PcM2EA/GZmjHNfowsxAw==}
+  '@falcondev-oss/form-vue@0.19.1':
+    resolution: {integrity: sha512-y8QZ0TbkyNFiNrjuKjdOfqTqZMdKx8dlkKstLlKGtaYzjbaeSdihfZwiJXEcF8kZS/lJJYPjX1WE48WrR9olEg==}
     engines: {node: '22', pnpm: '10'}
     peerDependencies:
       vue: ^3.5.13
@@ -817,11 +817,20 @@ packages:
   '@floating-ui/core@1.7.3':
     resolution: {integrity: sha512-sGnvb5dmrJaKEZ+LDIpguvdX3bDlEllmv4/ClQ9awcmCZrlx5jQyyMWFM5kBI+EyNOCDDiKk8il0zeuX3Zlg/w==}
 
+  '@floating-ui/core@1.7.4':
+    resolution: {integrity: sha512-C3HlIdsBxszvm5McXlB8PeOEWfBhcGBTZGkGlWc2U0KFY5IwG5OQEuQ8rq52DZmcHDlPLd+YFBK+cZcytwIFWg==}
+
   '@floating-ui/dom@1.7.4':
     resolution: {integrity: sha512-OOchDgh4F2CchOX94cRVqhvy7b3AFb+/rQXyswmzmGakRfkMgoWVjfnLWkRirfLEfuD4ysVW16eXzwt3jHIzKA==}
 
+  '@floating-ui/dom@1.7.5':
+    resolution: {integrity: sha512-N0bD2kIPInNHUHehXhMke1rBGs1dwqvC9O9KYMyyjK7iXt7GAhnro7UlcuYcGdS/yYOlq0MAVgrow8IbWJwyqg==}
+
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
+
+  '@floating-ui/vue@1.1.10':
+    resolution: {integrity: sha512-vdf8f6rHnFPPLRsmL4p12wYl+Ux4mOJOkjzKEMYVnwdf7UFdvBtHlLvQyx8iKG5vhPRbDRgZxdtpmyigDPjzYg==}
 
   '@floating-ui/vue@1.1.9':
     resolution: {integrity: sha512-BfNqNW6KA83Nexspgb9DZuz578R7HT8MZw1CfK9I6Ah4QReNWEJsXWHN+SdmOVLNGmTPDi+fDT535Df5PzMLbQ==}
@@ -2123,14 +2132,14 @@ packages:
       y-protocols: ^1.0.1
       yjs: ^13.5.38
 
-  '@trpc/client@11.8.1':
-    resolution: {integrity: sha512-L/SJFGanr9xGABmuDoeXR4xAdHJmsXsiF9OuH+apecJ+8sUITzVT1EPeqp0ebqA6lBhEl5pPfg3rngVhi/h60Q==}
+  '@trpc/client@11.9.0':
+    resolution: {integrity: sha512-3r4RT/GbR263QO+2gCPyrs5fEYaXua3/AzCs+GbWC09X0F+mVkyBpO3GRSDObiNU/N1YB597U7WGW3WA1d1TVw==}
     peerDependencies:
-      '@trpc/server': 11.8.1
+      '@trpc/server': 11.9.0
       typescript: '>=5.7.2'
 
-  '@trpc/server@11.8.1':
-    resolution: {integrity: sha512-P4rzZRpEL7zDFgjxK65IdyH0e41FMFfTkQkuq0BA5tKcr7E6v9/v38DEklCpoDN6sPiB1Sigy/PUEzHENhswDA==}
+  '@trpc/server@11.9.0':
+    resolution: {integrity: sha512-T8gC4NOCzx8tCsQEQ5sSjf24bN+9AEqXZRfpThG+YCEmcEwXfS7RP8VVrl5Vodt1S+zGEDyQSof4YVAj1zq/mg==}
     peerDependencies:
       typescript: '>=5.7.2'
 
@@ -2442,9 +2451,6 @@ packages:
 
   '@vue/language-core@3.2.4':
     resolution: {integrity: sha512-bqBGuSG4KZM45KKTXzGtoCl9cWju5jsaBKaJJe3h5hRAAWpZUuj5G+L+eI01sPIkm4H6setKRlw7E85wLdDNew==}
-
-  '@vue/reactivity@3.5.26':
-    resolution: {integrity: sha512-9EnYB1/DIiUYYnzlnUBgwU32NNvLp/nhxLXeWRhHUEeWNTn1ECxX8aGO7RTXeX6PPcxe3LLuNBFoJbV4QZ+CFQ==}
 
   '@vue/reactivity@3.5.27':
     resolution: {integrity: sha512-vvorxn2KXfJ0nBEnj4GYshSgsyMNFnIQah/wczXlsNXt+ijhugmW+PpJ2cNPe4V6jpnBcs0MhCODKllWG+nvoQ==}
@@ -5741,6 +5747,11 @@ packages:
     peerDependencies:
       vue: '>= 3.2.0'
 
+  reka-ui@2.8.0:
+    resolution: {integrity: sha512-N4JOyIrmDE7w2i06WytqcV2QICubtS2PsK5Uo8FIMAgmO13KhUAgAByP26cXjjm2oF/w7rTyRs8YaqtvaBT+SA==}
+    peerDependencies:
+      vue: '>= 3.2.0'
+
   remeda@2.33.4:
     resolution: {integrity: sha512-ygHswjlc/opg2VrtiYvUOPLjxjtdKvjGz1/plDhkG66hjNjFr1xmfrs2ClNFo/E6TyUFiwYNh53bKV26oBoMGQ==}
 
@@ -6218,8 +6229,8 @@ packages:
     resolution: {integrity: sha512-5zknd7Dss75pMSED270A1RQS3KloqRJA9XbXLe0eCxyw7xXFb3rd+9B0UQ/0E+LQT6lnrLviEolYORlRWamn4w==}
     engines: {node: '>=16'}
 
-  type-fest@5.4.1:
-    resolution: {integrity: sha512-xygQcmneDyzsEuKZrFbRMne5HDqMs++aFzefrJTgEIKjQ3rekM+RPfFCVq2Gp1VIDqddoYeppCj4Pcb+RZW0GQ==}
+  type-fest@5.4.2:
+    resolution: {integrity: sha512-FLEenlVYf7Zcd34ISMLo3ZzRE1gRjY1nMDTp+bQRBiPsaKyIW8K3Zr99ioHDUgA9OGuGGJPyYpNcffGmBhJfGg==}
     engines: {node: '>=20'}
 
   type-level-regexp@0.1.17:
@@ -7463,10 +7474,10 @@ snapshots:
       - typescript
       - vitest
 
-  '@falcondev-oss/form-core@0.18.7(vue@3.5.27(typescript@5.9.3))(zod@4.3.6)':
+  '@falcondev-oss/form-core@0.19.1(vue@3.5.27(typescript@5.9.3))(zod@4.3.6)':
     dependencies:
       '@standard-schema/spec': 1.1.0
-      '@vue/reactivity': 3.5.26
+      '@vue/reactivity': 3.5.27
       '@vueuse/core': 13.9.0(vue@3.5.27(typescript@5.9.3))
       dot-prop: 10.1.0
       hookable: 5.5.3
@@ -7474,35 +7485,39 @@ snapshots:
       on-change: 6.0.1
       remeda: 2.33.4
       ts-pattern: 5.9.0
-      type-fest: 5.4.1
+      type-fest: 5.4.2
       zod: 4.3.6
     transitivePeerDependencies:
       - vue
 
-  '@falcondev-oss/form-vue@0.18.7(vue@3.5.27(typescript@5.9.3))(zod@4.3.6)':
+  '@falcondev-oss/form-vue@0.19.1(vue@3.5.27(typescript@5.9.3))(zod@4.3.6)':
     dependencies:
-      '@falcondev-oss/form-core': 0.18.7(vue@3.5.27(typescript@5.9.3))(zod@4.3.6)
+      '@falcondev-oss/form-core': 0.19.1(vue@3.5.27(typescript@5.9.3))(zod@4.3.6)
       hookable: 5.5.3
       vue: 3.5.27(typescript@5.9.3)
     transitivePeerDependencies:
       - zod
 
-  '@falcondev-oss/trpc-typed-form-data@0.3.1(@trpc/client@11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.8.1(typescript@5.9.3))':
+  '@falcondev-oss/trpc-typed-form-data@0.3.1(@trpc/client@11.9.0(@trpc/server@11.9.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.9.0(typescript@5.9.3))':
     dependencies:
       '@standard-schema/spec': 1.1.0
-      '@trpc/client': 11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3)
-      '@trpc/server': 11.8.1(typescript@5.9.3)
-      type-fest: 5.4.1
+      '@trpc/client': 11.9.0(@trpc/server@11.9.0(typescript@5.9.3))(typescript@5.9.3)
+      '@trpc/server': 11.9.0(typescript@5.9.3)
+      type-fest: 5.4.2
 
-  '@falcondev-oss/trpc-vue-query@0.5.2(@tanstack/vue-query@5.92.9(vue@3.5.27(typescript@5.9.3)))(@trpc/client@11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.8.1(typescript@5.9.3))(vue@3.5.27(typescript@5.9.3))':
+  '@falcondev-oss/trpc-vue-query@0.5.2(@tanstack/vue-query@5.92.9(vue@3.5.27(typescript@5.9.3)))(@trpc/client@11.9.0(@trpc/server@11.9.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.9.0(typescript@5.9.3))(vue@3.5.27(typescript@5.9.3))':
     dependencies:
       '@tanstack/vue-query': 5.92.9(vue@3.5.27(typescript@5.9.3))
-      '@trpc/client': 11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3)
-      '@trpc/server': 11.8.1(typescript@5.9.3)
+      '@trpc/client': 11.9.0(@trpc/server@11.9.0(typescript@5.9.3))(typescript@5.9.3)
+      '@trpc/server': 11.9.0(typescript@5.9.3)
       '@vueuse/core': 13.9.0(vue@3.5.27(typescript@5.9.3))
       vue: 3.5.27(typescript@5.9.3)
 
   '@floating-ui/core@1.7.3':
+    dependencies:
+      '@floating-ui/utils': 0.2.10
+
+  '@floating-ui/core@1.7.4':
     dependencies:
       '@floating-ui/utils': 0.2.10
 
@@ -7511,7 +7526,21 @@ snapshots:
       '@floating-ui/core': 1.7.3
       '@floating-ui/utils': 0.2.10
 
+  '@floating-ui/dom@1.7.5':
+    dependencies:
+      '@floating-ui/core': 1.7.4
+      '@floating-ui/utils': 0.2.10
+
   '@floating-ui/utils@0.2.10': {}
+
+  '@floating-ui/vue@1.1.10(vue@3.5.27(typescript@5.9.3))':
+    dependencies:
+      '@floating-ui/dom': 1.7.5
+      '@floating-ui/utils': 0.2.10
+      vue-demi: 0.14.10(vue@3.5.27(typescript@5.9.3))
+    transitivePeerDependencies:
+      - '@vue/composition-api'
+      - vue
 
   '@floating-ui/vue@1.1.9(vue@3.5.27(typescript@5.9.3))':
     dependencies:
@@ -9066,12 +9095,12 @@ snapshots:
       y-protocols: 1.0.7(yjs@13.6.29)
       yjs: 13.6.29
 
-  '@trpc/client@11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3)':
+  '@trpc/client@11.9.0(@trpc/server@11.9.0(typescript@5.9.3))(typescript@5.9.3)':
     dependencies:
-      '@trpc/server': 11.8.1(typescript@5.9.3)
+      '@trpc/server': 11.9.0(typescript@5.9.3)
       typescript: 5.9.3
 
-  '@trpc/server@11.8.1(typescript@5.9.3)':
+  '@trpc/server@11.9.0(typescript@5.9.3)':
     dependencies:
       typescript: 5.9.3
 
@@ -9450,10 +9479,6 @@ snapshots:
       muggle-string: 0.4.1
       path-browserify: 1.0.1
       picomatch: 4.0.3
-
-  '@vue/reactivity@3.5.26':
-    dependencies:
-      '@vue/shared': 3.5.26
 
   '@vue/reactivity@3.5.27':
     dependencies:
@@ -10230,7 +10255,7 @@ snapshots:
 
   dot-prop@10.1.0:
     dependencies:
-      type-fest: 5.4.1
+      type-fest: 5.4.2
 
   dot-prop@5.3.0:
     dependencies:
@@ -13516,6 +13541,22 @@ snapshots:
       - '@vue/composition-api'
       - typescript
 
+  reka-ui@2.8.0(vue@3.5.27(typescript@5.9.3)):
+    dependencies:
+      '@floating-ui/dom': 1.7.5
+      '@floating-ui/vue': 1.1.10(vue@3.5.27(typescript@5.9.3))
+      '@internationalized/date': 3.10.1
+      '@internationalized/number': 3.6.5
+      '@tanstack/vue-virtual': 3.13.18(vue@3.5.27(typescript@5.9.3))
+      '@vueuse/core': 14.1.0(vue@3.5.27(typescript@5.9.3))
+      '@vueuse/shared': 14.1.0(vue@3.5.27(typescript@5.9.3))
+      aria-hidden: 1.2.6
+      defu: 6.1.4
+      ohash: 2.0.11
+      vue: 3.5.27(typescript@5.9.3)
+    transitivePeerDependencies:
+      - '@vue/composition-api'
+
   remeda@2.33.4: {}
 
   remove-accents@0.5.0: {}
@@ -14015,10 +14056,10 @@ snapshots:
 
   tr46@0.0.3: {}
 
-  trpc-nuxt@2.0.1(@trpc/client@11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.8.1(typescript@5.9.3)):
+  trpc-nuxt@2.0.1(@trpc/client@11.9.0(@trpc/server@11.9.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.9.0(typescript@5.9.3)):
     dependencies:
-      '@trpc/client': 11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3)
-      '@trpc/server': 11.8.1(typescript@5.9.3)
+      '@trpc/client': 11.9.0(@trpc/server@11.9.0(typescript@5.9.3))(typescript@5.9.3)
+      '@trpc/server': 11.9.0(typescript@5.9.3)
       h3: 1.15.4
       ofetch: 1.5.1
       ohash: 2.0.11
@@ -14049,7 +14090,7 @@ snapshots:
 
   type-fest@4.2.0: {}
 
-  type-fest@5.4.1:
+  type-fest@5.4.2:
     dependencies:
       tagged-tag: 1.0.0
 
