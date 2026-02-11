@@ -15,11 +15,11 @@
   },
   "scripts": {
     "dev": "nuxi dev .playground",
+    "prepare": "nuxt prepare",
     "dev:prepare": "nuxt prepare .playground",
     "type-check": "vue-tsc --noEmit",
-    "lint": "eslint --cache . && prettier --check --cache .",
-    "lint:ci": "eslint --cache --cache-strategy content . && prettier --check --cache --cache-strategy content .",
-    "lint:fix": "eslint --fix --cache . && prettier --write --cache ."
+    "lint": "pnpm -w eslint:cmd \"$PWD\" && pnpm -w prettier:cmd \"$PWD\" --check",
+    "lint:fix": "pnpm -w eslint:cmd \"$PWD\" --fix && pnpm -w prettier:cmd \"$PWD\" --write"
   },
   "dependencies": {
     "@falcondev-oss/form-core": "^0.19.1",
@@ -53,9 +53,6 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@falcondev-oss/configs": "^5.0.2",
-    "eslint": "^9.39.2",
-    "prettier": "^3.8.1",
     "typescript": "^5.9.3",
     "vue-tsc": "^3.2.4",
     "zod": "^4.3.6"

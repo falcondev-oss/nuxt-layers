@@ -6,10 +6,12 @@
 
 ## Usage
 
+```sh
+pnpm i @falcondev-oss/nuxt-layers-base
+```
+
 ```ts
 export default defineNuxtConfig({
-  extends: [
-    ['github:falcondev-oss/nuxt-layers/base#<commit-or-tag-or-branch>', { install: true }]
-  ],
+  extends: ['@falcondev-oss/nuxt-layers-base'],
 })
 ```

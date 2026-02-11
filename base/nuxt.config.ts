@@ -20,6 +20,12 @@ export default defineNuxtConfig({
     experimental: {
       tasks: true,
     },
+    esbuild: {
+      // enable top-level await in nitro
+      options: {
+        target: 'esnext',
+      },
+    },
     typescript: {
       tsConfig: {
         compilerOptions: {

@@ -1,6 +1,24 @@
 {
+  "name": "@falcondev-oss/nuxt-layers",
+  "type": "module",
+  "private": true,
   "engines": {
     "node": "24",
     "pnpm": "10"
+  },
+  "scripts": {
+    "lint": "pnpm turbo --continue lint lint:root",
+    "lint:fix": "pnpm turbo --continue lint:fix lint:fix:root",
+    "eslint:cmd": "_ () { cd \"$1\" && eslint --cache --cache-location node_modules/.cache/eslint/ --cache-strategy content  $(shift; echo \"$@\") . ; }; _",
+    "prettier:cmd": "_ () { cd \"$1\" && prettier --cache --cache-strategy content --log-level warn  $(shift; echo \"$@\") . ; }; _",
+    "prettier:cmd:root": "_ () { pnpm prettier:cmd \"$1\" --ignore-path=.gitignore --ignore-path=.prettierignore --ignore-path=.prettierignore.root  $(shift; echo \"$@\") ; }; _",
+    "lint:root": "pnpm eslint:cmd \"$PWD\" && pnpm prettier:cmd:root \"$PWD\" --check",
+    "lint:fix:root": "pnpm eslint:cmd \"$PWD\" --fix && pnpm prettier:cmd:root \"$PWD\" --write"
+  },
+  "devDependencies": {
+    "@falcondev-oss/configs": "^5.0.2",
+    "eslint": "^9.39.2",
+    "prettier": "^3.8.1",
+    "turbo": "^2.8.3"
   }
 }

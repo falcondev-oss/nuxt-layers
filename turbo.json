@@ -1,0 +1,37 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local", "pnpm-lock.yaml", "pnpm-workspace.yaml"],
+  "globalPassThroughEnv": ["FORCE_COLOR"],
+  "dangerouslyDisablePackageManagerCheck": true,
+  "ui": "tui",
+  "tasks": {
+    "lint": {
+      "outputLogs": "errors-only"
+    },
+    "//#lint:root": {
+      "inputs": ["$TURBO_DEFAULT$", "!packages/**", "!apps/**"],
+      "outputLogs": "errors-only"
+    },
+    "lint:fix": {
+      "outputLogs": "errors-only"
+    },
+    "//#lint:fix:root": {
+      "inputs": ["$TURBO_DEFAULT$", "!packages/**", "!apps/**"],
+      "outputLogs": "errors-only"
+    },
+    "type-check": {
+      "outputs": [".types/"],
+      "dependsOn": ["^type-check"],
+      "outputLogs": "errors-only"
+    },
+
+    "dev": { "cache": false, "persistent": true },
+    "nuke": { "cache": false },
+
+    "build": {
+      "outputs": ["dist/**", ".output/**"],
+      "dependsOn": ["^build"],
+      "env": []
+    }
+  }
+}

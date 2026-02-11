@@ -22,13 +22,7 @@
     "dockercompose",
     "github-actions-workflow"
   ],
-  "tailwindCSS.classAttributes": [
-    "class",
-    "className",
-    "ngClass",
-    "classes",
-    "ui"
-  ],
+  "tailwindCSS.classAttributes": ["class", "className", "ngClass", "classes", "ui"],
   "tailwindCSS.experimental.classRegex": [
     ["ui:\\s*{([^)]*)\\s*}", "[\"'`]([^\"'`]*).*?[\"'`]"],
     ["/\\*ui\\*/\\s*{([^;]*)}", ":\\s*[\"'`]([^\"'`]*).*?[\"'`]"],

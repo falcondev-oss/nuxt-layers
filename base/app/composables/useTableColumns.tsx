@@ -57,7 +57,7 @@ export function useTableColumns<T extends MaybeRef<Record<string, any>[] | undef
           return (
             <UActions
               defaults={rowActionDefaults}
-              class="justify-end gap-2!"
+              class="gap-2! justify-end"
               actions={rowActions}
             />
           )
