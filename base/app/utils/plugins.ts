@@ -1,6 +1,7 @@
+import type { ObjectPlugin } from '#app'
 import type { DehydratedState, QueryClientConfig, VueQueryPluginOptions } from '@tanstack/vue-query'
 import type { AnyTRPCRouter } from '@trpc/server'
-import type { ObjectPlugin } from 'nuxt/app'
+import { useState } from '#app'
 import { typedFormDataLink } from '@falcondev-oss/trpc-typed-form-data/client'
 import { createTRPCVueQueryClient } from '@falcondev-oss/trpc-vue-query'
 import {
@@ -14,7 +15,6 @@ import {
 } from '@tanstack/vue-query'
 import { httpSubscriptionLink, isTRPCClientError, splitLink, TRPCClientError } from '@trpc/client'
 import defu from 'defu'
-import { useState } from 'nuxt/app'
 import superjson from 'superjson'
 import { httpBatchLink, httpLink } from 'trpc-nuxt/client'
 
