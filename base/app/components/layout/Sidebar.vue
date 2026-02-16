@@ -29,13 +29,16 @@ const config = useRuntimeConfig()
 <template>
   <UDashboardGroup storage="local" :storage-key="`${config.public.projectId}-dashboard`" unit="rem">
     <UDashboardSidebar v-bind="sidebar" class="bg-white" mode="drawer">
-      <template v-if="logo?.src || logo?.iconSrc" #header="{ collapsed }">
+      <template
+        v-if="logo?.src || logo?.iconSrc || slots.logo || slots.icon"
+        #header="{ collapsed }"
+      >
         <slot v-if="!collapsed" name="logo">
-          <img v-if="logo.src" class="h-5 w-auto shrink-0" :src="logo.src" />
+          <img v-if="logo?.src" class="h-5 w-auto shrink-0" :src="logo.src" />
         </slot>
-        <slot v-if="collapsed || (!logo.src && !slots.logo)" name="icon">
+        <slot v-if="collapsed || (!logo?.src && !slots.logo)" name="icon">
           <img
-            v-if="logo.iconSrc"
+            v-if="logo?.iconSrc"
             class="size-5"
             :src="logo.iconSrc"
             :class="{
