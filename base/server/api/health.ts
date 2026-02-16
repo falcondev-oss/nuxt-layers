@@ -1,3 +1,3 @@
 export default defineEventHandler(() => ({
-  status: 'ok'
+  status: 'ok',
 }))

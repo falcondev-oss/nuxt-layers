@@ -74,7 +74,7 @@ export default defineNuxtConfig({
 
   // modules
   build: {
-    transpile: ['trpc-nuxt']
+    transpile: ['trpc-nuxt'],
   },
   modules: ['@nuxt/ui', '@vueuse/nuxt'],
   ui: {
