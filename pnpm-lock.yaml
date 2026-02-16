@@ -24,11 +24,11 @@ importers:
   base:
     dependencies:
       '@falcondev-oss/form-core':
-        specifier: ^0.19.1
-        version: 0.19.1(vue@3.5.28(typescript@5.9.3))(zod@4.3.6)
+        specifier: ^0.19.3
+        version: 0.19.3(vue@3.5.28(typescript@5.9.3))(zod@4.3.6)
       '@falcondev-oss/form-vue':
-        specifier: ^0.19.1
-        version: 0.19.1(vue@3.5.28(typescript@5.9.3))(zod@4.3.6)
+        specifier: ^0.19.3
+        version: 0.19.3(vue@3.5.28(typescript@5.9.3))(zod@4.3.6)
       '@falcondev-oss/trpc-typed-form-data':
         specifier: ^0.3.1
         version: 0.3.1(@trpc/client@11.10.0(@trpc/server@11.10.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.10.0(typescript@5.9.3))
@@ -967,17 +967,17 @@ packages:
     resolution: {integrity: sha512-efVu5W4zN5DoKcpiULArp5hPdjedgg+S2GqNsdXQKu9uJvl6pjCXGtzzIDcDIS/2BkvH4FeZ/4UPlaCZ62OuIA==}
     engines: {node: '22', pnpm: '10'}
 
-  '@falcondev-oss/form-core@0.19.1':
-    resolution: {integrity: sha512-DtmsZjmtCT9pzFOhWQMV+SdNjF+OL0uy98fv1sVZ0XLnttGuxCw4z0XLGaueakK6oVtw6wI07U6AgV/A6Z0XMw==}
-    engines: {node: '22', pnpm: '10'}
+  '@falcondev-oss/form-core@0.19.3':
+    resolution: {integrity: sha512-V8NjKFaT1dqnVJTesh13iH/gIL/aug+n72y/EBOhGjnj2r5tmH2NaKOR8dKhSNcOSq5gbwaiotpLYUJq6mUX7Q==}
+    engines: {node: '24', pnpm: '10'}
     peerDependencies:
-      zod: ^4.0.0
+      zod: ^4.3.6
 
-  '@falcondev-oss/form-vue@0.19.1':
-    resolution: {integrity: sha512-y8QZ0TbkyNFiNrjuKjdOfqTqZMdKx8dlkKstLlKGtaYzjbaeSdihfZwiJXEcF8kZS/lJJYPjX1WE48WrR9olEg==}
-    engines: {node: '22', pnpm: '10'}
+  '@falcondev-oss/form-vue@0.19.3':
+    resolution: {integrity: sha512-5ZRif2VZWDk75M/QVITOaY+eXoTH58bydI1wnSep9VUg6g9i9HYde/WMm0v1mUJKwmg16ZwI7QeyrGkrK7lT0A==}
+    engines: {node: '24', pnpm: '10'}
     peerDependencies:
-      vue: ^3.5.13
+      vue: ^3.5.28
 
   '@falcondev-oss/trpc-typed-form-data@0.3.1':
     resolution: {integrity: sha512-Grl5RoIPmQJQYo+hA4QmhQv5W8hZLa0RChXaYxm1UVSQz9l20uZTiNZbOUYb4PqiKwbNdjrfVc196YFM4rF94g==}
@@ -2713,9 +2713,6 @@ packages:
 
   '@vue/language-core@3.2.4':
     resolution: {integrity: sha512-bqBGuSG4KZM45KKTXzGtoCl9cWju5jsaBKaJJe3h5hRAAWpZUuj5G+L+eI01sPIkm4H6setKRlw7E85wLdDNew==}
-
-  '@vue/reactivity@3.5.27':
-    resolution: {integrity: sha512-vvorxn2KXfJ0nBEnj4GYshSgsyMNFnIQah/wczXlsNXt+ijhugmW+PpJ2cNPe4V6jpnBcs0MhCODKllWG+nvoQ==}
 
   '@vue/reactivity@3.5.28':
     resolution: {integrity: sha512-gr5hEsxvn+RNyu9/9o1WtdYdwDjg5FgjUSBEkZWqgTKlo/fvwZ2+8W6AfKsc9YN2k/+iHYdS9vZYAhpi10kNaw==}
@@ -5455,10 +5452,6 @@ packages:
   ohash@2.0.11:
     resolution: {integrity: sha512-RdR9FQrFwNBNXAr4GixM8YaRZRJ5PUWbKYbE5eOsrwAjJW0q2REGcf79oYPsLyskQCZG1PLN+S/K1V00joZAoQ==}
 
-  on-change@6.0.1:
-    resolution: {integrity: sha512-P7o0hkMahOhjb1niG28vLNAXsJrRcfpJvYWcTmPt/Tf4xedcF2PA1E9++N1tufY8/vIsaiJgHhjQp53hJCe+zw==}
-    engines: {node: '>=20'}
-
   on-change@6.0.2:
     resolution: {integrity: sha512-08+12qcOVEA0fS9g/VxKS27HaT94nRutUT77J2dr8zv/unzXopvhBuF8tNLWsoLQ5IgrQ6eptGeGqUYat82U1w==}
     engines: {node: '>=20'}
@@ -7920,15 +7913,15 @@ snapshots:
       - typescript
       - vitest
 
-  '@falcondev-oss/form-core@0.19.1(vue@3.5.28(typescript@5.9.3))(zod@4.3.6)':
+  '@falcondev-oss/form-core@0.19.3(vue@3.5.28(typescript@5.9.3))(zod@4.3.6)':
     dependencies:
       '@standard-schema/spec': 1.1.0
-      '@vue/reactivity': 3.5.27
-      '@vueuse/core': 13.9.0(vue@3.5.28(typescript@5.9.3))
+      '@vue/reactivity': 3.5.28
+      '@vueuse/core': 14.2.1(vue@3.5.28(typescript@5.9.3))
       dot-prop: 10.1.0
-      hookable: 5.5.3
+      hookable: 6.0.1
       klona: 2.0.6
-      on-change: 6.0.1
+      on-change: 6.0.2
       remeda: 2.33.6
       ts-pattern: 5.9.0
       type-fest: 5.4.4
@@ -7936,10 +7929,10 @@ snapshots:
     transitivePeerDependencies:
       - vue
 
-  '@falcondev-oss/form-vue@0.19.1(vue@3.5.28(typescript@5.9.3))(zod@4.3.6)':
+  '@falcondev-oss/form-vue@0.19.3(vue@3.5.28(typescript@5.9.3))(zod@4.3.6)':
     dependencies:
-      '@falcondev-oss/form-core': 0.19.1(vue@3.5.28(typescript@5.9.3))(zod@4.3.6)
-      hookable: 5.5.3
+      '@falcondev-oss/form-core': 0.19.3(vue@3.5.28(typescript@5.9.3))(zod@4.3.6)
+      hookable: 6.0.1
       vue: 3.5.28(typescript@5.9.3)
     transitivePeerDependencies:
       - zod
@@ -9965,10 +9958,6 @@ snapshots:
       muggle-string: 0.4.1
       path-browserify: 1.0.1
       picomatch: 4.0.3
-
-  '@vue/reactivity@3.5.27':
-    dependencies:
-      '@vue/shared': 3.5.27
 
   '@vue/reactivity@3.5.28':
     dependencies:
@@ -13432,8 +13421,6 @@ snapshots:
   ofetch@2.0.0-alpha.3: {}
 
   ohash@2.0.11: {}
-
-  on-change@6.0.1: {}
 
   on-change@6.0.2: {}
 
