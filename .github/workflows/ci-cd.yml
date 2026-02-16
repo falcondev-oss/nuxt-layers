@@ -31,7 +31,6 @@ jobs:
             ${{ matrix.layer }}/node_modules/.cache/prettier/.prettier-cache
           key: eslint-prettier-cache-${{ matrix.layer }}-${{ runner.os }}
 
-      - run: pnpm nuxt prepare
       - run: pnpm run lint
 
   type-check:
