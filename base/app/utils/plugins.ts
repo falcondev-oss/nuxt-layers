@@ -22,6 +22,25 @@ interface VueQueryNuxtPluginOptions {
   queryClientOptions?: QueryClientConfig
   vuePluginOptions?: VueQueryPluginOptions
 }
+
+interface ToastOpts {
+  title?: string
+  description?: string
+}
+
+export interface CustomMeta {
+  mutationMeta: {
+    toast?: {
+      success?: ToastOpts
+      error?: ToastOpts
+    }
+  }
+}
+
+declare module '@tanstack/vue-query' {
+  interface Register extends CustomMeta {}
+}
+
 export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
   return {
     name: 'vue-query',
@@ -49,24 +68,37 @@ export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
             },
           },
           mutationCache: new MutationCache({
-            onError(err) {
+            onSuccess(_res, _input, _onMutateRes, mutation) {
+              if (mutation.meta?.toast?.success) {
+                toast.add({
+                  preset: 'success',
+                  duration: 5000,
+                  ...mutation.meta.toast.success,
+                })
+              }
+            },
+            onError(err, _input, __onMutateRes, mutation) {
               console.error(err)
 
-              if (err instanceof TRPCClientError) {
+              if (mutation.meta?.toast?.error) {
+                toast.add({
+                  preset: 'error',
+                  duration: 5000,
+                  ...mutation.meta.toast.error,
+                })
+              } else if (err instanceof TRPCClientError)
                 toast.add({
                   preset: 'error',
                   title: 'Request Error',
                   description: err.message,
                   duration: 5000,
                 })
-                return
-              }
-
-              toast.add({
-                preset: 'error',
-                title: 'An unknown error occurred',
-                duration: 5000,
-              })
+              else
+                toast.add({
+                  preset: 'error',
+                  title: 'An unknown error occurred',
+                  duration: 5000,
+                })
             },
           }),
         }),
