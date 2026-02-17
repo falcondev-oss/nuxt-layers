@@ -24,7 +24,7 @@
   "dependencies": {
     "@falcondev-oss/form-core": "^0.19.3",
     "@falcondev-oss/form-vue": "^0.19.3",
-    "@falcondev-oss/trpc-typed-form-data": "^0.4.0",
+    "@falcondev-oss/trpc-typed-form-data": "^0.4.1",
     "@falcondev-oss/trpc-vue-query": "^0.5.2",
     "@iconify-json/lucide": "^1.2.90",
     "@internationalized/date": "^3.11.0",
