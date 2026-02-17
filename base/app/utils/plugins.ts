@@ -59,6 +59,7 @@ export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
                   description: err.message,
                   duration: 5000,
                 })
+                return
               }
 
               toast.add({
