@@ -7,7 +7,7 @@ import type {
   NavigationMenuItem,
   NavigationMenuProps,
 } from '@nuxt/ui'
-import type { AddPropertyPrefix } from '~/types/helpers'
+import type { AddPropertyPrefix } from '../../types/helpers'
 import * as R from 'remeda'
 
 defineProps<{
