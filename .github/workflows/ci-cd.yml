@@ -46,5 +46,4 @@ jobs:
       - name: pnpm install
         uses: falcondev-it/.github/actions/pnpm-install@master
 
-      - run: pnpm nuxt prepare
       - run: pnpm run type-check

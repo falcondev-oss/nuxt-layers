@@ -2,7 +2,7 @@ import type { FormFieldTranslator } from '@falcondev-oss/form-core'
 import type { DateValue } from 'reka-ui'
 import { parseDate } from '@internationalized/date'
 
-export function nullUndefinedTranslator<T>() {
+export function undefinedNullTranslator<T>() {
   return {
     get(v: T | null) {
       return v ?? undefined
@@ -12,12 +12,12 @@ export function nullUndefinedTranslator<T>() {
     },
   }
 }
-export function nullIndeterminateTranslator(): FormFieldTranslator<
+export function indeterminateNullTranslator(): FormFieldTranslator<
   boolean | null,
   boolean | 'indeterminate'
 > {
   return {
-    get: (v) => v ?? ('indeterminate' as const),
+    get: (v) => v ?? 'indeterminate',
     set: (v) => (v === 'indeterminate' ? null : v),
   }
 }
@@ -26,7 +26,7 @@ export function indeterminateFalseTranslator(): FormFieldTranslator<
   boolean | 'indeterminate'
 > {
   return {
-    get: (v) => (v === false ? 'indeterminate' : v),
+    get: (v) => v || 'indeterminate',
     set: (v) => (v === 'indeterminate' ? false : v),
   }
 }
