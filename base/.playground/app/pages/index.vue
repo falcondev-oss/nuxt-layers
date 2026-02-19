@@ -7,12 +7,14 @@ const overlay = useOverlay()
 
 const form = useForm({
   schema: z.object({
-    duration: z.number(),
-    dateIso: z.string(),
+    duration: z.number().meta({ title: 'Duration' }),
+    dateIso: z.string().meta({ title: 'Datum' }),
+    text: z.string().max(10).meta({ title: 'Text' }).optional(),
   }),
   sourceValues: () => ({
     dateIso: null,
     duration: null,
+    text: '',
   }),
   async submit({ values }) {
     await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -230,6 +232,7 @@ const columns = useTableColumns<typeof data>(
       />
     </UCard>
     <UCard
+      class="max-w-sm"
       :ui="{
         body: 'flex flex-col gap-4 items-start ',
       }"
@@ -240,20 +243,24 @@ const columns = useTableColumns<typeof data>(
           title: 'test',
           description: 'wow',
         }"
+        class="flex flex-col gap-4"
       >
         {{ form.data }}
+        <UField v-slot="{ props }" :field="form.fields.text.$use()">
+          <UInput class="w-full" v-bind="props" />
+        </UField>
         <UField
-          v-slot="props"
+          v-slot="{ props }"
           :field="
             form.fields.dateIso.$use({
               translate: dateValueIsoTranslator(),
             })
           "
         >
-          <UInputDatePicker v-bind="props" />
+          <UInputDatePicker class="w-full" v-bind="props" />
         </UField>
-        <UField v-slot="props" :field="form.fields.duration.$use()">
-          <UInputDurationMinutes v-bind="props" />
+        <UField v-slot="{ props }" :field="form.fields.duration.$use()">
+          <UInputDurationMinutes class="w-full" v-bind="props" />
         </UField>
       </UForm>
     </UCard>
