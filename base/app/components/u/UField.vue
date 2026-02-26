@@ -84,7 +84,7 @@ const inputProps = computed(() => {
         <UPopover
           v-if="!!field.errors"
           mode="hover"
-          :delay-duration="0"
+          :open-delay="0"
           :ui="{
             content: 'bg-error-50 ring-error-200! rounded py-1 px-2',
           }"

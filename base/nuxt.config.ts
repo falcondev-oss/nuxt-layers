@@ -11,6 +11,12 @@ export default defineNuxtConfig({
   typescript: {
     strict: true,
     tsConfig: {
+      vueCompilerOptions: {
+        strictTemplates: true,
+        strictVModel: false,
+        htmlAttributes: ['aria-*'],
+        dataAttributes: ['data-*'],
+      },
       compilerOptions: {
         allowArbitraryExtensions: true,
       },

@@ -17,19 +17,22 @@
     "dev": "nuxi dev .playground",
     "prepare": "nuxt prepare",
     "dev:prepare": "nuxt prepare .playground",
-    "type-check": "vue-tsc --noEmit",
+    "type-check": "vue-tsc --build",
     "lint": "pnpm -w eslint:cmd \"$PWD\" && pnpm -w prettier:cmd \"$PWD\" --check",
     "lint:fix": "pnpm -w eslint:cmd \"$PWD\" --fix && pnpm -w prettier:cmd \"$PWD\" --write"
   },
+  "peerDependencies": {
+    "@nuxt/ui": "~4.5.0"
+  },
   "dependencies": {
-    "@falcondev-oss/form-core": "^0.21.1",
-    "@falcondev-oss/form-vue": "^0.21.1",
+    "@falcondev-oss/form-core": "^0.21.2",
+    "@falcondev-oss/form-vue": "^0.21.2",
     "@falcondev-oss/trpc-typed-form-data": "^0.4.1",
     "@falcondev-oss/trpc-vue-query": "^0.5.2",
     "@iconify-json/lucide": "^1.2.94",
     "@internationalized/date": "^3.11.0",
     "@nuxt/icon": "^2.2.1",
-    "@nuxt/ui": "4.4.0",
+    "@nuxt/ui": "~4.5.0",
     "@nuxtjs/color-mode": "^4.0.0",
     "@tanstack/vue-query": "^5.92.9",
     "@trpc/client": "^11.10.0",
