@@ -10,7 +10,7 @@ type InputSlotProps<T, Nullable extends boolean> = {
   'onBlur': () => void
   'disabled': boolean
   'loading': boolean
-  'modelModifiers': true extends Nullable ? { nullable: true } : never
+  'modelModifiers': true extends Nullable ? { nullable: true } : undefined
   'placeholder'?: string
 }
 
@@ -65,7 +65,7 @@ const inputProps = computed(() => {
     'loading': field.isPending,
     'modelModifiers': (props.nullable === true
       ? { nullable: true }
-      : undefined) as true extends Nullable ? { nullable: true } : never,
+      : undefined) as true extends Nullable ? { nullable: true } : undefined,
     placeholder,
   } satisfies InputSlotProps<T, Nullable>
 })
