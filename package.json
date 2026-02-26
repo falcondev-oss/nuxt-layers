@@ -17,8 +17,8 @@
   },
   "devDependencies": {
     "@falcondev-oss/configs": "^5.0.2",
-    "eslint": "^9.39.2",
+    "eslint": "^9.39.3",
     "prettier": "^3.8.1",
-    "turbo": "^2.8.3"
+    "turbo": "^2.8.11"
   }
 }

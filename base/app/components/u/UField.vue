@@ -1,31 +1,27 @@
-<script setup lang="ts" generic="T">
+<script setup lang="ts" generic="T, const Nullable extends boolean = false">
 import type { FormField } from '@falcondev-oss/form-core'
 import type { FormFieldProps, FormFieldSlots } from '@nuxt/ui'
-import type { ModelModifiers } from '@nuxt/ui/runtime/types/input.js'
 import { useForwardProps } from 'reka-ui'
 import * as R from 'remeda'
 
-type FieldSlotProps<T> = {
+type InputSlotProps<T, Nullable extends boolean> = {
   'modelValue': T
   'onUpdate:modelValue': (value: T) => void
   'onBlur': () => void
   'disabled': boolean
   'loading': boolean
-  'modelModifiers'?: Pick<ModelModifiers, 'nullable'>
+  'modelModifiers': true extends Nullable ? { nullable: true } : never
   'placeholder'?: string
 }
 
 const props = defineProps<
   FormFieldProps & {
     field: FormField<T>
-  }
+  } & { nullable?: Nullable }
 >()
 const slots = defineSlots<
   {
-    default: (slot: {
-      props: Omit<FieldSlotProps<T>, 'modelModifiers'>
-      field: FormField<T>
-    }) => any
+    default: (slot: { props: InputSlotProps<T, Nullable>; field: FormField<T> }) => any
   } & Omit<FormFieldSlots, 'default'>
 >()
 
@@ -67,11 +63,11 @@ const inputProps = computed(() => {
     'onBlur': () => field.handleBlur(),
     'disabled': field.disabled,
     'loading': field.isPending,
-    'modelModifiers': {
-      nullable: true,
-    },
+    'modelModifiers': (props.nullable === true
+      ? { nullable: true }
+      : undefined) as true extends Nullable ? { nullable: true } : never,
     placeholder,
-  } satisfies FieldSlotProps<T>
+  } satisfies InputSlotProps<T, Nullable>
 })
 </script>
 

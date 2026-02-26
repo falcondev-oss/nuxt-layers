@@ -9,7 +9,7 @@ const form = useForm({
   schema: z.object({
     duration: z.number().meta({ title: 'Duration' }),
     dateIso: z.string().meta({ title: 'Datum' }),
-    text: z.string().max(10).meta({ title: 'Text' }).optional(),
+    text: z.string().max(10).meta({ title: 'Text' }),
   }),
   sourceValues: () => ({
     dateIso: null,
@@ -69,86 +69,85 @@ const columns = useTableColumns<typeof data>(
 </script>
 
 <template>
-  <LayoutDashboard
-    :sidebar="{
-      items: [
-        {
-          label: 'Home',
-          icon: 'i-lucide-house',
-          active: true,
-        },
-        {
-          label: 'Inbox',
-          icon: 'i-lucide-inbox',
-          badge: '4',
-        },
-        {
-          label: 'Contacts',
-          icon: 'i-lucide-users',
-        },
-        {
-          label: 'Settings',
-          icon: 'i-lucide-settings',
-          defaultOpen: true,
-          children: [
-            {
-              label: 'General',
-            },
-            {
-              label: 'Members',
-            },
-            {
-              label: 'Notifications',
-            },
-          ],
-        },
-      ],
-      bottomItems: [
-        {
-          label: 'Home',
-          icon: 'i-lucide-house',
-          active: true,
-        },
-        {
-          label: 'Inbox',
-          icon: 'i-lucide-inbox',
-          badge: '4',
-        },
-        {
-          label: 'Contacts',
-          icon: 'i-lucide-users',
-        },
-        {
-          label: 'Settings',
-          icon: 'i-lucide-settings',
-          defaultOpen: true,
-          children: [
-            {
-              label: 'General',
-            },
-            {
-              label: 'Members',
-            },
-            {
-              label: 'Notifications',
-            },
-          ],
-        },
-      ],
-      userMenu: {
-        name: 'Benjamin Canac',
-        avatarSrc: 'https://github.com/benjamincanac.png',
+  <LayoutSidebar
+    :items="[
+      {
+        label: 'Home',
+        icon: 'i-lucide-house',
+        active: true,
       },
+      {
+        label: 'Inbox',
+        icon: 'i-lucide-inbox',
+        badge: '4',
+      },
+      {
+        label: 'Contacts',
+        icon: 'i-lucide-users',
+      },
+      {
+        label: 'Settings',
+        icon: 'i-lucide-settings',
+        defaultOpen: true,
+        children: [
+          {
+            label: 'General',
+          },
+          {
+            label: 'Members',
+          },
+          {
+            label: 'Notifications',
+          },
+        ],
+      },
+    ]"
+    :bottom-items="[
+      {
+        label: 'Home',
+        icon: 'i-lucide-house',
+        active: true,
+      },
+      {
+        label: 'Inbox',
+        icon: 'i-lucide-inbox',
+        badge: '4',
+      },
+      {
+        label: 'Contacts',
+        icon: 'i-lucide-users',
+      },
+      {
+        label: 'Settings',
+        icon: 'i-lucide-settings',
+        defaultOpen: true,
+        children: [
+          {
+            label: 'General',
+          },
+          {
+            label: 'Members',
+          },
+          {
+            label: 'Notifications',
+          },
+        ],
+      },
+    ]"
+    :user-menu="{
+      name: 'Benjamin Canac',
+      avatarSrc: 'https://github.com/benjamincanac.png',
     }"
-    :panel="{
-      navbar: {
+  >
+    <LayoutNavbar
+      :navbar="{
         title: 'Dashboard',
         ui: {
           root: 'relative',
           title: 'flex-1 absolute inset-0 w-full',
         },
-      },
-      toolbar: {
+      }"
+      :toolbar="{
         items: [
           {
             label: 'General',
@@ -179,90 +178,90 @@ const columns = useTableColumns<typeof data>(
             icon: 'i-lucide-bell',
           },
         ],
-      },
-    }"
-  >
-    <template #navbar-title>
-      <div class="w-full text-center">title</div>
-    </template>
+      }"
+    >
+      <template #navbar-title>
+        <div class="w-full text-center">title</div>
+      </template>
 
-    <UTableCard>
-      <UTable :data :columns @select="() => {}" />
-    </UTableCard>
-    <UCard
-      :ui="{
-        body: 'flex flex-col gap-4 items-start',
-      }"
-    >
-      <UButton
-        label="Confirm"
-        variant="subtle"
-        @click="
-          () => {
-            confirm.confirmDestructive({
-              title: 'Are you sure?',
-              description: 'This action cannot be undone.',
-              submitLabel: 'Yes, delete it',
-            })
-          }
-        "
-      />
-      <UButton
-        label="Actions"
-        variant="subtle"
-        @click="
-          () => {
-            overlay.create(LazyOverlayModalActions, {
-              defaultOpen: true,
-              props: {
-                title: 'Actions',
-                description: 'Choose an action to perform',
-                actions: [
-                  {
-                    label: 'Action 1',
-                  },
-                  {
-                    label: 'Action 2',
-                  },
-                ],
-              },
-            })
-          }
-        "
-      />
-    </UCard>
-    <UCard
-      class="max-w-sm"
-      :ui="{
-        body: 'flex flex-col gap-4 items-start ',
-      }"
-    >
-      <UForm
-        :form
-        :success-toast="{
-          title: 'test',
-          description: 'wow',
+      <UTableCard>
+        <UTable :data :columns @select="() => {}" />
+      </UTableCard>
+      <UCard
+        :ui="{
+          body: 'flex flex-col gap-4 items-start',
         }"
-        class="flex flex-col gap-4"
       >
-        {{ form.data }}
-        <UField v-slot="{ props }" :field="form.fields.text.$use()">
-          <UInput class="w-full" v-bind="props" />
-        </UField>
-        <UField
-          v-slot="{ props }"
-          :field="
-            form.fields.dateIso.$use({
-              translate: dateValueIsoTranslator(),
-            })
+        <UButton
+          label="Confirm"
+          variant="subtle"
+          @click="
+            () => {
+              confirm.confirmDestructive({
+                title: 'Are you sure?',
+                description: 'This action cannot be undone.',
+                submitLabel: 'Yes, delete it',
+              })
+            }
           "
+        />
+        <UButton
+          label="Actions"
+          variant="subtle"
+          @click="
+            () => {
+              overlay.create(LazyOverlayModalActions, {
+                defaultOpen: true,
+                props: {
+                  title: 'Actions',
+                  description: 'Choose an action to perform',
+                  actions: [
+                    {
+                      label: 'Action 1',
+                    },
+                    {
+                      label: 'Action 2',
+                    },
+                  ],
+                },
+              })
+            }
+          "
+        />
+      </UCard>
+      <UCard
+        class="max-w-sm"
+        :ui="{
+          body: 'flex flex-col gap-4 items-start ',
+        }"
+      >
+        <UForm
+          :form
+          :success-toast="{
+            title: 'test',
+            description: 'wow',
+          }"
+          class="flex flex-col gap-4"
         >
-          <UInputDatePicker class="w-full" v-bind="props" />
-        </UField>
-        <UField v-slot="{ props }" :field="form.fields.duration.$use()">
-          <UInputDurationMinutes class="w-full" v-bind="props" />
-        </UField>
-      </UForm>
-    </UCard>
-  </LayoutDashboard>
+          {{ form.data }}
+          <UField v-slot="{ props }" :field="form.fields.text.$use()">
+            <UInput class="w-full" v-bind="props" />
+          </UField>
+          <UField
+            v-slot="{ props }"
+            :field="
+              form.fields.dateIso.$use({
+                translate: dateValueIsoTranslator(),
+              })
+            "
+          >
+            <UInputDatePicker class="w-full" v-bind="props" />
+          </UField>
+          <UField v-slot="{ props }" :field="form.fields.duration.$use()">
+            <UInputDurationMinutes class="w-full" v-bind="props" />
+          </UField>
+        </UForm>
+      </UCard>
+    </LayoutNavbar>
+  </LayoutSidebar>
 </template>

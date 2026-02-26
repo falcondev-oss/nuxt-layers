@@ -22,11 +22,11 @@
     "lint:fix": "pnpm -w eslint:cmd \"$PWD\" --fix && pnpm -w prettier:cmd \"$PWD\" --write"
   },
   "dependencies": {
-    "@falcondev-oss/form-core": "^0.21.0",
-    "@falcondev-oss/form-vue": "^0.21.0",
+    "@falcondev-oss/form-core": "^0.21.1",
+    "@falcondev-oss/form-vue": "^0.21.1",
     "@falcondev-oss/trpc-typed-form-data": "^0.4.1",
     "@falcondev-oss/trpc-vue-query": "^0.5.2",
-    "@iconify-json/lucide": "^1.2.90",
+    "@iconify-json/lucide": "^1.2.94",
     "@internationalized/date": "^3.11.0",
     "@nuxt/icon": "^2.2.1",
     "@nuxt/ui": "4.4.0",
@@ -42,19 +42,19 @@
     "consola": "^3.4.2",
     "defu": "^6.1.4",
     "maska": "^3.2.0",
-    "reka-ui": "^2.8.0",
+    "reka-ui": "^2.8.2",
     "remeda": "^2.33.6",
     "superjson": "^2.2.6",
-    "tailwindcss": "^4.1.18",
+    "tailwindcss": "^4.2.1",
     "trpc-nuxt": "^2.0.1",
     "type-fest": "^5.4.4",
-    "vue": "^3.5.28",
+    "vue": "^3.5.29",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "nuxt": "^4.3.1",
     "typescript": "^5.9.3",
-    "vue-tsc": "^3.2.4",
+    "vue-tsc": "^3.2.5",
     "zod": "^4.3.6"
   }
 }
