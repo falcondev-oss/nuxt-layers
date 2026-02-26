@@ -117,7 +117,7 @@ const inputProps = computed(() => {
 <style scoped>
 :deep([aria-invalid='true']) {
   &::placeholder {
-    color: var(--ui-color-error-400);
+    color: var(--ui-color-error-500);
   }
 }
 </style>
