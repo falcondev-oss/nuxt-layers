@@ -1,10 +1,10 @@
-<script setup lang="ts" generic="M extends boolean = false">
+<script setup lang="ts" generic="Multiple extends boolean = false">
 import type { FileUploadEmits, FileUploadProps } from '@nuxt/ui'
 import { useForwardPropsEmits } from 'reka-ui'
 import { omit } from 'remeda'
 
 const props = defineProps<
-  FileUploadProps<M> & {
+  FileUploadProps<Multiple> & {
     /**
      * Set to `false` to disable compression
      */
@@ -40,7 +40,8 @@ const emit = defineEmits<
 >()
 const forwarded = useForwardPropsEmits(props, emit)
 
-const model = defineModel<(M extends true ? File[] : File) | null>()
+type Files = Multiple extends true ? File[] : File
+const model = defineModel<Files | null>()
 
 const compressedFiles = new WeakMap<File, File>()
 async function forwardFiles(files: File | File[] | null | undefined) {
@@ -57,9 +58,7 @@ async function forwardFiles(files: File | File[] | null | undefined) {
     }),
   )
 
-  model.value = (forwarded.value.multiple ? compressed : compressed[0]!) as M extends true
-    ? File[]
-    : File
+  model.value = (forwarded.value.multiple ? compressed : compressed[0]!) as Files
 }
 
 async function compressImage(file: File) {
@@ -92,6 +91,7 @@ async function compressImage(file: File) {
   canvas.height = img.height * scale
   const ctx = canvas.getContext('2d')!
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+  URL.revokeObjectURL(img.src)
 
   return new Promise<File>((resolve, reject) => {
     canvas.toBlob(
@@ -115,6 +115,7 @@ async function compressImage(file: File) {
       outputType,
       quality,
     )
+    canvas.remove()
   })
 }
 </script>
