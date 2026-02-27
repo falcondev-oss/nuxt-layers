@@ -1,27 +1,32 @@
-<script setup lang="ts" generic="T, const Nullable extends boolean = false">
+<script setup lang="ts" generic="T">
 import type { FormField } from '@falcondev-oss/form-core'
 import type { FormFieldProps, FormFieldSlots } from '@nuxt/ui'
 import { useForwardProps } from 'reka-ui'
 import * as R from 'remeda'
 
-type InputSlotProps<T, Nullable extends boolean> = {
+type InputProps<T> = {
   'modelValue': T
   'onUpdate:modelValue': (value: T) => void
   'onBlur': () => void
   'disabled': boolean
   'loading': boolean
-  'modelModifiers': true extends Nullable ? { nullable: true } : undefined
+  'modelModifiers': { nullable: true }
   'placeholder'?: string
 }
 
 const props = defineProps<
   FormFieldProps & {
     field: FormField<T>
-  } & { nullable?: Nullable }
+  }
 >()
+
 const slots = defineSlots<
   {
-    default: (slot: { props: InputSlotProps<T, Nullable>; field: FormField<T> }) => any
+    default: (slot: {
+      bind: InputProps<T>
+      model: WritableComputedRef<T>
+      field: FormField<T>
+    }) => any
   } & Omit<FormFieldSlots, 'default'>
 >()
 
@@ -52,7 +57,7 @@ const formFieldProps = computed<FormFieldProps>(() => {
   }
 })
 
-const inputProps = computed(() => {
+const bind = computed(() => {
   const field = forwardedProps.value.field
 
   const placeholder = field.errors && field.errors.join('\n')
@@ -63,12 +68,21 @@ const inputProps = computed(() => {
     'onBlur': () => field.handleBlur(),
     'disabled': field.disabled,
     'loading': field.isPending,
-    'modelModifiers': (props.nullable === true
-      ? { nullable: true }
-      : undefined) as true extends Nullable ? { nullable: true } : undefined,
     placeholder,
-  } satisfies InputSlotProps<T, Nullable>
+    'modelModifiers': { nullable: true },
+  } satisfies InputProps<T>
 })
+
+const model = computed({
+  get() {
+    return forwardedProps.value.field.value
+  },
+  set(value: T) {
+    forwardedProps.value.field.handleChange(value)
+  },
+})
+
+const model_ = { model }
 </script>
 
 <template>
@@ -101,7 +115,7 @@ const inputProps = computed(() => {
       </span>
     </template>
 
-    <slot v-bind="{ props: inputProps, field: forwardedProps.field }">
+    <slot v-bind="{ bind, model: model_.model, field: forwardedProps.field }">
       <DevOnly>
         <p class="font-black text-red-500">UField missing slot</p>
       </DevOnly>

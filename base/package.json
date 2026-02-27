@@ -32,7 +32,6 @@
     "@iconify-json/lucide": "^1.2.94",
     "@internationalized/date": "^3.11.0",
     "@nuxt/icon": "^2.2.1",
-    "@nuxt/ui": "~4.5.0",
     "@nuxtjs/color-mode": "^4.0.0",
     "@tanstack/vue-query": "^5.92.9",
     "@trpc/client": "^11.10.0",

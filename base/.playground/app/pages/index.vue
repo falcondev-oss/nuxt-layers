@@ -244,21 +244,21 @@ const columns = useTableColumns<typeof data>(
           class="flex flex-col gap-4"
         >
           {{ form.data }}
-          <UField v-slot="{ props }" :field="form.fields.text.$use()">
-            <UInput class="w-full" v-bind="props" />
+          <UField v-slot="{ bind }" :field="form.fields.text.$use()">
+            <UInput class="w-full" v-bind="bind" />
           </UField>
           <UField
-            v-slot="{ props }"
+            v-slot="{ bind }"
             :field="
               form.fields.dateIso.$use({
                 translate: dateValueIsoTranslator(),
               })
             "
           >
-            <UInputDatePicker class="w-full" v-bind="props" />
+            <UInputDatePicker class="w-full" v-bind="bind" />
           </UField>
-          <UField v-slot="{ props }" :field="form.fields.duration.$use()">
-            <UInputDurationMinutes class="w-full" v-bind="props" />
+          <UField v-slot="{ bind }" :field="form.fields.duration.$use()">
+            <UInputDurationMinutes class="w-full" v-bind="bind" />
           </UField>
         </UForm>
       </UCard>
