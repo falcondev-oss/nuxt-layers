@@ -9,7 +9,16 @@ const form = useForm({
   schema: z.object({
     duration: z.number().meta({ title: 'Duration' }),
     dateIso: z.string().meta({ title: 'Datum' }),
-    text: z.string().max(10).meta({ title: 'Text' }),
+    text: z
+      .string()
+      .min(3)
+      .max(10)
+      .meta({
+        title: 'Text',
+        description: 'Beschreibung',
+        default: 'Default Wert',
+        examples: ['Hier könnte ein Beispieltext stehen', '123'],
+      }),
   }),
   sourceValues: () => ({
     dateIso: null,

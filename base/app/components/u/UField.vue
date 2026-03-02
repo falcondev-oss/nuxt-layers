@@ -60,7 +60,7 @@ const formFieldProps = computed<FormFieldProps>(() => {
 const bind = computed(() => {
   const field = forwardedProps.value.field
 
-  const placeholder = field.errors && field.errors.join('\n')
+  const placeholder = (field.errors && field.errors.join('\n')) || field.schema.default?.toString()
 
   return {
     'modelValue': field.value,
@@ -115,6 +115,19 @@ const model_ = { model }
       </span>
     </template>
 
+    <template #help>
+      <template v-if="Array.isArray(field.schema.examples)">
+        <ul>
+          <li v-for="(example, index) in field.schema.examples" :key="index">
+            {{ example }}
+          </li>
+        </ul>
+      </template>
+      <p v-else-if="field.schema.examples">
+        {{ field.schema.examples }}
+      </p>
+    </template>
+
     <slot v-bind="{ bind, model: model_.model, field: forwardedProps.field }">
       <DevOnly>
         <p class="font-black text-red-500">UField missing slot</p>
@@ -132,6 +145,7 @@ const model_ = { model }
 :deep([aria-invalid='true']) {
   &::placeholder {
     color: var(--ui-color-error-500);
+    opacity: 0.5;
   }
 }
 </style>
