@@ -8,6 +8,7 @@ const props = withDefaults(
     submitLabel?: string
     submitButtonProps?: ButtonProps
     actions?: ButtonProps[]
+    actionsTeleportTo?: string
     form: FormHandle
     disableSubmitIfUnchanged?: boolean
     successToast?: Partial<Toast>
@@ -42,9 +43,7 @@ watch(
       },
     })
   },
-  {
-    immediate: true,
-  },
+  { immediate: true },
 )
 
 const actionsWithSubmit = computed(() => {
@@ -78,12 +77,9 @@ const rootErrors = computed(() => props.form.errors?.filter((error) => error.pat
         </li>
       </ul>
       <div class="flex items-center justify-end gap-4">
-        <UActions
-          :defaults="{
-            variant: 'subtle',
-          }"
-          :actions="actionsWithSubmit"
-        />
+        <Teleport defer :disabled="!props.actionsTeleportTo" :to="props.actionsTeleportTo">
+          <UActions :defaults="{ variant: 'subtle' }" :actions="actionsWithSubmit" />
+        </Teleport>
       </div>
     </div>
   </form>
