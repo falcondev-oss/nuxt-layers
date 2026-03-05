@@ -105,9 +105,17 @@ const model_ = { model }
         >
           <UIcon name="lucide:circle-alert" class="text-error" />
           <template #content>
-            <p class="text-(--ui-color-neutral-800) max-w-sm whitespace-normal text-xs">
-              {{ field.errors.join('\n') }}
-            </p>
+            <div class="text-(--ui-color-neutral-800) max-w-sm text-xs">
+              <p v-if="field.errors.length === 1">
+                {{ field.errors.join('\n') }}
+              </p>
+
+              <ul v-else>
+                <li v-for="(error, index) in field.errors" :key="error + index" class="list-inside">
+                  {{ error }}
+                </li>
+              </ul>
+            </div>
           </template>
         </UPopover>
 
