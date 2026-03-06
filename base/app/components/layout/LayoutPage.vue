@@ -39,6 +39,7 @@ const omitHeaderSlots = [
   'header-title',
   'header-right',
   'header-default',
+  'header-body',
 ] satisfies (keyof typeof slots)[]
 
 const headerSlots = computed(() =>
@@ -97,11 +98,33 @@ const footerSlots = computed(() =>
         <slot name="header-right">
           <UActions
             v-if="header.actions"
+            class="max-sm:hidden"
             :actions="header.actions"
             :defaults="{
               variant: 'subtle',
             }"
           />
+        </slot>
+      </template>
+
+      <template #body>
+        <slot name="header-body">
+          <div class="flex flex-col gap-4">
+            <UNavigationMenu
+              v-if="header.navigation"
+              v-bind="header.navigation"
+              orientation="vertical"
+            />
+            <USeparator v-if="header.navigation && header.actions" />
+            <UActions
+              v-if="header.actions"
+              class="flex-col"
+              :actions="header.actions"
+              :defaults="{
+                variant: 'subtle',
+              }"
+            />
+          </div>
         </slot>
       </template>
 
