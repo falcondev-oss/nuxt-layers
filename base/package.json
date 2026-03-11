@@ -22,11 +22,11 @@
     "lint:fix": "pnpm -w eslint:cmd \"$PWD\" --fix && pnpm -w prettier:cmd \"$PWD\" --write"
   },
   "peerDependencies": {
+    "@falcondev-oss/form-core": "^0.22.4",
+    "@falcondev-oss/form-vue": "^0.22.4",
     "@nuxt/ui": "~4.5.0"
   },
   "dependencies": {
-    "@falcondev-oss/form-core": "^0.22.4",
-    "@falcondev-oss/form-vue": "^0.22.4",
     "@falcondev-oss/trpc-typed-form-data": "^0.4.1",
     "@falcondev-oss/trpc-vue-query": "^0.5.2",
     "@iconify-json/lucide": "^1.2.96",
