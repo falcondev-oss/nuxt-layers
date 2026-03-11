@@ -11,8 +11,8 @@ const form = useForm({
     dateIso: z.string().meta({ title: 'Datum' }),
     text: z
       .string()
-      .min(3)
-      .max(10)
+      .length(8)
+      // .max(8)
       .meta({
         title: 'Text',
         description: 'Beschreibung',
@@ -253,7 +253,8 @@ const columns = useTableColumns<typeof data>(
           class="flex flex-col gap-4"
         >
           {{ form.data }}
-          <UField v-slot="{ bind }" :field="form.fields.text.$use()">
+          <UField v-slot="{ bind, field }" :field="form.fields.text.$use()">
+            {{ field.schema }}
             <UInput class="w-full" v-bind="bind" />
           </UField>
           <UField

@@ -44,7 +44,7 @@ const formFieldProps = computed<FormFieldProps>(() => {
   const { field, ...rest } = forwardedProps.value
 
   const hint =
-    field.schema.maxLength === undefined
+    field.schema.maxLength === undefined || field.schema.maxLength === field.schema.minLength
       ? undefined
       : `${(field.value as string | number | null)?.toString().length ?? 0}/${field.schema.maxLength}`
 
