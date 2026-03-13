@@ -20,11 +20,10 @@ export function usePreventPageLeave(
     if (!toValue(preventPageLeave)) return next()
 
     const allowLeave = await confirm.confirmDestructive({
-      title: opts?.leaveTitle || 'Unsaved Changes',
+      title: opts?.leaveTitle || 'Ungespeicherte Änderungen',
       description:
-        opts?.leaveDescription ||
-        'You have unsaved changes. Are you sure you want to leave this page?',
-      submitLabel: 'Leave Page',
+        opts?.leaveDescription || 'Es gibt ungespeicherte Änderungen. Seite trotzdem verlassen?',
+      submitLabel: 'Verlassen',
     })
     if (allowLeave) return next()
   })
