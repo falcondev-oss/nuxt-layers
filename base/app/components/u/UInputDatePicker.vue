@@ -1,17 +1,38 @@
 <script setup lang="ts">
 import type { DateValue } from '@internationalized/date'
+import type { CalendarProps, InputDateProps } from '@nuxt/ui'
+
+defineProps<{
+  input?: InputDateProps
+  calendar?: CalendarProps
+  disabled?: boolean
+  loading?: boolean
+  placeholder?: string
+}>()
+
+const emit = defineEmits<{
+  blur: []
+}>()
 
 const inputDate = useTemplateRef('inputDate')
 
 const model = defineModel<DateValue | null>({ required: true })
 const open = ref(false)
+
+watch(open, () => {
+  if (!open.value) emit('blur')
+})
 </script>
 
 <template>
   <UInputDate
     ref="inputDate"
-    :model-value="model"
+    v-bind="input"
+    :disabled
+    :loading
     :range="false"
+    :model-value="model"
+    @blur="() => emit('blur')"
     @update:model-value="
       (val) => {
         model = val ?? null
@@ -25,6 +46,7 @@ const open = ref(false)
         <template #content>
           <div class="p-2">
             <UCalendar
+              v-bind="calendar"
               :model-value="model ?? undefined"
               :multiple="false"
               :range="false"

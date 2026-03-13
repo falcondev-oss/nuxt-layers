@@ -123,7 +123,7 @@ const model_ = { model }
       </span>
     </template>
 
-    <template #help>
+    <template v-if="field.schema.examples" #help>
       <template v-if="Array.isArray(field.schema.examples)">
         <ul>
           <li v-for="(example, index) in field.schema.examples" :key="index">
@@ -131,7 +131,7 @@ const model_ = { model }
           </li>
         </ul>
       </template>
-      <p v-else-if="field.schema.examples">
+      <p v-else>
         {{ field.schema.examples }}
       </p>
     </template>

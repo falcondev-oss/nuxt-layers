@@ -70,14 +70,17 @@ const rootErrors = computed(() => props.form.errors?.filter((error) => error.pat
 <template>
   <form class="w-full" @submit.prevent="() => form.submit()">
     <slot />
-    <div class="col-span-full flex w-full flex-col gap-4">
+    <div
+      v-show="rootErrors?.length || !actionsTeleportTo"
+      class="col-span-full flex w-full flex-col gap-4"
+    >
       <ul v-if="rootErrors?.length" class="text-error text-sm">
         <li v-for="error of rootErrors" :key="`${error.path}:${error.message}`">
           {{ error.path }}:{{ error.message }}
         </li>
       </ul>
-      <div class="flex items-center justify-end gap-4">
-        <Teleport defer :disabled="!props.actionsTeleportTo" :to="props.actionsTeleportTo">
+      <div v-show="!actionsTeleportTo" class="flex items-center justify-end gap-4">
+        <Teleport defer :disabled="!actionsTeleportTo" :to="actionsTeleportTo">
           <UActions :defaults="{ variant: 'subtle' }" :actions="actionsWithSubmit" />
         </Teleport>
       </div>
