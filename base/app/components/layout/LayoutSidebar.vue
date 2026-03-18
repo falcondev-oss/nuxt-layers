@@ -42,8 +42,9 @@ const config = useRuntimeConfig()
       :default-size="16"
       collapsible
       :ui="{
-        header: 'border-b border-default',
-        footer: 'border-t border-default',
+        ...sidebar?.ui,
+        header: [sidebar?.ui?.header ?? '', 'border-b border-default'].join(' ').trim(),
+        footer: [sidebar?.ui?.footer ?? '', 'border-t border-default'].join(' ').trim(),
       }"
     >
       <template

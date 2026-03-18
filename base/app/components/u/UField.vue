@@ -89,7 +89,8 @@ const model_ = { model }
   <UFormField
     v-bind="formFieldProps"
     :ui="{
-      hint: isOverMaxLength ? 'text-error' : '',
+      ...formFieldProps.ui,
+      hint: [formFieldProps.ui?.hint ?? '', isOverMaxLength ? 'text-error' : ''].join(' ').trim(),
     }"
     :error="!!field.errors"
   >
