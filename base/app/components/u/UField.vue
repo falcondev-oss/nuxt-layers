@@ -93,6 +93,7 @@ const model_ = { model }
       hint: [formFieldProps.ui?.hint ?? '', isOverMaxLength ? 'text-error' : ''].join(' ').trim(),
     }"
     :error="!!field.errors"
+    :class="props.class"
   >
     <template #hint="{ hint }">
       <span class="flex items-center gap-1.5">
