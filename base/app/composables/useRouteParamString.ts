@@ -7,7 +7,8 @@ export function useRouteParamString(paramName: string) {
   const stop = watch(
     param,
     () => {
-      if (typeof param.value !== 'string') throw new Error(`${paramName} must be string`)
+      if (typeof param.value !== 'string')
+        throw new Error(`Route parameter '[${paramName}]' must be a string`)
       paramRef.value = param.value
     },
     { immediate: true },

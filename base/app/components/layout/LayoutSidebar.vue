@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import type { DashboardSidebarProps, NavigationMenuItem, NavigationMenuProps } from '@nuxt/ui'
+import type {
+  AvatarProps,
+  DashboardSidebarProps,
+  DropdownMenuItem,
+  NavigationMenuItem,
+  NavigationMenuProps,
+} from '@nuxt/ui'
 
 defineProps<{
   sidebar?: DashboardSidebarProps
@@ -11,7 +17,8 @@ defineProps<{
   bottomItems?: NavigationMenuItem[]
   userMenu?: {
     name: string
-    avatarSrc?: string
+    avatar?: AvatarProps
+    items: DropdownMenuItem[]
   }
   itemsUi?: NavigationMenuProps['ui']
   bottomItemsUi?: NavigationMenuProps['ui']
@@ -28,7 +35,17 @@ const config = useRuntimeConfig()
 
 <template>
   <UDashboardGroup storage="local" :storage-key="`${config.public.projectId}-dashboard`" unit="rem">
-    <UDashboardSidebar v-bind="sidebar" class="bg-white" mode="drawer">
+    <UDashboardSidebar
+      v-bind="sidebar"
+      class="bg-white"
+      mode="drawer"
+      :default-size="16"
+      collapsible
+      :ui="{
+        header: 'border-b border-default',
+        footer: 'border-t border-default',
+      }"
+    >
       <template
         v-if="logo?.src || logo?.iconSrc || slots.logo || slots.icon"
         #header="{ collapsed }"
@@ -66,19 +83,30 @@ const config = useRuntimeConfig()
         />
       </template>
       <template v-if="userMenu" #footer="{ collapsed }">
-        <UButton
-          :label="collapsed ? undefined : userMenu.name"
-          :avatar="{
-            src: userMenu.avatarSrc,
-            alt: userMenu.name,
-          }"
-          color="neutral"
-          variant="ghost"
-          class="w-full"
-          :block="collapsed"
-        />
+        <UDropdownMenu :items="userMenu.items">
+          <UButton
+            :label="collapsed ? undefined : userMenu.name"
+            :trailing-icon="collapsed ? undefined : 'ph:caret-up-down'"
+            :icon="userMenu.avatar ? undefined : 'lucide:user-round'"
+            :avatar="userMenu.avatar"
+            color="neutral"
+            variant="ghost"
+            block
+            :square="collapsed"
+            class="data-[state=open]:bg-elevated"
+            :ui="{
+              leadingIcon: 'text-accented',
+              trailingIcon: 'text-dimmed',
+            }"
+          />
+        </UDropdownMenu>
       </template>
     </UDashboardSidebar>
-    <slot />
+
+    <div class="relative w-full">
+      <Suspense>
+        <slot />
+      </Suspense>
+    </div>
   </UDashboardGroup>
 </template>

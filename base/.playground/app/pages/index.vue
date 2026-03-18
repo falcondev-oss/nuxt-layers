@@ -145,7 +145,13 @@ const columns = useTableColumns<typeof data>(
     ]"
     :user-menu="{
       name: 'Benjamin Canac',
-      avatarSrc: 'https://github.com/benjamincanac.png',
+      avatar: { src: 'https://github.com/benjamincanac.png' },
+      items: [
+        {
+          icon: 'lucide:log-out',
+          label: 'Logout',
+        },
+      ],
     }"
   >
     <LayoutNavbar
