@@ -145,7 +145,7 @@ const columns = useTableColumns<typeof data>(
     ]"
     :user-menu="{
       name: 'Benjamin Canac',
-      avatar: { src: 'https://github.com/benjamincanac.png' },
+      // avatar: { src: 'https://github.com/benjamincanac.png' },
       items: [
         {
           icon: 'lucide:log-out',
@@ -259,7 +259,7 @@ const columns = useTableColumns<typeof data>(
           class="flex flex-col gap-4"
         >
           {{ form.data }}
-          <UField v-slot="{ bind, field }" :field="form.fields.text.$use()">
+          <UField v-slot="{ bind, field }" :field="form.fields.text.$use()" error-inline>
             {{ field.schema }}
             <UInput class="w-full" v-bind="bind" />
           </UField>

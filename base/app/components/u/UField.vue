@@ -1,6 +1,7 @@
 <script setup lang="ts" generic="T">
 import type { FormField } from '@falcondev-oss/form-core'
 import type { FormFieldProps, FormFieldSlots } from '@nuxt/ui'
+import { createReusableTemplate } from '@vueuse/core'
 import { useForwardProps } from 'reka-ui'
 import * as R from 'remeda'
 
@@ -17,6 +18,7 @@ type InputProps<T> = {
 const props = defineProps<
   FormFieldProps & {
     field: FormField<T>
+    errorInline?: boolean
   }
 >()
 
@@ -83,6 +85,12 @@ const model = computed({
 })
 
 const model_ = { model }
+
+const [DefineErrorTemplate, ErrorTemplate] = createReusableTemplate({
+  props: {
+    errors: Array as PropType<string[]>,
+  },
+})
 </script>
 
 <template>
@@ -90,12 +98,33 @@ const model_ = { model }
     v-bind="formFieldProps"
     :ui="{
       ...formFieldProps.ui,
-      hint: [formFieldProps.ui?.hint ?? '', isOverMaxLength ? 'text-error' : ''].join(' ').trim(),
+      hint: [formFieldProps.ui?.hint, isOverMaxLength ? 'text-error' : ''],
+      error: [formFieldProps.ui?.error, 'mt-1!'],
     }"
     :error="!!field.errors"
     :class="props.class"
   >
-    <template #hint="{ hint }">
+    <DefineErrorTemplate v-slot="{ errors }">
+      <p v-if="errors.length === 1">
+        {{ errors.join('\n') }}
+      </p>
+
+      <ul v-else>
+        <li v-for="(error, index) in errors" :key="error + index" class="list-inside">
+          {{ error }}
+        </li>
+      </ul>
+    </DefineErrorTemplate>
+
+    <template v-if="field.errors && errorInline" #error>
+      <ErrorTemplate :errors="field.errors" />
+
+      <template v-if="typeof error === 'string'">
+        {{ error }}
+      </template>
+    </template>
+
+    <template v-else #hint="{ hint }">
       <span class="flex items-center gap-1.5">
         <UPopover
           v-if="!!field.errors"
@@ -108,15 +137,7 @@ const model_ = { model }
           <UIcon name="lucide:circle-alert" class="text-error" />
           <template #content>
             <div class="text-(--ui-color-neutral-800) max-w-sm text-xs">
-              <p v-if="field.errors.length === 1">
-                {{ field.errors.join('\n') }}
-              </p>
-
-              <ul v-else>
-                <li v-for="(error, index) in field.errors" :key="error + index" class="list-inside">
-                  {{ error }}
-                </li>
-              </ul>
+              <ErrorTemplate :errors="field.errors" />
             </div>
           </template>
         </UPopover>
