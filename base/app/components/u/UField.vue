@@ -19,6 +19,7 @@ const props = defineProps<
   FormFieldProps & {
     field: FormField<T>
     errorInline?: boolean
+    errorPreferPlaceholder?: boolean
   }
 >()
 
@@ -62,7 +63,7 @@ const formFieldProps = computed<FormFieldProps>(() => {
 const bind = computed(() => {
   const field = forwardedProps.value.field
 
-  const placeholder = (field.errors && field.errors.join('\n')) || field.schema.default?.toString()
+  const placeholder = (field.errors && field.errors[0]) || field.schema.default?.toString()
 
   return {
     'modelValue': field.value,
@@ -116,7 +117,14 @@ const [DefineErrorTemplate, ErrorTemplate] = createReusableTemplate({
       </ul>
     </DefineErrorTemplate>
 
-    <template v-if="field.errors && errorInline" #error>
+    <template
+      v-if="
+        field.errors &&
+        errorInline &&
+        (errorPreferPlaceholder ? String(field.value).length > 0 : true)
+      "
+      #error
+    >
       <ErrorTemplate :errors="field.errors" />
 
       <template v-if="typeof error === 'string'">
@@ -127,7 +135,7 @@ const [DefineErrorTemplate, ErrorTemplate] = createReusableTemplate({
     <template v-else #hint="{ hint }">
       <span class="flex items-center gap-1.5">
         <UPopover
-          v-if="!!field.errors"
+          v-if="!!field.errors && (errorPreferPlaceholder ? String(field.value).length > 0 : true)"
           mode="hover"
           :open-delay="0"
           :ui="{
