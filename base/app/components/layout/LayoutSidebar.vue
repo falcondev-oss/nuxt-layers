@@ -39,7 +39,6 @@ const config = useRuntimeConfig()
       v-bind="sidebar"
       class="bg-white"
       mode="drawer"
-      :default-size="16"
       collapsible
       :ui="{
         ...sidebar?.ui,
@@ -104,10 +103,6 @@ const config = useRuntimeConfig()
       </template>
     </UDashboardSidebar>
 
-    <div class="relative w-full">
-      <Suspense>
-        <slot />
-      </Suspense>
-    </div>
+    <slot />
   </UDashboardGroup>
 </template>
