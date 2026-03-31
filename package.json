@@ -19,6 +19,6 @@
     "@falcondev-oss/configs": "^5.0.2",
     "eslint": "^9.39.4",
     "prettier": "^3.8.1",
-    "turbo": "^2.8.16"
+    "turbo": "^2.9.1"
   }
 }
