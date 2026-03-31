@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type {
+  ArrayOrNested,
   AvatarProps,
   DashboardSidebarProps,
   DropdownMenuItem,
@@ -18,7 +19,7 @@ defineProps<{
   userMenu?: {
     name: string
     avatar?: AvatarProps
-    items: DropdownMenuItem[]
+    items: ArrayOrNested<DropdownMenuItem>
   }
   itemsUi?: NavigationMenuProps['ui']
   bottomItemsUi?: NavigationMenuProps['ui']
