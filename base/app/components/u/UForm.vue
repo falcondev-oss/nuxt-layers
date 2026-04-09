@@ -79,10 +79,16 @@ const rootErrors = computed(() => props.form.errors?.filter((error) => error.pat
           {{ error.path }}:{{ error.message }}
         </li>
       </ul>
-      <hr class="w-full h-px text-(--ui-border-muted)" />
+
+      <hr class="text-(--ui-border-muted) h-px w-full" />
+
       <div v-show="!actionsTeleportTo" class="flex items-center justify-end gap-4">
         <Teleport defer :disabled="!actionsTeleportTo" :to="actionsTeleportTo">
-          <UActions :defaults="{ variant: 'subtle' }" :actions="actionsWithSubmit" class="contents!" />
+          <UActions
+            :defaults="{ variant: 'subtle' }"
+            :actions="actionsWithSubmit"
+            class="contents!"
+          />
         </Teleport>
       </div>
     </div>
