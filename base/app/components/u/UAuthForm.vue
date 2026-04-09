@@ -23,7 +23,7 @@ const props = defineProps<
 >()
 const slots = defineSlots<AuthFormSlots<Reactive<InferInput<T>>, F>>()
 
-const forwarded = useForwardProps(props) as ComputedRef<Omit<typeof props, 'onSubmit'>>
+const forwarded = useForwardProps(props)
 </script>
 
 <template>
