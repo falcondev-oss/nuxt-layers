@@ -24,10 +24,10 @@ importers:
   base:
     dependencies:
       '@falcondev-oss/form-core':
-        specifier: ^0.22.4
+        specifier: '>=0.22.4'
         version: 0.22.4(@vue/reactivity@3.5.32)(vue@3.5.32(typescript@5.9.3))
       '@falcondev-oss/form-vue':
-        specifier: ^0.22.4
+        specifier: '>=0.22.4'
         version: 0.22.4(@vue/reactivity@3.5.32)(vue@3.5.32(typescript@5.9.3))
       '@falcondev-oss/trpc-typed-form-data':
         specifier: ^0.4.3
@@ -39,13 +39,13 @@ importers:
         specifier: ^1.2.101
         version: 1.2.101
       '@internationalized/date':
-        specifier: ^3.12.0
+        specifier: '>=3.12.0'
         version: 3.12.0
       '@nuxt/icon':
         specifier: ^2.2.1
         version: 2.2.1(magicast@0.5.2)(vite@7.3.2(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(yaml@2.8.3))(vue@3.5.32(typescript@5.9.3))
       '@nuxt/ui':
-        specifier: ~4.6.1
+        specifier: '>=4.6.1'
         version: 4.6.1(@tiptap/extensions@3.22.3(@tiptap/core@3.22.3(@tiptap/pm@3.22.3))(@tiptap/pm@3.22.3))(@tiptap/y-tiptap@3.0.1(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.8)(y-protocols@1.0.7(yjs@13.6.29))(yjs@13.6.29))(change-case@5.4.4)(db0@0.3.4)(embla-carousel@8.6.0)(ioredis@5.10.1)(magicast@0.5.2)(tailwindcss@4.2.2)(typescript@5.9.3)(vite@7.3.2(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(yaml@2.8.3))(vue-router@5.0.4(@vue/compiler-sfc@3.5.32)(vue@3.5.32(typescript@5.9.3)))(vue@3.5.32(typescript@5.9.3))(yjs@13.6.29)(zod@4.3.6)
       '@nuxtjs/color-mode':
         specifier: ^4.0.0
@@ -9137,8 +9137,8 @@ snapshots:
 
   '@typescript-eslint/project-service@8.56.1(typescript@5.9.3)':
     dependencies:
-      '@typescript-eslint/tsconfig-utils': 8.56.1(typescript@5.9.3)
-      '@typescript-eslint/types': 8.56.1
+      '@typescript-eslint/tsconfig-utils': 8.58.0(typescript@5.9.3)
+      '@typescript-eslint/types': 8.58.0
       debug: 4.4.3
       typescript: 5.9.3
     transitivePeerDependencies:
