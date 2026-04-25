@@ -1,5 +1,5 @@
 /* eslint-disable ts/no-empty-object-type */
-import type { AllUnionFields, UnionToTuple } from 'type-fest'
+import type { AllUnionFields, Schema, UnionToTuple } from 'type-fest'
 import type {
   ComponentOptionsMixin,
   CreateComponentPublicInstanceWithMixins,
@@ -8,8 +8,15 @@ import type {
   PublicProps,
   RenderFunction,
   SetupContext,
+  Slots as SlotOptions,
   SlotsType,
 } from 'vue'
+
+declare module 'vue' {
+  interface ComponentCustomProps {
+    vSlots?: SlotOptions
+  }
+}
 
 export function defineSetupComponent<
   const Opts extends {
@@ -57,20 +64,22 @@ export function defineSetupComponent<
   }) as any
 }
 
-export function defineProps<
+export function props<
   const Opts extends {
     props: Record<string, any>
   },
   const RuntimeProps extends UnionToTuple<keyof AllUnionFields<Opts['props']>>,
+  // eslint-disable-next-line no-shadow
 >(_opts: Opts, props: NoInfer<RuntimeProps>): NoInfer<RuntimeProps> {
   return props
 }
 
-export function defineEmits<
+export function emits<
   const Opts extends {
     emits: ObjectEmitsOptions
   },
   const RuntimeEmits extends UnionToTuple<keyof AllUnionFields<Opts['emits']>>,
+  // eslint-disable-next-line no-shadow
 >(_opts: Opts, emits: NoInfer<RuntimeEmits>): NoInfer<RuntimeEmits> {
   return emits
 }
@@ -89,4 +98,15 @@ export function generic<
   ) => RenderFunction | Promise<RenderFunction>,
 >(_opts: Opts, setup: Setup): NoInfer<Setup> {
   return setup
+}
+
+// https://github.com/vuejs/language-tools/blob/master/packages/component-type-helpers/index.ts
+type ComponentSlots<T> = T extends new (...args: any) => { $slots: infer S }
+  ? NonNullable<S>
+  : T extends (props: any, ctx: { slots: infer S; attrs: any; emit: any }, ...args: any) => any
+    ? NonNullable<S>
+    : {}
+
+export function vSlots<C>(component: C, slots: ComponentSlots<C>) {
+  return slots
 }

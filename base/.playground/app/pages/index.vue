@@ -278,6 +278,20 @@ const columns = useTableColumns<typeof data>(
           </UField>
         </UForm>
       </UCard>
+      <Select
+        :items="[
+          { label: 'One', value: '1' },
+          { label: 'Two', value: '2' },
+        ]"
+        @choose="console.warn"
+      >
+        <template #selected="{ item }">
+          <div class="flex items-center gap-2">
+            <span>Selected:</span>
+            <span>{{ item.label }}</span>
+          </div>
+        </template>
+      </Select>
     </LayoutNavbar>
   </LayoutSidebar>
 </template>

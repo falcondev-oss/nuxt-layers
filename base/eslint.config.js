@@ -13,10 +13,6 @@ export default eslintConfig({
     '.output/',
     '.temp/',
     '.data/',
-    'drizzle/',
-    'prisma/generated/',
-    'convex/_generated/',
     'pnpm-lock.yaml',
-    '.playground/',
   ],
 })

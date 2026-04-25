@@ -38,6 +38,7 @@ export default defineNuxtConfig({
           noImplicitOverride: true,
           noUncheckedIndexedAccess: true,
         },
+        exclude: ['.playground/'],
       },
       strict: true,
     },

@@ -29,11 +29,11 @@
   },
   "dependencies": {
     "@falcondev-oss/trpc-typed-form-data": "^0.4.3",
-    "@falcondev-oss/trpc-vue-query": "^0.5.3",
-    "@iconify-json/lucide": "^1.2.101",
+    "@falcondev-oss/trpc-vue-query": "^0.5.4",
+    "@iconify-json/lucide": "^1.2.103",
     "@nuxt/icon": "^2.2.1",
     "@nuxtjs/color-mode": "^4.0.0",
-    "@tanstack/vue-query": "^5.97.0",
+    "@tanstack/vue-query": "^5.100.1",
     "@trpc/client": "^11.16.0",
     "@trpc/server": "^11.16.0",
     "@vue/devtools-api": "^8.1.1",
@@ -44,19 +44,19 @@
     "consola": "^3.4.2",
     "defu": "^6.1.7",
     "maska": "^3.2.0",
-    "reka-ui": "^2.9.5",
+    "reka-ui": "^2.9.6",
     "remeda": "^2.33.7",
     "superjson": "^2.2.6",
-    "tailwindcss": "^4.2.2",
+    "tailwindcss": "^4.2.4",
     "trpc-nuxt": "^2.0.2",
-    "type-fest": "^5.5.0",
-    "vue": "^3.5.32",
-    "vue-router": "^5.0.4"
+    "type-fest": "^5.6.0",
+    "vue": "^3.5.33",
+    "vue-router": "^5.0.6"
   },
   "devDependencies": {
     "nuxt": "^4.4.2",
     "typescript": "^5.9.3",
-    "vue-tsc": "^3.2.6",
+    "vue-tsc": "^3.2.7",
     "zod": "^4.3.6"
   }
 }
