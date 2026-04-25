@@ -23,9 +23,14 @@ export function defineSetupComponent<
     props: Props,
     ctx: SetupContext<Opts['emits'], Slots>,
   ) => RenderFunction | Promise<RenderFunction>,
-  const PropsRuntime extends Readonly<UnionToTuple<keyof AllUnionFields<Opts['props']>>>,
+  const RuntimeProps extends Readonly<UnionToTuple<keyof AllUnionFields<Opts['props']>>>,
+  const RuntimeEmits extends Readonly<UnionToTuple<keyof AllUnionFields<Opts['emits']>>>,
 >(
-  define: (opts: Opts) => { props: PropsRuntime; setup: NoInfer<Setup> },
+  define: (opts: Opts) => {
+    props: NoInfer<RuntimeProps>
+    emits: NoInfer<RuntimeEmits>
+    setup: NoInfer<Setup>
+  },
 ): new (
   props: Opts['props'],
 ) => CreateComponentPublicInstanceWithMixins<
@@ -48,8 +53,26 @@ export function defineSetupComponent<
   // eslint-disable-next-line ts/no-unsafe-return, ts/no-unsafe-argument
   return defineComponent(opts.setup as any, {
     props: opts.props as unknown as string[],
-    // slots: {} as unknown as SlotsType<Opts['slots']>,
+    emits: opts.emits as unknown as string[],
   }) as any
+}
+
+export function defineProps<
+  const Opts extends {
+    props: Record<string, any>
+  },
+  const RuntimeProps extends UnionToTuple<keyof AllUnionFields<Opts['props']>>,
+>(_opts: Opts, props: NoInfer<RuntimeProps>): NoInfer<RuntimeProps> {
+  return props
+}
+
+export function defineEmits<
+  const Opts extends {
+    emits: ObjectEmitsOptions
+  },
+  const RuntimeEmits extends UnionToTuple<keyof AllUnionFields<Opts['emits']>>,
+>(_opts: Opts, emits: NoInfer<RuntimeEmits>): NoInfer<RuntimeEmits> {
+  return emits
 }
 
 export function generic<
@@ -64,6 +87,6 @@ export function generic<
     props: Props,
     ctx: SetupContext<Opts['emits'], Slots>,
   ) => RenderFunction | Promise<RenderFunction>,
->(_opts: Opts, setup: Setup) {
+>(_opts: Opts, setup: Setup): NoInfer<Setup> {
   return setup
 }
