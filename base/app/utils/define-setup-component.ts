@@ -1,5 +1,5 @@
 /* eslint-disable ts/no-empty-object-type */
-import type { AllUnionFields, Schema, UnionToTuple } from 'type-fest'
+import type { AllUnionFields, UnionToTuple } from 'type-fest'
 import type {
   ComponentOptionsMixin,
   CreateComponentPublicInstanceWithMixins,
