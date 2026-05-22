@@ -20,6 +20,7 @@ defineProps<{
     navigation?: NavigationMenuProps
     actions?: ButtonProps[]
     ui?: HeaderProps['ui']
+    mobileActions?: ButtonProps[]
   }
   footer?: {
     items?: NavigationMenuItem[]
@@ -96,6 +97,14 @@ const footerSlots = computed(() =>
 
       <template v-if="header.actions || slots['header-right']" #right>
         <slot name="header-right">
+          <UActions
+            v-if="header.mobileActions"
+            class="md:hidden"
+            :actions="header.mobileActions"
+            :defaults="{
+              variant: 'subtle',
+            }"
+          />
           <UActions
             v-if="header.actions"
             class="max-sm:hidden"
