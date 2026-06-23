@@ -15,8 +15,7 @@
   },
   "scripts": {
     "dev": "nuxi dev .playground",
-    "prepare": "nuxt prepare",
-    "dev:prepare": "nuxt prepare .playground",
+    "prepare": "nuxt prepare && nuxt prepare .playground",
     "type-check": "vue-tsc --build",
     "lint": "pnpm -w eslint:cmd \"$PWD\" && pnpm -w prettier:cmd \"$PWD\" --check",
     "lint:fix": "pnpm -w eslint:cmd \"$PWD\" --fix && pnpm -w prettier:cmd \"$PWD\" --write"
@@ -25,7 +24,9 @@
     "@falcondev-oss/form-core": ">=0.23.5",
     "@falcondev-oss/form-vue": ">=0.23.5",
     "@internationalized/date": ">=3.12.1",
-    "@nuxt/ui": ">=4.9.0"
+    "@nuxt/ui": ">=4.9.0",
+    "reka-ui": ">=2.9.10",
+    "tailwind-variants": ">=3.2.2"
   },
   "dependencies": {
     "@falcondev-oss/trpc-typed-form-data": "^0.4.3",
@@ -44,7 +45,6 @@
     "consola": "^3.4.2",
     "defu": "^6.1.7",
     "maska": "^3.2.0",
-    "reka-ui": "^2.10.0",
     "remeda": "^2.39.0",
     "superjson": "^2.2.6",
     "tailwindcss": "^4.3.1",

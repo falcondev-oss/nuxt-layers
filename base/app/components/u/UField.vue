@@ -4,6 +4,7 @@ import type { FormFieldProps, FormFieldSlots } from '@nuxt/ui'
 import { createReusableTemplate } from '@vueuse/core'
 import { useForwardProps } from 'reka-ui'
 import * as R from 'remeda'
+import { mergeSlotClass } from '~/utils/ui'
 
 type InputProps<T> = {
   'modelValue': T
@@ -99,8 +100,8 @@ const [DefineErrorTemplate, ErrorTemplate] = createReusableTemplate({
     v-bind="formFieldProps"
     :ui="{
       ...formFieldProps.ui,
-      hint: [formFieldProps.ui?.hint, isOverMaxLength ? 'text-error' : ''],
-      error: [formFieldProps.ui?.error, 'mt-1!'],
+      hint: mergeSlotClass(formFieldProps.ui?.hint, isOverMaxLength ? 'text-error' : ''),
+      error: mergeSlotClass(formFieldProps.ui?.error, 'mt-1!'),
     }"
     :error="!!field.errors"
     :class="props.class"
