@@ -26,7 +26,7 @@ export default defineSetupComponent(
         <UCard
           class="w-fit"
           vSlots={vSlots(UCard, {
-            header: () => <h1>Select an item</h1>,
+            header: () => [<h1>Select an item</h1>],
           })}
         >
           <div class="flex flex-col gap-2">
@@ -40,7 +40,7 @@ export default defineSetupComponent(
                   emit('choose', item)
                 }}
                 vSlots={vSlots(UButton, {
-                  leading: () => `[${selected.value?.value === item.value ? 'x' : ' '}] `,
+                  leading: () => [<>{`[${selected.value?.value === item.value ? 'x' : ' '}] `}</>],
                 })}
               >
                 {item.label}
