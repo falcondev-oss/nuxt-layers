@@ -1,4 +1,5 @@
 import { UButton, UCard } from '#components'
+import { setup } from '../../../app/utils/define-setup-component'
 
 export type ListItems = { label: string; value: string }[]
 
@@ -18,7 +19,7 @@ export default defineSetupComponent(
     // props: ['items'],
     emits: emits(_, ['choose']),
     // emits: ['choose'],
-    setup: generic(_, (props, { emit, slots }) => {
+    setup: setup(_, (props, { emit, slots }) => {
       const selected = ref<T[number]>()
 
       return () => (

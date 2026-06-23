@@ -84,7 +84,7 @@ export function emits<
   return emits
 }
 
-export function generic<
+export function setup<
   const Opts extends {
     props: Record<string, any>
     emits: ObjectEmitsOptions
@@ -96,6 +96,7 @@ export function generic<
     props: Props,
     ctx: SetupContext<Opts['emits'], Slots>,
   ) => RenderFunction | Promise<RenderFunction>,
+  // eslint-disable-next-line no-shadow
 >(_opts: Opts, setup: Setup): NoInfer<Setup> {
   return setup
 }

@@ -17,10 +17,10 @@ type ComponentProps<T> = T extends new (...args: any) => { $props: infer P }
     : {}
 
 /* eslint-disable ts/no-empty-object-type */
-export default defineSetupComponent((_: { props: {}; emits: {}; slots: {} }) => ({
-  props: [],
+export default defineSetupComponent((_: { props: { name: string }; emits: {}; slots: {} }) => ({
+  props: ['name'],
   emits: [],
-  setup: () => {
+  setup: (props) => {
     const form = useForm({
       schema: z.object({
         duration: z.number().meta({ title: 'Duration' }),
