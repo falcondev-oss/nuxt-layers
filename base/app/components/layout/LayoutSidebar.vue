@@ -7,7 +7,7 @@ import type {
   NavigationMenuItem,
   NavigationMenuProps,
 } from '@nuxt/ui'
-import { mergeSlotClass } from '~/utils/ui'
+import { mergeSlotClass } from '../../utils/ui'
 
 defineProps<{
   sidebar?: DashboardSidebarProps

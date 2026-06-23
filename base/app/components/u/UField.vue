@@ -4,7 +4,7 @@ import type { FormFieldProps, FormFieldSlots } from '@nuxt/ui'
 import { createReusableTemplate } from '@vueuse/core'
 import { useForwardProps } from 'reka-ui'
 import * as R from 'remeda'
-import { mergeSlotClass } from '~/utils/ui'
+import { mergeSlotClass } from '../../utils/ui'
 
 type InputProps<T> = {
   'modelValue': T

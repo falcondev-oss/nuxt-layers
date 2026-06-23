@@ -25,7 +25,6 @@
     "@falcondev-oss/form-vue": ">=0.23.5",
     "@internationalized/date": ">=3.12.1",
     "@nuxt/ui": ">=4.9.0",
-    "reka-ui": ">=2.9.10",
     "tailwind-variants": ">=3.2.2"
   },
   "dependencies": {
@@ -45,6 +44,7 @@
     "consola": "^3.4.2",
     "defu": "^6.1.7",
     "maska": "^3.2.0",
+    "reka-ui": "~2.9.10",
     "remeda": "^2.39.0",
     "superjson": "^2.2.6",
     "tailwindcss": "^4.3.1",
