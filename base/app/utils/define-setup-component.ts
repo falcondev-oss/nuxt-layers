@@ -19,10 +19,20 @@ declare module 'vue' {
 }
 
 interface ComponentTypes {
-  props: Record<string, any>
-  emits: ObjectEmitsOptions
-  slots: Record<string, any>
+  props?: Record<string, any>
+  emits?: ObjectEmitsOptions
+  slots?: Record<string, any>
 }
+
+/**
+ * Reads field `K` from the declared types `T`, defaulting to `{}` when the field
+ * is omitted. Omitting e.g. `emits` leaves `'emits'` out of `keyof T`, so the
+ * declaration can drop empty `emits: {}` / `slots: {}` entries entirely instead of
+ * resolving them to `undefined` and poisoning downstream inference.
+ */
+type Field<T extends ComponentTypes, K extends keyof ComponentTypes> = K extends keyof T
+  ? NonNullable<T[K]>
+  : {}
 
 /**
  * Keys of `T` as a readonly tuple, or `readonly []` when `T` has no keys.
@@ -35,13 +45,26 @@ type KeysTuple<T> = [keyof T] extends [never]
   ? readonly []
   : Readonly<UnionToTuple<keyof AllUnionFields<T>>>
 
+/**
+ * Vue's own `emit` type (`SetupContext<E>['emit']`) for declared emits, but an empty
+ * emits declaration produces an *uncallable* `emit` (`event: never`) rather than Vue's
+ * permissive `(event: string, ...args: any[])` fallback. So when `emits` is omitted,
+ * `emit('click')` is a type error instead of silently allowed.
+ */
+type StrictEmitFn<E extends ObjectEmitsOptions> = [keyof E] extends [never]
+  ? (event: never, ...args: never) => void
+  : SetupContext<E>['emit']
+
 /** Runtime config for a component, derived from its declared types `T`. */
 interface SetupConfig<T extends ComponentTypes> {
-  props: KeysTuple<T['props']>
-  emits: KeysTuple<T['emits']>
+  props: KeysTuple<Field<T, 'props'>>
+  emits: KeysTuple<Field<T, 'emits'>>
   setup: (
-    props: T['props'] & EmitsToProps<T['emits']>,
-    ctx: SetupContext<T['emits'], SlotsType<Partial<T['slots']>>>,
+    props: Field<T, 'props'> & EmitsToProps<Field<T, 'emits'>>,
+    ctx: Omit<
+      SetupContext<Field<T, 'emits'>, SlotsType<Partial<Field<T, 'slots'>>>>,
+      'emit'
+    > & { emit: StrictEmitFn<Field<T, 'emits'>> },
   ) => RenderFunction | Promise<RenderFunction>
 }
 
@@ -79,21 +102,21 @@ export function options<const T extends ComponentTypes>(
 export function defineSetupComponent<const T extends ComponentTypes>(
   options_: (opts: T) => LooseSetupConfig,
 ): new (
-  props: T['props'],
+  props: Field<T, 'props'>,
 ) => CreateComponentPublicInstanceWithMixins<
-  T['props'] & EmitsToProps<T['emits']>,
+  Field<T, 'props'> & EmitsToProps<Field<T, 'emits'>>,
   {},
   {},
   {},
   {},
   ComponentOptionsMixin,
   ComponentOptionsMixin,
-  T['emits'],
-  PublicProps & { vSlots?: T['slots'] },
+  Field<T, 'emits'>,
+  PublicProps & { vSlots?: Field<T, 'slots'> },
   {},
   false,
   {},
-  SlotsType<Partial<T['slots']>>
+  SlotsType<Partial<Field<T, 'slots'>>>
 > {
   // eslint-disable-next-line ts/no-unsafe-argument
   const opts = options_({} as any)

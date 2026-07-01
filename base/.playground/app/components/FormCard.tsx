@@ -2,8 +2,7 @@
 // import { UCard, UDropdownMenu, UField, UForm, UInput } from '#components'
 // import { z } from 'zod'
 
-/* eslint-disable ts/no-empty-object-type */
-export default defineSetupComponent((_: { props: { name: string }; emits: {}; slots: {} }) =>
+export default defineSetupComponent((_: { props: { name: string } }) =>
   options(_, {
     props: ['name'],
     emits: [],
