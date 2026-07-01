@@ -61,10 +61,9 @@ interface SetupConfig<T extends ComponentTypes> {
   emits: KeysTuple<Field<T, 'emits'>>
   setup: (
     props: Field<T, 'props'> & EmitsToProps<Field<T, 'emits'>>,
-    ctx: Omit<
-      SetupContext<Field<T, 'emits'>, SlotsType<Partial<Field<T, 'slots'>>>>,
-      'emit'
-    > & { emit: StrictEmitFn<Field<T, 'emits'>> },
+    ctx: Omit<SetupContext<Field<T, 'emits'>, SlotsType<Partial<Field<T, 'slots'>>>>, 'emit'> & {
+      emit: StrictEmitFn<Field<T, 'emits'>>
+    },
   ) => RenderFunction | Promise<RenderFunction>
 }
 
