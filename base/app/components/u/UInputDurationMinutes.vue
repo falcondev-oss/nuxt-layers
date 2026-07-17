@@ -5,7 +5,10 @@ import { regex } from 'arkregex'
 import { vMaska } from 'maska/vue'
 import { useForwardPropsEmits } from 'reka-ui'
 
-type Props = Omit<InputProps<string>, 'modelValue' | 'defaultValue' | 'modelModifiers'>
+type Props = Omit<InputProps<string>, 'modelValue' | 'defaultValue' | 'modelModifiers'> & {
+  showZeroMinutes?: boolean
+}
+
 const props = defineProps<Props>()
 const emit = defineEmits<Omit<InputEmits<string>, 'update:modelValue'>>()
 const forwardedProps = useForwardPropsEmits(props as Props, emit)
@@ -27,7 +30,7 @@ const duration = computed({
     const sign = model.value < 0 ? '-' : ''
 
     // don't always add :00 if minutes is 0
-    if (minutes > 0)
+    if (minutes > 0 || props.showZeroMinutes)
       return `${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
 
     return `${sign}${hours.toString()}`
