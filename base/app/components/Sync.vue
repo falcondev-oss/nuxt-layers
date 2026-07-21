@@ -1,6 +1,8 @@
 <script setup lang="ts" generic="T">
 const props = defineProps<{
   input: T
+  deep?: boolean
+  once?: boolean
 }>()
 
 const output = defineModel<T>('output', { required: true })
@@ -10,7 +12,11 @@ watch(
   () => {
     output.value = props.input
   },
-  { immediate: true },
+  {
+    immediate: true,
+    deep: props.deep,
+    once: props.once,
+  },
 )
 </script>
 
