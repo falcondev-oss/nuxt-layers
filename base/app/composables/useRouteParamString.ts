@@ -19,5 +19,10 @@ export function useRouteParamString(paramName: string) {
     next()
   })
 
-  return paramRef
+  return computed({
+    get: () => paramRef.value,
+    set: (value) => {
+      param.value = value
+    },
+  })
 }
