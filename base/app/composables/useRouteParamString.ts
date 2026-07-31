@@ -11,6 +11,7 @@ export function useRouteParamString(
 export function useRouteParamString(paramName: string, options?: { optional?: boolean }) {
   const optional = options?.optional ?? false
 
+  const route = useRoute()
   const param = useRouteParams<string | undefined>(paramName)
 
   const paramRef = ref(param.value)
@@ -34,6 +35,13 @@ export function useRouteParamString(paramName: string, options?: { optional?: bo
   return computed({
     get: () => paramRef.value,
     set: (value) => {
+      if (param.value === undefined && value !== undefined) {
+        void navigateTo({
+          name: `${String(route.name)}-${paramName}`,
+          params: { ...route.params, [paramName]: value },
+        })
+        return
+      }
       param.value = value
     },
   })
