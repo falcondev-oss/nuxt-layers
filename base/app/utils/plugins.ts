@@ -1,5 +1,5 @@
 import type { DehydratedState, QueryClientConfig, VueQueryPluginOptions } from '@tanstack/vue-query'
-import type { OperationLink, TRPCLink } from '@trpc/client'
+import type { OperationLink, TRPCClientError, TRPCLink } from '@trpc/client'
 import type { AnyTRPCRouter, TRPCDefaultErrorData } from '@trpc/server'
 import type { FetchOptions } from 'ofetch'
 import type { ObjectPlugin } from '#app'
@@ -15,7 +15,7 @@ import {
   useQueryClient,
   VueQueryPlugin,
 } from '@tanstack/vue-query'
-import { httpSubscriptionLink, isTRPCClientError, splitLink, TRPCClientError } from '@trpc/client'
+import { httpSubscriptionLink, isTRPCClientError, splitLink } from '@trpc/client'
 import { observable } from '@trpc/server/observable'
 import defu from 'defu'
 import superjson from 'superjson'
@@ -55,29 +55,61 @@ function isNetworkError(err: unknown) {
   return isTRPCClientError<AnyTRPCRouter>(err) && !err.meta?.response
 }
 
-function isInputValidationError(err: unknown) {
+/** `AnyTRPCRouter` widens the error shape to `any` */
+function errorData(err: TRPCClientError<AnyTRPCRouter>) {
+  return err.data as TRPCDefaultErrorData | undefined
+}
+
+const retryableHttpStatuses = new Set([408, 425, 429, 502, 503, 504])
+
+function isRetryableError(err: unknown) {
+  // unknown errors are usually a bug in the query fn, which a retry won't fix
   if (!isTRPCClientError<AnyTRPCRouter>(err)) return false
 
-  // `AnyTRPCRouter` widens the error shape to `any`
-  const data = err.data as TRPCDefaultErrorData | undefined
-  return data?.code === 'BAD_REQUEST'
+  return isNetworkError(err) || retryableHttpStatuses.has(errorData(err)?.httpStatus ?? 0)
+}
+
+/** zod reports its issues as a JSON-encoded list in the error message */
+function isSchemaIssueList(message: string) {
+  if (!message.startsWith('[')) return false
+
+  try {
+    const issues = JSON.parse(message) as unknown[]
+    return (
+      issues.length > 0 &&
+      issues.every((issue) => typeof (issue as { message?: unknown }).message === 'string')
+    )
+  } catch {
+    return false
+  }
+}
+
+function requestErrorToast(err: unknown): ToastOpts {
+  if (isNetworkError(err))
+    return { title: 'Keine Verbindung', description: 'Der Server ist nicht erreichbar.' }
+
+  if (!isTRPCClientError<AnyTRPCRouter>(err)) return { title: 'Unbekannter Fehler' }
+
+  if (errorData(err)?.code !== 'BAD_REQUEST') return { title: 'Anfrage-Fehler' }
+
+  return {
+    title: 'Ungültige Eingabe',
+    description: isSchemaIssueList(err.message) ? 'Bitte Eingaben überprüfen.' : err.message,
+  }
 }
 
 /** toasts a failed request, using `opts` if given, otherwise a generic message */
 function toastRequestError(err: unknown, opts?: ToastOpts) {
+  // during SSR a toast would be serialized into the payload and pop up after hydration, and
+  // `useToast()` throws once the request has left Nuxt's async context
+  if (import.meta.server) return
+
   const toast = useToast()
 
   toast.add({
     preset: 'error',
     duration: 5000,
-    ...(opts ??
-      (isNetworkError(err)
-        ? { title: 'Keine Verbindung', description: 'Der Server ist nicht erreichbar.' }
-        : isInputValidationError(err)
-          ? { title: 'Ungültige Eingabe', description: 'Bitte Eingaben überprüfen.' }
-          : err instanceof TRPCClientError
-            ? { title: 'Anfrage-Fehler', description: err.message }
-            : { title: 'Unbekannter Fehler' })),
+    ...(opts ?? requestErrorToast(err)),
   })
 }
 
@@ -93,10 +125,7 @@ export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
           defaultOptions: {
             queries: {
               retry(failureCount, error) {
-                // only retry on network errors, server errors won't fix themselves
-                if (isTRPCClientError<AnyTRPCRouter>(error) && !isNetworkError(error)) {
-                  return false
-                }
+                if (!isRetryableError(error)) return false
 
                 return failureCount < 3
               },
