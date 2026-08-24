@@ -6,3 +6,6 @@ allowBuilds:
   esbuild: true
   unrs-resolver: true
   vue-demi: true
+
+minimumReleaseAgeExclude:
+  - '@falcondev-oss/trpc-vue-query@0.6.1'

@@ -232,8 +232,8 @@ importers:
         specifier: ^0.5.3
         version: 0.5.3(@trpc/client@11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.18.0(typescript@5.9.3))(zod@4.4.3)
       '@falcondev-oss/trpc-vue-query':
-        specifier: ^0.5.4
-        version: 0.5.4(@tanstack/vue-query@5.102.1(vue@3.5.41(typescript@5.9.3)))(@trpc/client@11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.18.0(typescript@5.9.3))(vue@3.5.41(typescript@5.9.3))
+        specifier: ^0.6.1
+        version: 0.6.1(@tanstack/vue-query@5.102.1(vue@3.5.41(typescript@5.9.3)))(@trpc/client@11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.18.0(typescript@5.9.3))(vue@3.5.41(typescript@5.9.3))
       '@iconify-json/lucide':
         specifier: ^1.2.125
         version: 1.2.125
@@ -1091,9 +1091,8 @@ packages:
       zod:
         optional: true
 
-  '@falcondev-oss/trpc-vue-query@0.5.4':
-    resolution: {integrity: sha512-nUt2+Y87BeUdwcK2geWv3iyu6+vZD9S9bm/X3XKSXk/m4AlCgDPhrtZGTGtDsrZPfjsYhB0YL7UTJlwD4BviiQ==}
-    engines: {node: '>=24', pnpm: '10'}
+  '@falcondev-oss/trpc-vue-query@0.6.1':
+    resolution: {integrity: sha512-+m8XRcWIVJS0imipmuwHo2E9KCDJO9+R2qPyIT5zpN2YlQ9PbotLIdykRQbi8zNwZ0NDJuvaQrSqr5F4s2lLKA==}
     peerDependencies:
       '@tanstack/vue-query': ^5.92.9
       '@trpc/client': ^11.13.4
@@ -7772,7 +7771,7 @@ snapshots:
     optionalDependencies:
       zod: 4.4.3
 
-  '@falcondev-oss/trpc-vue-query@0.5.4(@tanstack/vue-query@5.102.1(vue@3.5.41(typescript@5.9.3)))(@trpc/client@11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.18.0(typescript@5.9.3))(vue@3.5.41(typescript@5.9.3))':
+  '@falcondev-oss/trpc-vue-query@0.6.1(@tanstack/vue-query@5.102.1(vue@3.5.41(typescript@5.9.3)))(@trpc/client@11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.18.0(typescript@5.9.3))(vue@3.5.41(typescript@5.9.3))':
     dependencies:
       '@tanstack/vue-query': 5.102.1(vue@3.5.41(typescript@5.9.3))
       '@trpc/client': 11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3)

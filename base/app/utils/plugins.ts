@@ -1,18 +1,22 @@
 import type { DehydratedState, QueryClientConfig, VueQueryPluginOptions } from '@tanstack/vue-query'
-import type { AnyTRPCRouter } from '@trpc/server'
+import type { OperationLink, TRPCLink } from '@trpc/client'
+import type { AnyTRPCRouter, TRPCDefaultErrorData } from '@trpc/server'
+import type { FetchOptions } from 'ofetch'
 import type { ObjectPlugin } from '#app'
 import { typedFormDataLink } from '@falcondev-oss/trpc-typed-form-data/client'
-import { createTRPCVueQueryClient } from '@falcondev-oss/trpc-vue-query'
+import { createTRPCVueQueryClient, vueQueryContext } from '@falcondev-oss/trpc-vue-query'
 import {
   dehydrate,
   hydrate,
   MutationCache,
+  QueryCache,
   QueryClient,
   useIsFetching,
   useQueryClient,
   VueQueryPlugin,
 } from '@tanstack/vue-query'
 import { httpSubscriptionLink, isTRPCClientError, splitLink, TRPCClientError } from '@trpc/client'
+import { observable } from '@trpc/server/observable'
 import defu from 'defu'
 import superjson from 'superjson'
 import { httpBatchLink, httpLink } from 'trpc-nuxt/client'
@@ -29,6 +33,11 @@ interface ToastOpts {
 }
 
 export interface CustomMeta {
+  queryMeta: {
+    toast?: {
+      error?: ToastOpts
+    }
+  }
   mutationMeta: {
     toast?: {
       success?: ToastOpts
@@ -41,31 +50,65 @@ declare module '@tanstack/vue-query' {
   interface Register extends CustomMeta {}
 }
 
+/** a request that never got a response, i.e. `fetch` itself failed (offline, DNS, CORS, …) */
+function isNetworkError(err: unknown) {
+  return isTRPCClientError<AnyTRPCRouter>(err) && !err.meta?.response
+}
+
+function isInputValidationError(err: unknown) {
+  if (!isTRPCClientError<AnyTRPCRouter>(err)) return false
+
+  // `AnyTRPCRouter` widens the error shape to `any`
+  const data = err.data as TRPCDefaultErrorData | undefined
+  return data?.code === 'BAD_REQUEST'
+}
+
+/** toasts a failed request, using `opts` if given, otherwise a generic message */
+function toastRequestError(err: unknown, opts?: ToastOpts) {
+  const toast = useToast()
+
+  toast.add({
+    preset: 'error',
+    duration: 5000,
+    ...(opts ??
+      (isNetworkError(err)
+        ? { title: 'Keine Verbindung', description: 'Der Server ist nicht erreichbar.' }
+        : isInputValidationError(err)
+          ? { title: 'Ungültige Eingabe', description: 'Bitte Eingaben überprüfen.' }
+          : err instanceof TRPCClientError
+            ? { title: 'Anfrage-Fehler', description: err.message }
+            : { title: 'Unbekannter Fehler' })),
+  })
+}
+
 export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
   return {
     name: 'vue-query',
     setup(nuxt) {
       const toast = useToast()
-      const vueQueryState = useState<Partial<DehydratedState>>('vue-query')
+      const vueQueryState = useState<Partial<DehydratedState>>('vue-query', () => ({}))
 
       const queryClient = new QueryClient(
         defu<QueryClientConfig, QueryClientConfig[]>(opts?.queryClientOptions, {
           defaultOptions: {
             queries: {
               retry(failureCount, error) {
-                if (
-                  isTRPCClientError<AnyTRPCRouter>(error) &&
-                  error.data &&
-                  // eslint-disable-next-line ts/no-unsafe-member-access
-                  error.data.httpStatus >= 400 &&
-                  // eslint-disable-next-line ts/no-unsafe-member-access
-                  error.data.httpStatus < 500
-                )
+                // only retry on network errors, server errors won't fix themselves
+                if (isTRPCClientError<AnyTRPCRouter>(error) && !isNetworkError(error)) {
                   return false
+                }
+
                 return failureCount < 3
               },
             },
           },
+          queryCache: new QueryCache({
+            onError(err, query) {
+              console.error(err)
+
+              toastRequestError(err, query.meta?.toast?.error)
+            },
+          }),
           mutationCache: new MutationCache({
             onSuccess(_res, _input, _onMutateRes, mutation) {
               if (mutation.meta?.toast?.success) {
@@ -79,42 +122,32 @@ export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
             onError(err, _input, __onMutateRes, mutation) {
               console.error(err)
 
-              if (mutation.meta?.toast?.error) {
-                toast.add({
-                  preset: 'error',
-                  duration: 5000,
-                  ...mutation.meta.toast.error,
-                })
-              } else if (err instanceof TRPCClientError)
-                toast.add({
-                  preset: 'error',
-                  title: 'Request Error',
-                  description: err.message,
-                  duration: 5000,
-                })
-              else
-                toast.add({
-                  preset: 'error',
-                  title: 'An unknown error occurred',
-                  duration: 5000,
-                })
+              toastRequestError(err, mutation.meta?.toast?.error)
             },
           }),
         }),
       )
-      const options: VueQueryPluginOptions = { queryClient, ...opts?.vuePluginOptions }
 
+      const options: VueQueryPluginOptions = { queryClient, ...opts?.vuePluginOptions }
       nuxt.vueApp.use(VueQueryPlugin, options)
 
       if (import.meta.server) {
         nuxt.hooks.hook('app:rendered', () => {
-          vueQueryState.value = dehydrate(queryClient)
+          try {
+            vueQueryState.value = dehydrate(queryClient)
+          } catch (err) {
+            console.error('[vue-query] dehydrating state failed:', err)
+          }
         })
       }
 
       if (import.meta.client) {
         nuxt.hooks.hook('app:created', () => {
-          hydrate(queryClient, vueQueryState.value)
+          try {
+            hydrate(queryClient, vueQueryState.value)
+          } catch (err) {
+            console.error('[vue-query] hydrating state failed:', err)
+          }
         })
       }
 
@@ -138,8 +171,36 @@ export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
   } satisfies ObjectPlugin
 }
 
+/**
+ * Toasts errors of requests that vue-query doesn't handle itself, i.e. plain
+ * `.query()` / `.mutate()` calls. Requests made through vue-query get their toast
+ * from the query/mutation cache instead.
+ */
+const toastRequestErrors: OperationLink<AnyTRPCRouter> = ({ op, next }) =>
+  observable((observer) => {
+    const subscription = next(op).subscribe({
+      next: (value) => observer.next(value),
+      complete: () => observer.complete(),
+      error(err) {
+        if (!op.context[vueQueryContext] && op.type !== 'subscription') toastRequestError(err)
+
+        observer.error(err)
+      },
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  })
+export const requestErrorToastLink: TRPCLink<AnyTRPCRouter> = () => toastRequestErrors
+
 interface TrpcNuxtPluginOptions {
   url: string
+  /**
+   * ofetch options passed to the HTTP links.
+   * @see https://github.com/unjs/ofetch
+   */
+  fetchOptions?: FetchOptions
 }
 export function trpcPlugin<Router extends AnyTRPCRouter>(opts: TrpcNuxtPluginOptions) {
   return {
@@ -153,6 +214,7 @@ export function trpcPlugin<Router extends AnyTRPCRouter>(opts: TrpcNuxtPluginOpt
         queryClient,
         trpc: {
           links: [
+            requestErrorToastLink,
             splitLink({
               condition: (op) => op.type === 'subscription',
               true: httpSubscriptionLink({
@@ -168,12 +230,14 @@ export function trpcPlugin<Router extends AnyTRPCRouter>(opts: TrpcNuxtPluginOpt
                   httpLink({
                     transformer: superjson,
                     url: opts.url,
+                    fetchOptions: opts.fetchOptions,
                   }),
                 ],
                 false: httpBatchLink({
                   transformer: superjson,
                   url: opts.url,
                   maxURLLength: 2000,
+                  fetchOptions: opts.fetchOptions,
                 }),
               }),
             }),

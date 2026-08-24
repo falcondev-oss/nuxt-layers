@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@falcondev-oss/trpc-typed-form-data": "^0.5.3",
-    "@falcondev-oss/trpc-vue-query": "^0.5.4",
+    "@falcondev-oss/trpc-vue-query": "^0.6.1",
     "@iconify-json/lucide": "^1.2.125",
     "@nuxt/icon": "^2.5.0",
     "@nuxtjs/color-mode": "^4.0.1",

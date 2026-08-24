@@ -1,5 +1,7 @@
+import type { AppRouter } from '~~/server/trpc'
+
 export default defineNuxtPlugin(
-  trpcPlugin({
+  trpcPlugin<AppRouter>({
     url: '/trpc',
   }),
 )
