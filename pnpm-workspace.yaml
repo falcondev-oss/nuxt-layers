@@ -1,6 +1,3 @@
-packages:
-  - base
-
 allowBuilds:
   '@parcel/watcher': true
   esbuild: true
@@ -9,3 +6,6 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - '@falcondev-oss/trpc-vue-query@0.6.1'
+
+packages:
+  - base
