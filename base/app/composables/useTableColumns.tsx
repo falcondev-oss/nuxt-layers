@@ -49,15 +49,15 @@ export function useTableColumns<T extends MaybeRef<Record<string, any>[] | undef
               icon: 'lucide:trash',
               color: 'error',
               loadingAuto: true,
-              onClick: async () => {
-                await actions.onDelete?.(row)
+              onClick: () => {
+                actions.onDelete?.(row)
               },
             })
 
           return (
             <UActions
               defaults={rowActionDefaults}
-              class="gap-2! justify-end"
+              class="justify-end gap-2!"
               actions={rowActions}
             />
           )

@@ -1,7 +1,6 @@
-import type { ObjectPlugin } from '#app'
 import type { DehydratedState, QueryClientConfig, VueQueryPluginOptions } from '@tanstack/vue-query'
 import type { AnyTRPCRouter } from '@trpc/server'
-import { useState } from '#app'
+import type { ObjectPlugin } from '#app'
 import { typedFormDataLink } from '@falcondev-oss/trpc-typed-form-data/client'
 import { createTRPCVueQueryClient } from '@falcondev-oss/trpc-vue-query'
 import {
@@ -46,13 +45,12 @@ export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
     name: 'vue-query',
     setup(nuxt) {
       const toast = useToast()
-      const vueQueryState = useState<DehydratedState | null>('vue-query')
+      const vueQueryState = useState<Partial<DehydratedState>>('vue-query')
 
       const queryClient = new QueryClient(
         defu<QueryClientConfig, QueryClientConfig[]>(opts?.queryClientOptions, {
           defaultOptions: {
             queries: {
-              experimental_prefetchInRender: true,
               retry(failureCount, error) {
                 if (
                   isTRPCClientError<AnyTRPCRouter>(error) &&

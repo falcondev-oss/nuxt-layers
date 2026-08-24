@@ -23,9 +23,9 @@
     "lint:fix:root": "pnpm eslint:cmd \"$PWD\" --fix && pnpm prettier:cmd:root \"$PWD\" --write"
   },
   "devDependencies": {
-    "@falcondev-oss/configs": "^5.0.2",
-    "eslint": "^9.39.4",
-    "prettier": "^3.8.4",
-    "turbo": "^2.9.18"
+    "@falcondev-oss/configs": "^6.0.6",
+    "eslint": "^10.9.0",
+    "prettier": "^3.9.6",
+    "turbo": "^2.10.11"
   }
 }

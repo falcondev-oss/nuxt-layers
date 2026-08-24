@@ -34,6 +34,7 @@ export default defineSetupComponent((_: { props: { name: string } }) =>
       //   },
       // })
 
+      // eslint-disable-next-line unicorn/consistent-function-scoping
       return () => (
         // <UCard
         //   class="max-w-sm"

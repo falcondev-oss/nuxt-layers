@@ -17,7 +17,6 @@ const model = defineModel<number | null>({
   required: true,
 })
 
-// eslint-disable-next-line unicorn/prefer-string-raw
 const parser = regex('^-?(?<hours>\\d{1,}):?(?<minutes>\\d{1,2})?$')
 const duration = computed({
   get: () => {

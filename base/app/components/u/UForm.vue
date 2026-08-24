@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { Toast } from '#ui/composables'
 import type { FormHandle } from '@falcondev-oss/form-core'
 import type { ButtonProps } from '@nuxt/ui'
+import type { Toast } from '#ui/composables'
 
 const props = withDefaults(
   defineProps<{
@@ -80,7 +80,7 @@ const rootErrors = computed(() => props.form.errors?.filter((error) => error.pat
         </li>
       </ul>
 
-      <hr class="text-(--ui-border-muted) h-px w-full" />
+      <hr class="h-px w-full text-(--ui-border-muted)" />
 
       <div v-show="!actionsTeleportTo" class="flex items-center justify-end gap-4">
         <Teleport defer :disabled="!actionsTeleportTo" :to="actionsTeleportTo">

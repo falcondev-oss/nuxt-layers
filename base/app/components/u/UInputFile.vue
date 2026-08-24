@@ -3,29 +3,32 @@ import type { FileUploadEmits, FileUploadProps } from '@nuxt/ui'
 import { useForwardPropsEmits } from 'reka-ui'
 import { omit } from 'remeda'
 
-const props = defineProps<
-  FileUploadProps<Multiple> & {
-    /**
-     * Set to `false` to disable compression
-     */
-    compression?:
-      | boolean
-      | {
-          /**
-           * @default 1920
-           */
-          maxDimension?: number
-          /**
-           * @default 0.85
-           */
-          quality?: number
-          /**
-           * @default 'image/webp'
-           */
-          outputType?: string
-        }
-  }
->()
+const props = withDefaults(
+  defineProps<
+    FileUploadProps<Multiple> & {
+      /**
+       * Set to `false` to disable compression
+       */
+      compression?:
+        | boolean
+        | {
+            /**
+             * @default 1920
+             */
+            maxDimension?: number
+            /**
+             * @default 0.85
+             */
+            quality?: number
+            /**
+             * @default 'image/webp'
+             */
+            outputType?: string
+          }
+    }
+  >(),
+  { compression: true },
+)
 const emit = defineEmits<
   FileUploadEmits & {
     compressed: [
@@ -58,24 +61,20 @@ async function forwardFiles(files: File | File[] | null | undefined) {
     }),
   )
 
-  model.value = (forwarded.value.multiple ? compressed : compressed[0]!) as Files
+  model.value = (props.multiple ? compressed : compressed[0]!) as Files
 }
 
 async function compressImage(file: File) {
-  if (forwarded.value.compression === false) return file
+  if (props.compression === false) return file
   if (compressedFiles.has(file)) return compressedFiles.get(file)!
 
   const maxDimension =
-    typeof forwarded.value.compression === 'object'
-      ? (forwarded.value.compression?.maxDimension ?? 1920)
-      : 1920
+    typeof props.compression === 'object' ? (props.compression?.maxDimension ?? 1920) : 1920
   const quality =
-    typeof forwarded.value.compression === 'object'
-      ? (forwarded.value.compression?.quality ?? 0.85)
-      : 0.85
+    typeof props.compression === 'object' ? (props.compression?.quality ?? 0.85) : 0.85
   const outputType =
-    typeof forwarded.value.compression === 'object'
-      ? (forwarded.value.compression?.outputType ?? 'image/webp')
+    typeof props.compression === 'object'
+      ? (props.compression?.outputType ?? 'image/webp')
       : 'image/webp'
 
   const img = new Image()

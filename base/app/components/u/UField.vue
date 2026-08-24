@@ -145,7 +145,7 @@ const [DefineErrorTemplate, ErrorTemplate] = createReusableTemplate({
         >
           <UIcon name="lucide:circle-alert" class="text-error" />
           <template #content>
-            <div class="text-(--ui-color-neutral-800) max-w-sm text-xs">
+            <div class="max-w-sm text-xs text-(--ui-color-neutral-800)">
               <ErrorTemplate :errors="field.errors" />
             </div>
           </template>
