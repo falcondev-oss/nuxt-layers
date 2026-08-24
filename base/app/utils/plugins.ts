@@ -1,6 +1,6 @@
 import type { DehydratedState, QueryClientConfig, VueQueryPluginOptions } from '@tanstack/vue-query'
 import type { OperationLink, TRPCClientError, TRPCLink } from '@trpc/client'
-import type { AnyTRPCRouter, TRPCDefaultErrorData } from '@trpc/server'
+import type { AnyTRPCRouter, TRPC_ERROR_CODE_KEY, TRPCDefaultErrorData } from '@trpc/server'
 import type { FetchOptions } from 'ofetch'
 import type { ObjectPlugin } from '#app'
 import type { ToastOptions } from '../composables/useToast'
@@ -85,16 +85,26 @@ function isSchemaIssueList(message: string) {
   }
 }
 
+const errorTitles: Partial<Record<TRPC_ERROR_CODE_KEY, string>> = {
+  BAD_REQUEST: 'Ungültige Eingabe',
+  UNAUTHORIZED: 'Nicht angemeldet',
+  FORBIDDEN: 'Kein Zugriff',
+  NOT_FOUND: 'Nicht vorhanden',
+}
+
 function requestErrorToast(err: unknown): ToastOpts {
   if (isNetworkError(err))
     return { title: 'Keine Verbindung', description: 'Der Server ist nicht erreichbar.' }
 
   if (!isTRPCClientError<AnyTRPCRouter>(err)) return { title: 'Unbekannter Fehler' }
 
-  if (errorData(err)?.code !== 'BAD_REQUEST') return { title: 'Anfrage-Fehler' }
+  // internal errors leak implementation details and mean nothing to the user
+  if (errorData(err)?.httpStatus === 500) return { title: 'Server-Fehler' }
+
+  const code = errorData(err)?.code
 
   return {
-    title: 'Ungültige Eingabe',
+    title: (code && errorTitles[code]) ?? 'Anfrage-Fehler',
     description: isSchemaIssueList(err.message) ? 'Bitte Eingaben überprüfen.' : err.message,
   }
 }
