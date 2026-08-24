@@ -3,6 +3,7 @@ import type { OperationLink, TRPCClientError, TRPCLink } from '@trpc/client'
 import type { AnyTRPCRouter, TRPCDefaultErrorData } from '@trpc/server'
 import type { FetchOptions } from 'ofetch'
 import type { ObjectPlugin } from '#app'
+import type { ToastOptions } from '../composables/useToast'
 import { typedFormDataLink } from '@falcondev-oss/trpc-typed-form-data/client'
 import { createTRPCVueQueryClient, vueQueryContext } from '@falcondev-oss/trpc-vue-query'
 import {
@@ -98,17 +99,17 @@ function requestErrorToast(err: unknown): ToastOpts {
   }
 }
 
-/** toasts a failed request, using `opts` if given, otherwise a generic message */
-function toastRequestError(err: unknown, opts?: ToastOpts) {
-  // during SSR a toast would be serialized into the payload and pop up after hydration, and
-  // `useToast()` throws once the request has left Nuxt's async context
+/** during SSR a toast would be serialized into the payload and pop up after hydration */
+function toastAdd(opts: ToastOptions) {
   if (import.meta.server) return
 
-  const toast = useToast()
+  useToast().add({ duration: 5000, ...opts })
+}
 
-  toast.add({
+/** toasts a failed request, using `opts` if given, otherwise a generic message */
+function toastRequestError(err: unknown, opts?: ToastOpts) {
+  toastAdd({
     preset: 'error',
-    duration: 5000,
     ...(opts ?? requestErrorToast(err)),
   })
 }
@@ -117,7 +118,6 @@ export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
   return {
     name: 'vue-query',
     setup(nuxt) {
-      const toast = useToast()
       const vueQueryState = useState<Partial<DehydratedState>>('vue-query', () => ({}))
 
       const queryClient = new QueryClient(
@@ -141,9 +141,8 @@ export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
           mutationCache: new MutationCache({
             onSuccess(_res, _input, _onMutateRes, mutation) {
               if (mutation.meta?.toast?.success) {
-                toast.add({
+                toastAdd({
                   preset: 'success',
-                  duration: 5000,
                   ...mutation.meta.toast.success,
                 })
               }
@@ -211,7 +210,10 @@ const toastRequestErrors: OperationLink<AnyTRPCRouter> = ({ op, next }) =>
       next: (value) => observer.next(value),
       complete: () => observer.complete(),
       error(err) {
-        if (!op.context[vueQueryContext] && op.type !== 'subscription') toastRequestError(err)
+        if (!op.context[vueQueryContext] && op.type !== 'subscription') {
+          console.error(err)
+          toastRequestError(err)
+        }
 
         observer.error(err)
       },
