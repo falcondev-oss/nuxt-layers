@@ -16,6 +16,7 @@ import { httpSubscriptionLink, isTRPCClientError, splitLink, TRPCClientError } f
 import defu from 'defu'
 import superjson from 'superjson'
 import { httpBatchLink, httpLink } from 'trpc-nuxt/client'
+import { useState } from '#app'
 
 interface VueQueryNuxtPluginOptions {
   queryClientOptions?: QueryClientConfig
