@@ -88,7 +88,7 @@ function isSchemaIssueList(message: string) {
 const errorTitles: Partial<Record<TRPC_ERROR_CODE_KEY, string>> = {
   BAD_REQUEST: 'Ungültige Eingabe',
   UNAUTHORIZED: 'Nicht angemeldet',
-  FORBIDDEN: 'Kein Zugriff',
+  FORBIDDEN: 'Keine Berechtigung',
   NOT_FOUND: 'Nicht vorhanden',
 }
 
