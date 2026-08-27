@@ -2,6 +2,7 @@
 import type {
   ArrayOrNested,
   AvatarProps,
+  DashboardSearchProps,
   DashboardSidebarProps,
   DropdownMenuItem,
   NavigationMenuItem,
@@ -15,6 +16,7 @@ defineProps<{
     src?: string
     iconSrc?: string
   }
+  search?: DashboardSearchProps
   items?: NavigationMenuItem[]
   bottomItems?: NavigationMenuItem[]
   userMenu?: {
@@ -55,18 +57,21 @@ const config = useRuntimeConfig()
         <slot v-if="!collapsed" name="logo">
           <img v-if="logo?.src" class="h-5 w-auto shrink-0" :src="logo.src" />
         </slot>
-        <slot v-if="collapsed || (!logo?.src && !slots.logo)" name="icon">
-          <img
-            v-if="logo?.iconSrc"
-            class="size-5"
-            :src="logo.iconSrc"
-            :class="{
-              'mx-auto': collapsed,
-            }"
-          />
-        </slot>
+        <div v-if="collapsed || (!logo?.src && !slots.logo)" :class="{ 'mx-auto': collapsed }">
+          <slot name="icon">
+            <img v-if="logo?.iconSrc" class="size-5" :src="logo.iconSrc" />
+          </slot>
+        </div>
       </template>
       <template #default="{ collapsed }">
+        <!-- height and negative margins line the border up with the `LayoutNavbar` toolbar's, cancelling the sidebar body's padding -->
+        <div
+          v-if="search"
+          class="border-default -mx-4 -mt-2 -mb-2 flex h-[calc(--spacing(12)+1px)] shrink-0 items-center border-b px-4 sm:max-lg:-mx-6 sm:max-lg:px-6"
+        >
+          <UDashboardSearchButton :collapsed="collapsed" variant="outline" tooltip block />
+        </div>
+
         <UNavigationMenu
           v-if="items"
           :collapsed="collapsed"
@@ -104,6 +109,8 @@ const config = useRuntimeConfig()
         </UDropdownMenu>
       </template>
     </UDashboardSidebar>
+
+    <UDashboardSearch v-if="search" :color-mode="false" v-bind="search" />
 
     <slot />
   </UDashboardGroup>

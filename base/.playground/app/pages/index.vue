@@ -1,297 +1,145 @@
-<script setup lang="ts">
-import z from 'zod'
-import { LazyOverlayModalActions } from '#components'
-
-const confirm = useConfirm()
-const overlay = useOverlay()
-
-const form = useForm({
-  schema: z.object({
-    duration: z.number().meta({ title: 'Duration' }),
-    dateIso: z.string().meta({ title: 'Datum' }),
-    text: z
-      .string()
-      .length(8)
-      // .max(8)
-      .meta({
-        title: 'Text',
-        description: 'Beschreibung',
-        default: 'Default Wert',
-        examples: ['Hier könnte ein Beispieltext stehen', '123'],
-      }),
-  }),
-  sourceValues: () => ({
-    dateIso: null,
-    duration: null,
-    text: '',
-  }),
-  async submit({ values }) {
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    console.log(values)
-  },
-})
-
-const data = ref([
-  {
-    hey: '',
-    ho: 1,
-  },
-])
-
-const columns = useTableColumns<typeof data>(
-  () => [
-    {
-      accessorKey: 'hey',
-    },
-    {
-      accessorKey: 'ho',
-    },
-  ],
-  {
-    headerActions: [
-      {
-        label: 'Add Row',
-        onClick: () => {
-          data.value.push({ hey: 'new', ho: data.value.length + 1 })
-        },
-      },
-      {
-        label: 'Add Row 2',
-        onClick: () => {
-          data.value.push({ hey: 'new', ho: data.value.length + 1 })
-        },
-      },
-    ],
-    onDelete(row) {
-      data.value = data.value.filter((_, i) => i !== row.index)
-    },
-    rowActions: [
-      {
-        icon: 'lucide:pencil',
-        onClick: () => {
-          console.log('Edit row')
-        },
-      },
-    ],
-  },
-)
-</script>
-
 <template>
   <LayoutSidebar
+    :search="{
+      placeholder: 'Projekte, Aufgaben, Kunden …',
+      groups: [
+        {
+          id: 'navigation',
+          label: 'Navigation',
+          items: [
+            { label: 'Übersicht', icon: 'i-lucide-layout-dashboard', to: '/' },
+            { label: 'Projekte', icon: 'i-lucide-folder-kanban', to: '/' },
+            { label: 'Archiv', icon: 'i-lucide-archive', to: '/archiv' },
+            { label: 'Einstellungen', icon: 'i-lucide-settings', to: '/' },
+          ],
+        },
+        {
+          id: 'projects',
+          label: 'Projekte',
+          items: [
+            { label: 'Website Relaunch', suffix: 'Acme GmbH', icon: 'i-lucide-folder' },
+            { label: 'Mobile App', suffix: 'Nordwind AG', icon: 'i-lucide-folder' },
+            { label: 'Intranet Migration', suffix: 'Stadtwerke', icon: 'i-lucide-folder' },
+          ],
+        },
+      ],
+    }"
     :items="[
       {
-        label: 'Home',
-        icon: 'i-lucide-house',
+        label: 'Übersicht',
+        icon: 'i-lucide-layout-dashboard',
+      },
+      {
+        label: 'Projekte',
+        icon: 'i-lucide-folder-kanban',
+        badge: '6',
         active: true,
       },
       {
-        label: 'Inbox',
-        icon: 'i-lucide-inbox',
-        badge: '4',
+        label: 'Aufgaben',
+        icon: 'i-lucide-circle-check',
+        badge: '23',
       },
       {
-        label: 'Contacts',
-        icon: 'i-lucide-users',
+        label: 'Kunden',
+        icon: 'i-lucide-building-2',
       },
       {
-        label: 'Settings',
+        label: 'Zeiterfassung',
+        icon: 'i-lucide-timer',
+      },
+      {
+        label: 'Einstellungen',
         icon: 'i-lucide-settings',
-        defaultOpen: true,
         children: [
-          {
-            label: 'General',
-          },
-          {
-            label: 'Members',
-          },
-          {
-            label: 'Notifications',
-          },
+          { label: 'Organisation' },
+          { label: 'Mitglieder' },
+          { label: 'Benachrichtigungen' },
+          { label: 'Abrechnung' },
         ],
       },
     ]"
     :bottom-items="[
       {
-        label: 'Home',
-        icon: 'i-lucide-house',
-        active: true,
+        label: 'Hilfe & Support',
+        icon: 'i-lucide-life-buoy',
       },
       {
-        label: 'Inbox',
-        icon: 'i-lucide-inbox',
-        badge: '4',
+        label: 'Feedback geben',
+        icon: 'i-lucide-message-circle',
       },
       {
-        label: 'Contacts',
-        icon: 'i-lucide-users',
-      },
-      {
-        label: 'Settings',
-        icon: 'i-lucide-settings',
-        defaultOpen: true,
-        children: [
-          {
-            label: 'General',
-          },
-          {
-            label: 'Members',
-          },
-          {
-            label: 'Notifications',
-          },
-        ],
+        label: 'Was ist neu?',
+        icon: 'i-lucide-sparkles',
+        badge: 'v0.37',
       },
     ]"
     :user-menu="{
-      name: 'Benjamin Canac',
-      // avatar: { src: 'https://github.com/benjamincanac.png' },
+      name: 'Tom Weinhold',
+      avatar: { src: 'https://github.com/DrJume.png' },
       items: [
         {
+          icon: 'lucide:user-round',
+          label: 'Profil',
+        },
+        {
+          icon: 'lucide:settings',
+          label: 'Kontoeinstellungen',
+        },
+        {
           icon: 'lucide:log-out',
-          label: 'Logout',
+          label: 'Abmelden',
         },
       ],
     }"
   >
+    <template #logo>
+      <div class="flex items-center gap-2">
+        <UIcon name="i-lucide-orbit" class="text-primary size-6 shrink-0" />
+        <span class="text-highlighted text-lg leading-none font-semibold">Falkenflug</span>
+      </div>
+    </template>
+    <template #icon>
+      <UIcon name="i-lucide-orbit" class="text-primary size-6" />
+    </template>
+
     <LayoutNavbar
       :navbar="{
-        title: 'Dashboard',
-        ui: {
-          root: 'relative',
-          title: 'flex-1 absolute inset-0 w-full',
-        },
+        title: 'Projekte',
+        sidebarToggle: true,
+        breadcrumb: [
+          { label: 'Übersicht', to: '/' },
+          { label: 'Kunden', to: '/' },
+          { label: 'Projekte' },
+        ],
       }"
-      :toolbar="{
+      :tabs="{
         items: [
           {
-            label: 'General',
-            icon: 'i-lucide-user',
-            active: true,
+            label: 'Alle Projekte',
+            icon: 'i-lucide-list',
+            to: '/',
+            exact: true,
           },
           {
-            label: 'Members',
-            icon: 'i-lucide-users',
-          },
-          {
-            label: 'Notifications',
-            icon: 'i-lucide-bell',
-          },
-        ],
-        itemsEnd: [
-          {
-            label: 'General',
-            icon: 'i-lucide-user',
-            active: true,
-          },
-          {
-            label: 'Members',
-            icon: 'i-lucide-users',
-          },
-          {
-            label: 'Notifications',
-            icon: 'i-lucide-bell',
+            label: 'Archiv',
+            icon: 'i-lucide-archive',
+            to: '/archiv',
           },
         ],
       }"
     >
-      <template #navbar-title>
-        <div class="w-full text-center">title</div>
+      <template #navbar-actions>
+        <UButton
+          label="Projektplan exportieren"
+          icon="i-lucide-download"
+          color="neutral"
+          variant="subtle"
+        />
+        <UButton label="Projekt hinzufügen" icon="i-lucide-plus" color="primary" />
       </template>
 
-      <UTableCard>
-        <UTable :data :columns @select="() => {}" />
-      </UTableCard>
-      <UCard
-        :ui="{
-          body: 'flex flex-col gap-4 items-start',
-        }"
-      >
-        <UButton
-          label="Confirm"
-          variant="subtle"
-          @click="
-            () => {
-              confirm.confirmDestructive({
-                title: 'Are you sure?',
-                description: 'This action cannot be undone.',
-                submitLabel: 'Yes, delete it',
-              })
-            }
-          "
-        />
-        <UButton
-          label="Actions"
-          variant="subtle"
-          @click="
-            () => {
-              overlay.create(LazyOverlayModalActions, {
-                defaultOpen: true,
-                props: {
-                  title: 'Actions',
-                  description: 'Choose an action to perform',
-                  actions: [
-                    {
-                      label: 'Action 1',
-                    },
-                    {
-                      label: 'Action 2',
-                    },
-                  ],
-                },
-              })
-            }
-          "
-        />
-      </UCard>
-      <UCard
-        class="max-w-sm"
-        :ui="{
-          body: 'flex flex-col gap-4 items-start ',
-        }"
-      >
-        <UForm
-          :form
-          :success-toast="{
-            title: 'test',
-            description: 'wow',
-          }"
-          class="flex flex-col gap-4"
-        >
-          {{ form.data }}
-          <UField v-slot="{ bind, field }" :field="form.fields.text.$use()" error-inline>
-            {{ field.schema }}
-            <UInput class="w-full" v-bind="bind" />
-          </UField>
-          <UField
-            v-slot="{ bind }"
-            :field="
-              form.fields.dateIso.$use({
-                translate: dateValueIsoTranslator(),
-              })
-            "
-          >
-            <UInputDatePicker class="w-full" v-bind="bind" />
-          </UField>
-          <UField v-slot="{ bind }" :field="form.fields.duration.$use()">
-            <UInputDurationMinutes class="w-full" v-bind="bind" />
-          </UField>
-        </UForm>
-      </UCard>
-      <Select
-        :items="[
-          { label: 'One', value: '1' },
-          { label: 'Two', value: '2' },
-        ]"
-        @choose="console.warn"
-      >
-        <template #selected="{ item }">
-          <div class="flex items-center gap-2">
-            <span>Selected:</span>
-            <span>{{ item.label }}</span>
-          </div>
-        </template>
-      </Select>
+      <NuxtPage />
     </LayoutNavbar>
   </LayoutSidebar>
 </template>

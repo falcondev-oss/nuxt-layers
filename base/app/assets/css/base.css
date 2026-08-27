@@ -13,7 +13,7 @@
   }
 
   body {
-    background: var(--ui-color-neutral-50);
+    background: color-mix(in oklch, var(--ui-color-neutral-50) 50%, white);
   }
 
   button:not(:disabled),
