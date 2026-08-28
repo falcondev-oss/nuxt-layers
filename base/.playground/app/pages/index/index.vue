@@ -323,11 +323,7 @@ const columns: TableColumn<Project>[] = [
         </div>
       </URibbonSection>
 
-      <URibbonSection
-        :title="selected.length ? 'Auswahl exportieren' : 'Export'"
-        class="-mx-2"
-        end
-      >
+      <URibbonSection :title="selected.length ? 'Auswahl exportieren' : 'Export'" class="-mx-2" end>
         <UButton
           icon="i-lucide-file-spreadsheet"
           color="neutral"

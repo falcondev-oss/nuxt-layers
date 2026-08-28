@@ -1,0 +1,3 @@
+@custom-variant self-hover (&[class*="self-hover"]:hover:not(:has([class*="self-hover"]:hover)));
+
+@custom-variant self-focus-within (&[class*="self-focus-within"]:focus-within:not(:has([class*="self-focus-within"]:focus-within)));

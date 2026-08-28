@@ -44,6 +44,11 @@ export default defineNuxtConfig({
     },
   },
   imports: {
+    dirs: [
+      // layer configs resolve `~` against the consuming project, so use absolute paths
+      path.join(currentDir, './app/types'),
+      path.join(currentDir, './app/utils/*/index.ts'),
+    ],
     imports: [
       {
         from: '@falcondev-oss/form-vue',
@@ -59,6 +64,10 @@ export default defineNuxtConfig({
         priority: 10,
       },
     ],
+  },
+  sourcemap: {
+    client: 'hidden',
+    server: true,
   },
 
   // runtime

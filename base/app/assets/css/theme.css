@@ -23,6 +23,7 @@
   --color-brand-secondary-900: color-mix(in oklch, var(--color-brand-secondary), black 55%);
   --color-brand-secondary-950: color-mix(in oklch, var(--color-brand-secondary), black 64%);
 
+  /* force usage of Nuxt UI gray classes */
   --color-slate-*: initial;
   --color-gray-*: initial;
   --color-zinc-*: initial;
