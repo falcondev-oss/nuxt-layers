@@ -1,8 +1,8 @@
 <script setup lang="ts" generic="const O extends RadioGroupItem[], R extends ConfirmModalResult<O>">
 import type { ButtonProps, RadioGroupItem, RadioGroupProps } from '@nuxt/ui'
 import type { ComponentPublicInstance } from 'vue'
-import type { ConfirmModalResult } from '~/composables/confirm'
-import type { templateParts } from '~/utils/display'
+import type { ConfirmModalResult } from '../../composables/confirm'
+import type { templateParts } from '../../utils/display'
 
 export type ConfirmModalProps<O extends RadioGroupItem[]> = {
   title: string

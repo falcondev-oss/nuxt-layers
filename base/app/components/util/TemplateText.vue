@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { templateParts } from '~/utils/display'
+import type { templateParts } from '../../utils/display'
 
 defineProps<{
   text: ReturnType<typeof templateParts>

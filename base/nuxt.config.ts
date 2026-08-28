@@ -7,6 +7,14 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  hooks: {
+    // consumers only pick up `app/**/*` through an `include` glob that their own
+    // tsconfig may exclude, so reference the layer's global augmentations explicitly
+    'prepare:types': ({ references }) => {
+      references.push({ path: path.join(currentDir, './app/index.d.ts') })
+    },
+  },
+
   // dev
   typescript: {
     strict: true,

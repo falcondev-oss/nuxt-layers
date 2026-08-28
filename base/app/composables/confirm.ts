@@ -1,5 +1,5 @@
 import type { RadioGroupItem } from '@nuxt/ui'
-import type { ConfirmModalProps } from '~/components/modals/ConfirmModal.vue'
+import type { ConfirmModalProps } from '../components/modals/ConfirmModal.vue'
 import { LazyConfirmModal } from '#components'
 
 export type ConfirmModalSuccess<O extends RadioGroupItem[]> = 0 extends O['length']
