@@ -43,6 +43,13 @@ export default defineNuxtConfig({
       strict: true,
     },
   },
+  components: [
+    {
+      // layer configs resolve `~` against the consuming project, so use absolute paths
+      path: path.join(currentDir, './app/components'),
+      pathPrefix: false,
+    },
+  ],
   imports: {
     dirs: [
       // layer configs resolve `~` against the consuming project, so use absolute paths

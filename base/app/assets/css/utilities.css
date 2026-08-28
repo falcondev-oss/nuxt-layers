@@ -1,3 +1,7 @@
 @utility z-full {
   z-index: 2147483647;
 }
+
+@utility no-scrollbar {
+  @apply [scrollbar-width:none] [&::-webkit-scrollbar]:hidden;
+}

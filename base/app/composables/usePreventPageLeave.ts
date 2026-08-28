@@ -1,5 +1,5 @@
 import { onBeforeRouteLeave } from '#app'
-import { useConfirm } from './useConfirm'
+import { useConfirm } from './confirm'
 
 export function usePreventPageLeave(
   preventPageLeave: MaybeRefOrGetter<boolean> = true,
@@ -10,6 +10,7 @@ export function usePreventPageLeave(
 ) {
   useEventListener('beforeunload', (event) => {
     if (!toValue(preventPageLeave)) return
+    // eslint-disable-next-line ts/no-unsafe-member-access
     event.returnValue = opts?.leaveDescription
     return opts?.leaveDescription
   })
@@ -19,11 +20,11 @@ export function usePreventPageLeave(
   onBeforeRouteLeave(async (_, __, next) => {
     if (!toValue(preventPageLeave)) return next()
 
-    const allowLeave = await confirm.confirmDestructive({
+    const allowLeave = await confirm({
       title: opts?.leaveTitle || 'Ungespeicherte Änderungen',
-      description:
+      text:
         opts?.leaveDescription || 'Es gibt ungespeicherte Änderungen. Seite trotzdem verlassen?',
-      submitLabel: 'Verlassen',
+      confirmLabel: 'Verlassen',
     })
     if (allowLeave) return next()
   })
