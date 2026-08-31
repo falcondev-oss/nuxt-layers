@@ -10,7 +10,7 @@ export function usePreventPageLeave(
 ) {
   useEventListener('beforeunload', (event) => {
     if (!toValue(preventPageLeave)) return
-    // eslint-disable-next-line ts/no-unsafe-member-access
+     
     event.returnValue = opts?.leaveDescription
     return opts?.leaveDescription
   })

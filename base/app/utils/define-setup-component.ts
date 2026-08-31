@@ -1,3 +1,4 @@
+/* eslint-disable ts/no-empty-object-type, ts/no-unsafe-return, ts/no-unsafe-argument */
 import type { AllUnionFields, Simplify } from 'type-fest'
 import type {
   Attrs,
