@@ -10,7 +10,7 @@ export function usePreventPageLeave(
 ) {
   useEventListener('beforeunload', (event) => {
     if (!toValue(preventPageLeave)) return
-     
+
     event.returnValue = opts?.leaveDescription
     return opts?.leaveDescription
   })
