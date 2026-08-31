@@ -16,6 +16,14 @@ export default defineNuxtConfig({
   },
 
   // dev
+  vite: {
+    // `@vitejs/plugin-vue-jsx` only wires up HMR for exports whose initializer calls one of
+    // these names. Every component here is `export default defineSetupComponent(...)`, so
+    // without this no module is an HMR boundary and every edit escalates to a full reload.
+    vueJsx: {
+      defineComponentName: ['defineComponent', 'defineSetupComponent'],
+    },
+  },
   typescript: {
     strict: true,
     tsConfig: {

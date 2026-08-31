@@ -23,7 +23,7 @@
   "scripts": {
     "dev": "nuxi dev .playground",
     "prepare": "nuxt prepare && nuxt prepare .playground",
-    "type-check": "vue-tsc --build",
+    "type-check": "tsc --build",
     "lint": "pnpm -w eslint:cmd \"$PWD\" && pnpm -w prettier:cmd \"$PWD\" --check",
     "lint:fix": "pnpm -w eslint:cmd \"$PWD\" --fix && pnpm -w prettier:cmd \"$PWD\" --write"
   },
@@ -61,9 +61,10 @@
     "vue-router": "^5.2.0"
   },
   "devDependencies": {
+    "@types/luxon": "^3.7.5",
+    "luxon": "^3.7.2",
     "nuxt": "^4.5.2",
     "typescript": "^5.9.3",
-    "vue-tsc": "^3.3.11",
     "zod": "^4.4.3"
   }
 }

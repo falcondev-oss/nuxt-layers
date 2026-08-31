@@ -48,7 +48,7 @@ export default defineSetupComponent((_: { props: { name: string } }) =>
         //     {/* <UField
         //       field={form.fields.text.$use()}
         //       error-inline
-        //       vSlots={vSlots(UField, {
+        //       v-slots={vSlots(UField, {
         //         default({ bind }) {
         //           return <UInput class="w-full" {...bind} />
         //         },

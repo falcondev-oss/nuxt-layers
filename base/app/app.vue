@@ -1,3 +1,0 @@
-<template>
-  <UCustomApp />
-</template>

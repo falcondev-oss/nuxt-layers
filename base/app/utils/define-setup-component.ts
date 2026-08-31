@@ -15,11 +15,14 @@ import { defineComponent } from 'vue'
 
 declare module 'vue' {
   interface ComponentCustomProps {
-    // Deliberately loose: this only makes `vSlots` an accepted prop name on every
+    // `v-slots` is what `@vue/babel-plugin-jsx` turns into slot children, so the name has
+    // to be spelled that way to reach the runtime at all.
+    //
+    // Deliberately loose: this only makes `v-slots` an accepted prop name on every
     // component. `Slots` would reject it for any component whose slots are declared as an
     // interface without an index signature (most of @nuxt/ui). The real check is the
     // `vSlots()` helper below, which types the object against the target's own slots.
-    vSlots?: Record<string, any>
+    'v-slots'?: Record<string, any>
   }
 }
 
@@ -29,7 +32,7 @@ interface ComponentTypes {
   slots?: Record<string, any>
   /**
    * Prop names to register when they are deliberately fewer than `keyof props`; the rest
-   * arrive as `attrs`. See `docs/agents/vue-to-tsx-migration.md` for when that is right.
+   * arrive as `attrs`.
    */
   propKeys?: string
   /**
@@ -167,7 +170,7 @@ export function defineSetupComponent<const T extends ComponentTypes>(
   ComponentOptionsMixin,
   Field<T, 'emits'>,
   // `Partial`, to match `SlotsType<Partial<...>>` below and the partial type `vSlots()`
-  PublicProps & { vSlots?: Partial<Field<T, 'slots'>> },
+  PublicProps & { 'v-slots'?: Partial<Field<T, 'slots'>> },
   {},
   false,
   {},
@@ -190,7 +193,38 @@ type ComponentSlots<T> = T extends new (...args: any) => { $slots: infer S }
     ? NonNullable<S>
     : {}
 
-export function vSlots<C>(component: C, slots: ComponentSlots<C>) {
+/**
+ * A slot whose declared type intersects several call signatures, collapsed into one that takes
+ * the intersection of their props.
+ *
+ * `@nuxt/ui` builds `TableSlots` by intersecting a `Record` over header props with one over cell
+ * props, each carrying a `string` index signature. The names those `Record`s spell out keep
+ * their own props, but any other name — a column id that is no key of the row type — resolves to
+ * both signatures at once, which no single function satisfies. Intersecting their props leaves
+ * it writable, and its props inferrable.
+ */
+type MergeSlotSignatures<S> = S extends {
+  (props: infer A): infer R
+  (props: infer B): any
+}
+  ? // a slot declared with one signature matches the pattern too, inferring the same props
+    // twice; rewriting it would turn `() => VNode[]` into `(props: unknown) => VNode[]`
+    Same<A, B> extends true
+    ? S
+    : (props: A & B) => R
+  : S
+
+/** Whether `A` and `B` are the same type, wrapped in tuples so neither side distributes. */
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
+
+export function vSlots<C>(
+  component: C,
+  slots: {
+    [Name in keyof ComponentSlots<C>]?: MergeSlotSignatures<ComponentSlots<C>[Name]>
+  },
+): Partial<ComponentSlots<C>> {
+  // the parameter type only relaxes *how* a slot may be written; what comes back is the target's
+  // own slots, which is what its `v-slots` prop is declared as
   return slots
 }
 

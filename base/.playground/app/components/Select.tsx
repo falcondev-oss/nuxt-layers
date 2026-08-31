@@ -23,7 +23,7 @@ export default defineSetupComponent(
         return () => (
           <UCard
             class="w-fit"
-            vSlots={vSlots(UCard, {
+            v-slots={vSlots(UCard, {
               header: () => [<h1>Select an item</h1>],
             })}
           >
@@ -37,7 +37,7 @@ export default defineSetupComponent(
                     selected.value = item
                     emit('choose', item)
                   }}
-                  vSlots={vSlots(UButton, {
+                  v-slots={vSlots(UButton, {
                     leading: () => [
                       <>{`[${selected.value?.value === item.value ? 'x' : ' '}] `}</>,
                     ],

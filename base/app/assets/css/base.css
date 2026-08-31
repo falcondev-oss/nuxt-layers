@@ -3,6 +3,7 @@
 
 @import './theme.css';
 @import './utilities.css';
+@import './variants.css';
 
 @layer base {
   html,
@@ -32,4 +33,9 @@
   .iconify {
     flex-shrink: 0;
   }
+}
+
+.u-field [aria-invalid='true']::placeholder {
+  color: var(--ui-color-error-500);
+  opacity: 0.5;
 }
