@@ -39,9 +39,9 @@ const props = defineProps<{
 const slots = defineSlots<
   {
     'default': any
-    'navbar-title': any
-    'navbar-trailing': any
-    'navbar-actions': any
+    'navbar-title'?: any
+    'navbar-trailing'?: any
+    'navbar-actions'?: any
   } & AddPropertyPrefix<DashboardNavbarSlots, 'navbar'>
 >()
 

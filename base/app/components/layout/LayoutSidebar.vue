@@ -29,9 +29,9 @@ defineProps<{
 }>()
 
 const slots = defineSlots<{
-  default: any
-  logo: any
-  icon: any
+  'default': any
+  'logo'?: any
+  'icon'?: any
 }>()
 
 const config = useRuntimeConfig()
