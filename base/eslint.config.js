@@ -2,7 +2,7 @@
 import eslintConfig from '@falcondev-oss/configs/eslint'
 
 export default eslintConfig({
-  tsconfigPath: './tsconfig.json',
+  tsconfigPath: new URL('tsconfig.json', import.meta.url).pathname,
   nuxt: true,
 }).append({
   ignores: [
