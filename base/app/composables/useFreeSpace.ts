@@ -11,12 +11,16 @@ const ROOT_ATTR = 'data-free-space-root'
 const FREE = `[${FREE_ATTR}]`
 const ROOT = `[${ROOT_ATTR}]`
 
+/** Counts as free: opted out of the measurement, or taking up no room in it anyway — hidden,
+ * unrendered, or grown to nothing. */
+const isFree = (el: Element) => el.matches(FREE) || el.getBoundingClientRect().width === 0
+
 /** The element next to `node` on `side`, skipping the ones that count as free. */
 function siblingOf(node: Element | null | undefined, side: 'left' | 'right') {
   const step = (el: Element) =>
     side === 'left' ? el.previousElementSibling : el.nextElementSibling
   let sibling = node && step(node)
-  while (sibling?.matches(FREE)) sibling = step(sibling)
+  while (sibling && isFree(sibling)) sibling = step(sibling)
   return (sibling ?? undefined) as HTMLElement | undefined
 }
 
@@ -27,7 +31,7 @@ const rightOf = (node: Element | null | undefined) => siblingOf(node, 'right')
  * opted-out children hands over to the last child that isn't; one made of nothing but those
  * ends where it begins, however wide it grew. */
 function contentEdge(el: HTMLElement): { el: HTMLElement; side: 'left' | 'right' } {
-  if (!el.lastElementChild?.matches(FREE)) return { el, side: 'right' }
+  if (!el.lastElementChild || !isFree(el.lastElementChild)) return { el, side: 'right' }
   const last = leftOf(el.lastElementChild)
   return last ? contentEdge(last) : { el, side: 'left' }
 }
@@ -68,10 +72,11 @@ function anchors(target: MaybeComputedElementRef) {
  *                    from                   to
  *                    └─────── space ───────┘
  *
- * Elements spread with `useFreeSpace.free` are read as empty space rather than as content
- * — the measurement runs straight through them, so `target` may grow into the room they hold. The
- * row containing `target` should carry `useFreeSpace.root`: without it a target with nothing
- * to its left keeps climbing and ends up measured against something elsewhere on the page.
+ * Elements spread with `useFreeSpace.free`, and ones of no width at all — hidden, unrendered, or
+ * collapsed — are read as empty space rather than as content: the measurement runs straight
+ * through them, so `target` may grow into the room they hold. The row containing `target` should
+ * carry `useFreeSpace.root`: without it a target with nothing to its left keeps climbing and ends
+ * up measured against something elsewhere on the page.
  *
  * Either neighbour may be missing, in which case that end falls back to the container's content
  * box. `target` itself is never measured — which is what keeps the answer meaningful once it
