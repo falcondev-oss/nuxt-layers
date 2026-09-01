@@ -16,6 +16,7 @@ import {
   URibbonSection,
   USeparator,
   UTable,
+  UToggleButton,
   UTooltip,
 } from '#components'
 
@@ -98,6 +99,7 @@ export default defineSetupComponent((_: object) =>
       ])
 
       const search = ref('')
+      const caseSensitive = ref(false)
       const view = ref<'list' | 'kanban' | 'calendar'>('list')
       const selection = ref<Record<string, boolean>>({})
       const sorting = ref([{ id: 'due', desc: false }])
@@ -127,7 +129,9 @@ export default defineSetupComponent((_: object) =>
               !dueRange.value.end ||
               (p.due >= dueRange.value.start.toString() &&
                 p.due <= dueRange.value.end.toString())) &&
-            `${p.name} ${p.customer}`.toLowerCase().includes(search.value.toLowerCase()),
+            (caseSensitive.value
+              ? `${p.name} ${p.customer}`.includes(search.value)
+              : `${p.name} ${p.customer}`.toLowerCase().includes(search.value.toLowerCase())),
         ),
       )
 
@@ -319,6 +323,15 @@ export default defineSetupComponent((_: object) =>
                     icon="i-lucide-search"
                     placeholder="Projekt oder Kunde …"
                     class="w-56"
+                  />
+
+                  <UToggleButton
+                    modelValue={caseSensitive.value}
+                    onUpdate:modelValue={(value) => {
+                      caseSensitive.value = value
+                    }}
+                    label="Groß-/Kleinschreibung"
+                    icon="i-lucide-case-sensitive"
                   />
                 </URibbonSection>,
 
