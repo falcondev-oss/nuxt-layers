@@ -43,7 +43,7 @@ export default defineSetupComponent(
                   ...forwarded.value.ui,
                   body: mergeSlotClass(forwarded.value.ui?.body, 'p-0!'),
                 }}
-                class="ring-accented relative shadow-[0_-2px_3px_-1px_rgb(0_0_0/0.08)]"
+                class="relative shadow-[0_-2px_3px_-1px_rgb(0_0_0/0.08)]"
                 v-slots={vSlots(UCard, omit(slots, ['ribbon']))}
               />
             ) : null}

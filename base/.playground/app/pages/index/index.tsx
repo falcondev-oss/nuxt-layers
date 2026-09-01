@@ -5,6 +5,7 @@ import {
   UBadge,
   UButton,
   UCalendar,
+  UCard,
   UCheckbox,
   UDropdownMenu,
   UIcon,
@@ -214,6 +215,14 @@ export default defineSetupComponent((_: object) =>
         link.click()
         URL.revokeObjectURL(url)
       }
+
+      /** the plain UCard example below needs no headers, filters or slots of its own */
+      const plainColumns: TableColumn<Project>[] = [
+        { accessorKey: 'name', header: 'Projekt' },
+        { accessorKey: 'customer', header: 'Kunde' },
+        { accessorKey: 'status', header: 'Status' },
+        { accessorKey: 'due', header: 'Fällig' },
+      ]
 
       const columns: TableColumn<Project>[] = [
         {
@@ -532,6 +541,29 @@ export default defineSetupComponent((_: object) =>
                   })}
                 />,
               ],
+            })}
+          />
+
+          <UCard
+            v-slots={vSlots(UCard, {
+              header: () => [<h2 class="text-highlighted font-medium">Hinweise</h2>],
+              default: () => [
+                <UTable
+                  data={projects.value}
+                  columns={plainColumns}
+                  v-slots={vSlots(UTable<Project>, {
+                    'status-cell': ({ row }) => [
+                      <UBadge
+                        label={row.original.status}
+                        color={statusColors[row.original.status]}
+                        variant="subtle"
+                      />,
+                    ],
+                    'due-cell': ({ row }) => [<>{formatDate(row.original.due)}</>],
+                  })}
+                />,
+              ],
+              footer: () => [<UButton label="Mehr erfahren" color="neutral" variant="subtle" />],
             })}
           />
 
