@@ -11,6 +11,7 @@ import type {
 import type { MaybeRefOrGetter, Ref, VNode } from 'vue'
 import type { ToolbarTool } from '../../composables/useToolbar'
 import type { AddPropertyPrefix } from '../../types/helpers'
+import { useResizeObserver } from '@vueuse/core'
 import * as R from 'remeda'
 import {
   ForwardSlots,
@@ -20,8 +21,10 @@ import {
   UDashboardSidebarCollapse,
   UDashboardToolbar,
   UNavigationMenu,
+  UOverflowActions,
   USeparator,
 } from '#components'
+import { useSpaceToLeft } from '../../composables/useSpaceToLeft'
 import { toolbarToolsKey } from '../../composables/useToolbar'
 import { mergeSlotClass } from '../../utils/ui'
 
@@ -87,13 +90,64 @@ export default defineSetupComponent(
           ...providedTools.value.map((tool) => toValue(tool)),
         ])
 
-        const toolsMenu = () => (
-          <UNavigationMenu items={toolItems.value} highlight ui={props.tools?.ui} />
+        /** `compact`: tighter rows, for the wrapped toolbar where the tools are the only line. */
+        const toolsMenu = (compact = false) => (
+          <UNavigationMenu
+            items={toolItems.value}
+            ui={{
+              ...props.tools?.ui,
+              ...(compact && {
+                item: mergeSlotClass(props.tools?.ui?.item, 'py-1'),
+              }),
+            }}
+          />
+        )
+
+        // how much of the tabs' toolbar is left for the tools, next to the tabs. Measured off an
+        // anchor that stays at the end of that toolbar, so the answer doesn't change once the
+        // tools have moved to a toolbar of their own — they'd have no way back.
+        const toolsAnchor = ref<HTMLElement>()
+        const toolsSpace = useSpaceToLeft(toolsAnchor)
+        // only ever the inline row — the wrapped one is compact, and a width measured there
+        // would not be the width the tools need to come back up
+        const toolsRow = ref<HTMLElement>()
+        // `shrink-0`, so this stays the tools' natural width even once the row runs short
+        const toolsWidth = ref(0)
+        useResizeObserver(toolsRow, () => {
+          const width = toolsRow.value?.offsetWidth
+          if (width) toolsWidth.value = width
+        })
+        // while wrapped the tools are out of the inline row, so nothing would re-measure them
+        // there. Forget the width when they change, and they come back up to be measured again.
+        watch(toolItems, () => {
+          toolsWidth.value = 0
+        })
+
+        const toolsWrapped = computed(
+          () => toolsSpace.value < toolsWidth.value + 7 /* 2*gap-1.5 + 1px divider */,
+        )
+        // the tools sit flush right, so what is left of the row past their own width is the
+        // clear space between them and the tabs
+        const toolsCrowded = computed(
+          () => !toolsWrapped.value && toolsSpace.value - toolsWidth.value < 3 * 16 /* 3rem */,
+        )
+        /** A divider goes between the tabs and the tools whenever they share a line and sit
+         * close enough to run together. Left-aligned tools always do — they follow the tabs. */
+        const showDivider = computed(
+          () =>
+            !!props.tabs &&
+            toolItems.value.length > 0 &&
+            !toolsWrapped.value &&
+            (props.tools?.left || toolsCrowded.value),
         )
 
         const navbarUi = computed<DashboardNavbarProps['ui']>(() => ({
           ...props.navbar?.ui,
           toggle: mergeSlotClass(props.navbar?.ui?.toggle, '-ml-1'),
+          // Sized by its own content up to half the row, never squeezed by the actions: the edge
+          // they measure their room from has to stay put, or an action that gives way frees space
+          // for the title to grow into and comes straight back.
+          left: mergeSlotClass(props.navbar?.ui?.left, 'max-w-1/2 shrink-0'),
           ...(props.navbar?.breadcrumb && {
             root: mergeSlotClass(props.navbar.ui?.root, 'h-auto min-h-(--ui-header-height) py-2'),
           }),
@@ -109,6 +163,7 @@ export default defineSetupComponent(
                       <ForwardSlots slots={navbarSlots.value}>
                         <UDashboardNavbar
                           ui={navbarUi.value}
+                          data-space-root
                           class="bg-white"
                           title={props.navbar.title}
                           v-slots={vSlots(UDashboardNavbar, {
@@ -118,7 +173,14 @@ export default defineSetupComponent(
                                 : []),
 
                               <div class="flex min-w-0 flex-col items-start gap-0.5">
-                                <div class="flex min-w-0 items-center gap-1.5">
+                                <div
+                                  class={[
+                                    'flex min-w-0 items-center gap-1.5',
+                                    // the breadcrumb sets the column's width and the title
+                                    // truncates into it, instead of the other way round
+                                    props.navbar?.breadcrumb && 'w-0 min-w-full',
+                                  ]}
+                                >
                                   <h1 class="text-highlighted truncate font-semibold">
                                     {slots['navbar-title']?.() ?? props.navbar?.title}
                                   </h1>
@@ -145,9 +207,9 @@ export default defineSetupComponent(
                             ],
                             right: (slotProps) => [
                               <>{slots['navbar-right']?.(slotProps)}</>,
-                              <div id="navbar-actions" class="flex items-center gap-2">
+                              <UOverflowActions id="navbar-actions">
                                 {slots['navbar-actions']?.()}
-                              </div>,
+                              </UOverflowActions>,
                             ],
                           })}
                         />
@@ -157,30 +219,88 @@ export default defineSetupComponent(
                 ...(props.tabs || toolItems.value.length > 0
                   ? [
                       <UDashboardToolbar
-                        ui={props.toolbarUi}
+                        ui={{
+                          ...props.toolbarUi,
+                          // right-aligned tools: stretched, so the space held open past the
+                          // tabs is the row's own and the divider can centre itself in it
+                          ...(!props.tools?.left &&
+                            props.tabs && {
+                              left: mergeSlotClass(props.toolbarUi?.left, 'grow'),
+                            }),
+                        }}
+                        data-space-root
                         class={['bg-white', (props.tabs || props.tools?.left) && '*:first:-ml-2']}
                         v-slots={vSlots(UDashboardToolbar, {
                           ...((props.tabs || props.tools?.left) && {
                             left: () => [
+                              // the fixed edge the room for the tools is measured from
                               ...(props.tabs
                                 ? [
                                     <UNavigationMenu
                                       items={props.tabs.items}
                                       highlight
                                       variant="link"
+                                      class="shrink-0"
                                       ui={props.tabs.ui}
                                     />,
                                   ]
                                 : []),
-                              ...(props.tabs && props.tools?.left && toolItems.value.length > 0
-                                ? [<USeparator orientation="vertical" class="h-7" />]
-                                : []),
-                              ...(props.tools?.left ? [toolsMenu()] : []),
+                              // Everything past the tabs is room the tools may take, so all of it
+                              // is `data-space-ignore`: the measurement reads it as free whether
+                              // they are standing in it or not, and they keep their way back.
+                              ...(props.tools?.left
+                                ? [
+                                    ...(showDivider.value
+                                      ? [
+                                          <USeparator
+                                            data-space-ignore
+                                            orientation="vertical"
+                                            class="h-7"
+                                          />,
+                                        ]
+                                      : []),
+                                    ...(toolsWrapped.value
+                                      ? []
+                                      : [
+                                          <div ref={toolsRow} data-space-ignore class="shrink-0">
+                                            {toolsMenu()}
+                                          </div>,
+                                        ]),
+                                  ]
+                                : // right-aligned: held open here, for the divider to centre in
+                                  [
+                                    <div data-space-ignore class="flex grow justify-center">
+                                      {showDivider.value ? (
+                                        <USeparator orientation="vertical" class="h-7" />
+                                      ) : null}
+                                    </div>,
+                                  ]),
                             ],
                           }),
-                          ...(!props.tools?.left && {
-                            right: () => [toolsMenu()],
-                          }),
+                          right: () => [
+                            // `hidden`, so it measures the row without taking a place in it
+                            <div ref={toolsAnchor} class="hidden" />,
+                            // the room the tools stand in is the room the anchor measures — read
+                            // as free whether they are in it or not, so they keep their way back
+                            ...(!props.tools?.left && !toolsWrapped.value
+                              ? [
+                                  <div ref={toolsRow} data-space-ignore class="shrink-0">
+                                    {toolsMenu()}
+                                  </div>,
+                                ]
+                              : []),
+                          ],
+                        })}
+                      />,
+                    ]
+                  : []),
+                ...(toolsWrapped.value
+                  ? [
+                      <UDashboardToolbar
+                        ui={props.toolbarUi}
+                        class="min-h-fit! bg-white"
+                        v-slots={vSlots(UDashboardToolbar, {
+                          default: () => [<div class="-ml-2 shrink-0">{toolsMenu(true)}</div>],
                         })}
                       />,
                     ]
