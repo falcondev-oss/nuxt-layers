@@ -20,6 +20,7 @@ import {
   UDashboardSidebarCollapse,
   UDashboardToolbar,
   UNavigationMenu,
+  USeparator,
 } from '#components'
 import { toolbarToolsKey } from '../../composables/useToolbar'
 import { mergeSlotClass } from '../../utils/ui'
@@ -41,6 +42,7 @@ export default defineSetupComponent(
       }
       tools?: {
         items?: NavigationMenuItem[]
+        left?: boolean
         ui?: NavigationMenuProps['ui']
       }
       toolbarUi?: DashboardToolbarProps['ui']
@@ -84,6 +86,10 @@ export default defineSetupComponent(
           ...(props.tools?.items ?? []),
           ...providedTools.value.map((tool) => toValue(tool)),
         ])
+
+        const toolsMenu = () => (
+          <UNavigationMenu items={toolItems.value} highlight ui={props.tools?.ui} />
+        )
 
         const navbarUi = computed<DashboardNavbarProps['ui']>(() => ({
           ...props.navbar?.ui,
@@ -152,32 +158,28 @@ export default defineSetupComponent(
                   ? [
                       <UDashboardToolbar
                         ui={props.toolbarUi}
-                        class="bg-white *:first:-ml-2"
+                        class={['bg-white', (props.tabs || props.tools?.left) && '*:first:-ml-2']}
                         v-slots={vSlots(UDashboardToolbar, {
-                          left: () => [
-                            props.tabs ? (
-                              <UNavigationMenu
-                                items={props.tabs.items}
-                                highlight
-                                variant="link"
-                                ui={props.tabs.ui}
-                              />
-                            ) : (
-                              <UNavigationMenu
-                                items={toolItems.value}
-                                highlight
-                                ui={props.tools?.ui}
-                              />
-                            ),
-                          ],
-                          ...(props.tabs && {
-                            right: () => [
-                              <UNavigationMenu
-                                items={toolItems.value}
-                                highlight
-                                ui={props.tools?.ui}
-                              />,
+                          ...((props.tabs || props.tools?.left) && {
+                            left: () => [
+                              ...(props.tabs
+                                ? [
+                                    <UNavigationMenu
+                                      items={props.tabs.items}
+                                      highlight
+                                      variant="link"
+                                      ui={props.tabs.ui}
+                                    />,
+                                  ]
+                                : []),
+                              ...(props.tabs && props.tools?.left && toolItems.value.length > 0
+                                ? [<USeparator orientation="vertical" class="h-7" />]
+                                : []),
+                              ...(props.tools?.left ? [toolsMenu()] : []),
                             ],
+                          }),
+                          ...(!props.tools?.left && {
+                            right: () => [toolsMenu()],
                           }),
                         })}
                       />,
