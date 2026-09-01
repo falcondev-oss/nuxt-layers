@@ -335,7 +335,7 @@ export default defineSetupComponent((_: object) =>
                   />
                 </URibbonSection>,
 
-                <URibbonSection title="Kennzahlen">
+                <URibbonSection title="Kennzahlen" ui={{ root: 'max-sm:hidden' }}>
                   <div class="flex items-center gap-3 text-sm tabular-nums">
                     <p>
                       <span class="text-highlighted font-medium">{visible.value.length}</span>
