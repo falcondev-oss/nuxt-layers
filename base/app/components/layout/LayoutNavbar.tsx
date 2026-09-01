@@ -21,10 +21,10 @@ import {
   UDashboardSidebarCollapse,
   UDashboardToolbar,
   UNavigationMenu,
-  UOverflowActions,
+  UOverflowButtons,
   USeparator,
 } from '#components'
-import { useSpaceToLeft } from '../../composables/useSpaceToLeft'
+import { useAvailableWidth } from '../../composables/useAvailableWidth'
 import { toolbarToolsKey } from '../../composables/useToolbar'
 import { mergeSlotClass } from '../../utils/ui'
 
@@ -107,7 +107,7 @@ export default defineSetupComponent(
         // anchor that stays at the end of that toolbar, so the answer doesn't change once the
         // tools have moved to a toolbar of their own — they'd have no way back.
         const toolsAnchor = ref<HTMLElement>()
-        const toolsSpace = useSpaceToLeft(toolsAnchor)
+        const toolsSpace = useAvailableWidth(toolsAnchor)
         // only ever the inline row — the wrapped one is compact, and a width measured there
         // would not be the width the tools need to come back up
         const toolsRow = ref<HTMLElement>()
@@ -163,7 +163,7 @@ export default defineSetupComponent(
                       <ForwardSlots slots={navbarSlots.value}>
                         <UDashboardNavbar
                           ui={navbarUi.value}
-                          data-space-root
+                          {...useAvailableWidth.root}
                           class="bg-white"
                           title={props.navbar.title}
                           v-slots={vSlots(UDashboardNavbar, {
@@ -207,9 +207,9 @@ export default defineSetupComponent(
                             ],
                             right: (slotProps) => [
                               <>{slots['navbar-right']?.(slotProps)}</>,
-                              <UOverflowActions id="navbar-actions">
+                              <UOverflowButtons id="navbar-actions">
                                 {slots['navbar-actions']?.()}
-                              </UOverflowActions>,
+                              </UOverflowButtons>,
                             ],
                           })}
                         />
@@ -228,7 +228,7 @@ export default defineSetupComponent(
                               left: mergeSlotClass(props.toolbarUi?.left, 'grow'),
                             }),
                         }}
-                        data-space-root
+                        {...useAvailableWidth.root}
                         class={['bg-white', (props.tabs || props.tools?.left) && '*:first:-ml-2']}
                         v-slots={vSlots(UDashboardToolbar, {
                           ...((props.tabs || props.tools?.left) && {
@@ -246,14 +246,14 @@ export default defineSetupComponent(
                                   ]
                                 : []),
                               // Everything past the tabs is room the tools may take, so all of it
-                              // is `data-space-ignore`: the measurement reads it as free whether
-                              // they are standing in it or not, and they keep their way back.
+                              // counts as free for the measurement, whether the tools are
+                              // standing in it or not, and they keep their way back.
                               ...(props.tools?.left
                                 ? [
                                     ...(showDivider.value
                                       ? [
                                           <USeparator
-                                            data-space-ignore
+                                            {...useAvailableWidth.free}
                                             orientation="vertical"
                                             class="h-7"
                                           />,
@@ -262,14 +262,21 @@ export default defineSetupComponent(
                                     ...(toolsWrapped.value
                                       ? []
                                       : [
-                                          <div ref={toolsRow} data-space-ignore class="shrink-0">
+                                          <div
+                                            ref={toolsRow}
+                                            {...useAvailableWidth.free}
+                                            class="shrink-0"
+                                          >
                                             {toolsMenu()}
                                           </div>,
                                         ]),
                                   ]
                                 : // right-aligned: held open here, for the divider to centre in
                                   [
-                                    <div data-space-ignore class="flex grow justify-center">
+                                    <div
+                                      {...useAvailableWidth.free}
+                                      class="flex grow justify-center"
+                                    >
                                       {showDivider.value ? (
                                         <USeparator orientation="vertical" class="h-7" />
                                       ) : null}
@@ -284,7 +291,7 @@ export default defineSetupComponent(
                             // as free whether they are in it or not, so they keep their way back
                             ...(!props.tools?.left && !toolsWrapped.value
                               ? [
-                                  <div ref={toolsRow} data-space-ignore class="shrink-0">
+                                  <div ref={toolsRow} {...useAvailableWidth.free} class="shrink-0">
                                     {toolsMenu()}
                                   </div>,
                                 ]
