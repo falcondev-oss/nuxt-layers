@@ -19,7 +19,7 @@ export default defineSetupComponent(
           <UButton
             color="neutral"
             variant="soft"
-            class={['ring-accented px-1.5! ring', props.modelValue && 'bg-accented']}
+            class={['ring-accented px-1.5! ring', props.modelValue && 'bg-white']}
             aria-pressed={props.modelValue}
             onClick={() => {
               emit('update:modelValue', !props.modelValue)
