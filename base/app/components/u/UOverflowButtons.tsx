@@ -2,7 +2,7 @@ import type { VNode } from 'vue'
 import { useResizeObserver } from '@vueuse/core'
 import { Comment, Fragment, isVNode } from 'vue'
 import { UButton, UPopover } from '#components'
-import { useAvailableWidth } from '../../composables/useAvailableWidth'
+import { useFreeSpace } from '../../composables/useFreeSpace'
 
 /** JSX children and `v-if`/`v-for` arrive nested — unpack them to reach the individual actions.
  * A `v-if` that didn't take leaves a comment placeholder behind, which is not an action. */
@@ -38,7 +38,7 @@ export default defineSetupComponent(
       emits: [],
       setup: (_props, { slots }) => {
         const root = ref<HTMLElement>()
-        const space = useAvailableWidth(root)
+        const space = useFreeSpace(root)
 
         const triggerWidth = ref(0)
         /** Action widths by index, kept from when the action last stood in the row — one that has

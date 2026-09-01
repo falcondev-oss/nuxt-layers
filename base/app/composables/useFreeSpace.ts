@@ -5,8 +5,8 @@ import { unrefElement, useResizeObserver } from '@vueuse/core'
 // eslint-disable-next-line unicorn/prefer-number-coercion
 const px = (value: string) => Number.parseFloat(value)
 
-const FREE_ATTR = 'data-available-width-free'
-const ROOT_ATTR = 'data-available-width-root'
+const FREE_ATTR = 'data-free-space'
+const ROOT_ATTR = 'data-free-space-root'
 
 const FREE = `[${FREE_ATTR}]`
 const ROOT = `[${ROOT_ATTR}]`
@@ -59,7 +59,7 @@ function anchors(target: MaybeComputedElementRef) {
  * nothing does. Stays meaningful when `target` overflows — unlike its own width, which is why it
  * can decide what still fits.
  *
- *   useAvailableWidth.root
+ *   useFreeSpace.root
  *  ┌───────────────────────────────────────────────────────┐
  *  │  ┌───────────┐  ┌╌╌╌╌╌╌╌╌╌┐  ┌────────┐  ┌─────────┐  │
  *  │  │ neighbour │  ╎  free   ╎  │ target │  │ blocker │  │
@@ -68,16 +68,16 @@ function anchors(target: MaybeComputedElementRef) {
  *                    from                   to
  *                    └─────── space ───────┘
  *
- * Elements spread with `useAvailableWidth.free` are read as empty space rather than as content
+ * Elements spread with `useFreeSpace.free` are read as empty space rather than as content
  * — the measurement runs straight through them, so `target` may grow into the room they hold. The
- * row containing `target` should carry `useAvailableWidth.root`: without it a target with nothing
+ * row containing `target` should carry `useFreeSpace.root`: without it a target with nothing
  * to its left keeps climbing and ends up measured against something elsewhere on the page.
  *
  * Either neighbour may be missing, in which case that end falls back to the container's content
  * box. `target` itself is never measured — which is what keeps the answer meaningful once it
  * overflows, and what lets an element that has given way find its way back.
  */
-export function useAvailableWidth(target: MaybeComputedElementRef) {
+export function useFreeSpace(target: MaybeComputedElementRef) {
   // until measured, whatever asks gets "plenty" and renders in full
   const space = ref(Infinity)
 
@@ -123,8 +123,8 @@ export function useAvailableWidth(target: MaybeComputedElementRef) {
 }
 
 /** Spread onto the box the search for a target's neighbours stops at. */
-useAvailableWidth.root = { [ROOT_ATTR]: '' }
+useFreeSpace.root = { [ROOT_ATTR]: '' }
 
 /** Spread onto an element that only fills room the others left over — a divider centred in the
  * gap, say. It sits in the flow, but the width it covers still counts as free. */
-useAvailableWidth.free = { [FREE_ATTR]: '' }
+useFreeSpace.free = { [FREE_ATTR]: '' }
