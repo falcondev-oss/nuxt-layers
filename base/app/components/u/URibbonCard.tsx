@@ -49,6 +49,10 @@ export default defineSetupComponent(
                 >
                   {leadingSections}
 
+                  {/* every section hugs its content, so the spare space collects here instead of
+                      stretching the last leading section */}
+                  <div class="flex-1" />
+
                   {endSections.length > 0 ? (
                     // one flex item, so the end sections wrap onto their own line as a group
                     // instead of splitting up — the leading sections give way first
