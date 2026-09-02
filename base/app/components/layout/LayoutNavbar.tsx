@@ -52,6 +52,8 @@ export default defineSetupComponent(
     }
     slots: {
       'default': () => VNode[]
+      'navbar-left'?: () => VNode[]
+      'navbar-leading'?: () => VNode[]
       'navbar-title'?: () => VNode[]
       'navbar-trailing'?: () => VNode[]
       'navbar-actions'?: () => VNode[]
@@ -62,6 +64,8 @@ export default defineSetupComponent(
       props: ['panel', 'navbar', 'tabs', 'tools', 'toolbarUi'],
       emits: [],
       setup: (props, { slots }) => {
+        const appConfig = useAppConfig()
+
         // rendered manually in the `left` slot below
         const omitNavbarSlots = [
           'navbar-left',
@@ -141,13 +145,33 @@ export default defineSetupComponent(
             (props.tools?.left || toolsCrowded.value),
         )
 
+        // This `h1` stands in for the navbar's own, which never renders once `left` is taken
+        // over — so everything upstream would have layered onto that slot has to be layered on
+        // by hand: the theme's own classes come from `app.config`, the per-instance ones from
+        // `ui.title`, and either may be a replacer function rather than classes to merge.
+        const navbarTitleClass = computed(() =>
+          mergeSlotClass(
+            props.navbar?.ui?.title,
+            mergeSlotClass(
+              appConfig.ui?.dashboardNavbar?.slots?.title,
+              'text-highlighted font-semibold whitespace-nowrap',
+            )(''),
+          )(''),
+        )
+
         const navbarUi = computed<DashboardNavbarProps['ui']>(() => ({
           ...props.navbar?.ui,
           toggle: mergeSlotClass(props.navbar?.ui?.toggle, '-ml-1'),
-          // Sized by its own content up to half the row, never squeezed by the actions: the edge
-          // they measure their room from has to stay put, or an action that gives way frees space
-          // for the title to grow into and comes straight back.
-          left: mergeSlotClass(props.navbar?.ui?.left, 'max-w-1/2 shrink-0'),
+          // Exactly as wide as the title and breadcrumb need — neither truncates, and no room
+          // is held back from the actions.
+          left: mergeSlotClass(
+            props.navbar?.ui?.left,
+            // A breadcrumb wraps, so this column may give way once the row runs short — down to
+            // the widest line it still has to show whole. With nothing to reflow, `shrink-0`
+            // instead keeps that edge put: an action giving way would otherwise free space for
+            // the title to grow into and come straight back.
+            props.navbar?.breadcrumb ? 'min-w-0' : 'shrink-0',
+          ),
           ...(props.navbar?.breadcrumb && {
             root: mergeSlotClass(props.navbar.ui?.root, 'h-auto min-h-(--ui-header-height) py-2'),
           }),
@@ -168,38 +192,48 @@ export default defineSetupComponent(
                           title={props.navbar.title}
                           v-slots={vSlots(UDashboardNavbar, {
                             left: () => [
+                              // the toggle stays outside `left` upstream, so it survives a
+                              // `navbar-left` that replaces everything beside it
                               ...(props.navbar?.sidebarToggle
                                 ? [<UDashboardSidebarCollapse class="-ml-1" />]
                                 : []),
 
-                              <div class="flex min-w-0 flex-col items-start gap-0.5">
-                                {/* title and breadcrumb both count towards the column's
-                                    width — it is as wide as the wider of the two, and each
-                                    truncates on its own once the column hits `max-w-1/2` */}
-                                <div class="flex max-w-full min-w-0 items-center gap-1.5">
-                                  <h1 class="text-highlighted truncate font-semibold">
-                                    {slots['navbar-title']?.() ?? props.navbar?.title}
-                                  </h1>
-                                  {slots['navbar-trailing']?.()}
-                                </div>
+                              ...(slots['navbar-left']?.() ?? [
+                                <div class="flex min-w-0 flex-col items-start gap-0.5">
+                                  {/* title and breadcrumb size the column between them, so
+                                    neither is ever cut off */}
+                                  <div class="flex items-center gap-1.5">
+                                    {slots['navbar-leading']?.()}
+                                    <h1 data-slot="title" class={navbarTitleClass.value}>
+                                      {slots['navbar-title']?.() ?? props.navbar?.title}
+                                    </h1>
+                                    {slots['navbar-trailing']?.()}
+                                  </div>
 
-                                {props.navbar?.breadcrumb ? (
-                                  <UBreadcrumb
-                                    items={props.navbar.breadcrumb}
-                                    ui={{
-                                      ...props.navbar.breadcrumbUi,
-                                      link: mergeSlotClass(
-                                        props.navbar.breadcrumbUi?.link,
-                                        'text-xs',
-                                      ),
-                                      separatorIcon: mergeSlotClass(
-                                        props.navbar.breadcrumbUi?.separatorIcon,
-                                        'size-3.5',
-                                      ),
-                                    }}
-                                  />
-                                ) : null}
-                              </div>,
+                                  {props.navbar?.breadcrumb ? (
+                                    <UBreadcrumb
+                                      items={props.navbar.breadcrumb}
+                                      ui={{
+                                        ...props.navbar.breadcrumbUi,
+                                        link: mergeSlotClass(
+                                          props.navbar.breadcrumbUi?.link,
+                                          'text-xs',
+                                        ),
+                                        separatorIcon: mergeSlotClass(
+                                          props.navbar.breadcrumbUi?.separatorIcon,
+                                          'size-3.5',
+                                        ),
+                                        // onto further lines once the row runs short, rather
+                                        // than truncating the trail
+                                        list: mergeSlotClass(
+                                          props.navbar.breadcrumbUi?.list,
+                                          'flex-wrap',
+                                        ),
+                                      }}
+                                    />
+                                  ) : null}
+                                </div>,
+                              ]),
                             ],
                             right: (slotProps) => [
                               <>{slots['navbar-right']?.(slotProps)}</>,
