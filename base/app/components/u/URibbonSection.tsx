@@ -27,7 +27,10 @@ export default defineSetupComponent(
           <div
             data-end={props.end || undefined}
             class={cnMerge(
-              'border-default -mt-px -ml-px flex min-w-fit flex-none flex-col gap-1.5 border-l px-3 py-2',
+              // no `flex-none`/`min-w-fit`: a section still hugs its content (grow 0) and still wraps onto
+              // its own ribbon line, but one too wide for the whole ribbon shrinks instead of
+              // overflowing, so its content can wrap
+              'border-default -mt-px -ml-px flex flex-col gap-1.5 border-l px-3 py-2',
               // the row separator spans the full ribbon width (clipped by its overflow-hidden), so a
               // partially filled wrapped line still gets an unbroken line above it
               'before:border-default relative before:absolute before:inset-x-[-100vw] before:top-0 before:border-t',
