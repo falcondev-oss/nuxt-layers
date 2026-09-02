@@ -173,14 +173,10 @@ export default defineSetupComponent(
                                 : []),
 
                               <div class="flex min-w-0 flex-col items-start gap-0.5">
-                                <div
-                                  class={[
-                                    'flex min-w-0 items-center gap-1.5',
-                                    // the breadcrumb sets the column's width and the title
-                                    // truncates into it, instead of the other way round
-                                    props.navbar?.breadcrumb && 'w-0 min-w-full',
-                                  ]}
-                                >
+                                {/* title and breadcrumb both count towards the column's
+                                    width — it is as wide as the wider of the two, and each
+                                    truncates on its own once the column hits `max-w-1/2` */}
+                                <div class="flex max-w-full min-w-0 items-center gap-1.5">
                                   <h1 class="text-highlighted truncate font-semibold">
                                     {slots['navbar-title']?.() ?? props.navbar?.title}
                                   </h1>
