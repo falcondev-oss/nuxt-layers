@@ -240,9 +240,6 @@ importers:
       '@falcondev-oss/trpc-typed-form-data':
         specifier: ^0.5.3
         version: 0.5.3(@trpc/client@11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.18.0(typescript@5.9.3))(zod@4.4.3)
-      '@falcondev-oss/trpc-vue-query':
-        specifier: ^0.6.1
-        version: 0.6.1(@tanstack/vue-query@5.102.1(vue@3.5.41(typescript@5.9.3)))(@trpc/client@11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.18.0(typescript@5.9.3))(vue@3.5.41(typescript@5.9.3))
       '@iconify-json/lucide':
         specifier: ^1.2.125
         version: 1.2.125
@@ -258,15 +255,6 @@ importers:
       '@nuxtjs/color-mode':
         specifier: ^4.0.1
         version: 4.0.1(magic-string@1.2.2)(magicast@0.5.4)(rolldown@1.2.5)(unplugin@3.3.0(esbuild@0.28.2)(rolldown@1.2.5)(rollup@4.62.5)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.50.0)(yaml@2.9.0)))
-      '@tanstack/vue-query':
-        specifier: ^5.102.1
-        version: 5.102.1(vue@3.5.41(typescript@5.9.3))
-      '@trpc/client':
-        specifier: ^11.18.0
-        version: 11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3)
-      '@trpc/server':
-        specifier: ^11.18.0
-        version: 11.18.0(typescript@5.9.3)
       '@vue/devtools-api':
         specifier: ^8.2.1
         version: 8.2.1
@@ -291,9 +279,6 @@ importers:
       maska:
         specifier: ^3.2.0
         version: 3.2.0
-      reka-ui:
-        specifier: ~2.10.3
-        version: 2.10.3(vue@3.5.41(typescript@5.9.3))
       remeda:
         specifier: ^2.43.0
         version: 2.43.0
@@ -303,9 +288,6 @@ importers:
       tailwind-variants:
         specifier: '>=3.2.2'
         version: 3.3.1(tailwind-merge@3.6.0)(tailwindcss@4.3.3)
-      tailwindcss:
-        specifier: ^4.3.3
-        version: 4.3.3
       trpc-nuxt:
         specifier: ^2.1.2
         version: 2.1.2(@trpc/client@11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.18.0(typescript@5.9.3))
@@ -315,10 +297,19 @@ importers:
       vue:
         specifier: '>=3.5.40'
         version: 3.5.41(typescript@5.9.3)
-      vue-router:
-        specifier: ^5.2.0
-        version: 5.2.0(@vue/compiler-sfc@3.5.41)(esbuild@0.28.2)(rolldown@1.2.5)(rollup@4.62.5)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.50.0)(yaml@2.9.0))(vue@3.5.41(typescript@5.9.3))
     devDependencies:
+      '@falcondev-oss/trpc-vue-query':
+        specifier: ^0.6.1
+        version: 0.6.1(@tanstack/vue-query@5.102.1(vue@3.5.41(typescript@5.9.3)))(@trpc/client@11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.18.0(typescript@5.9.3))(vue@3.5.41(typescript@5.9.3))
+      '@tanstack/vue-query':
+        specifier: ^5.102.1
+        version: 5.102.1(vue@3.5.41(typescript@5.9.3))
+      '@trpc/client':
+        specifier: ^11.18.0
+        version: 11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3)
+      '@trpc/server':
+        specifier: ^11.18.0
+        version: 11.18.0(typescript@5.9.3)
       '@types/luxon':
         specifier: ^3.7.5
         version: 3.7.5
@@ -328,9 +319,18 @@ importers:
       nuxt:
         specifier: ^4.5.2
         version: 4.5.2(@babel/plugin-syntax-jsx@7.29.7(@babel/core@7.29.7(supports-color@10.2.2)))(@babel/plugin-syntax-typescript@7.29.7(@babel/core@7.29.7(supports-color@10.2.2)))(@oxc-project/types@0.146.0)(@parcel/watcher@2.5.6)(@types/node@26.2.0)(@vue/compiler-sfc@3.5.41)(cac@6.7.14)(db0@0.3.4)(esbuild@0.28.2)(eslint@10.9.0(jiti@2.7.0)(supports-color@10.2.2))(ioredis@5.11.1(supports-color@10.2.2))(lightningcss@1.33.0)(magicast@0.5.4)(optionator@0.9.4)(rolldown@1.2.5)(rollup-plugin-visualizer@7.1.1(rolldown@1.2.5)(rollup@4.62.5))(rollup@4.62.5)(srvx@0.11.22)(supports-color@10.2.2)(terser@5.50.0)(typescript@5.9.3)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.50.0)(yaml@2.9.0))(vue-tsc@3.3.11(typescript@5.9.3))(yaml@2.9.0)
+      reka-ui:
+        specifier: ~2.10.3
+        version: 2.10.3(vue@3.5.41(typescript@5.9.3))
+      tailwindcss:
+        specifier: ^4.3.3
+        version: 4.3.3
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      vue-router:
+        specifier: ^5.2.0
+        version: 5.2.0(@vue/compiler-sfc@3.5.41)(esbuild@0.28.2)(rolldown@1.2.5)(rollup@4.62.5)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.50.0)(yaml@2.9.0))(vue@3.5.41(typescript@5.9.3))
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -11725,6 +11725,10 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.5
 
+  fdir@6.5.0(picomatch@4.0.7):
+    optionalDependencies:
+      picomatch: 4.0.7
+
   file-entry-cache@8.0.0:
     dependencies:
       flat-cache: 4.0.1
@@ -14443,8 +14447,8 @@ snapshots:
 
   tinyglobby@0.2.17:
     dependencies:
-      fdir: 6.5.0(picomatch@4.0.5)
-      picomatch: 4.0.5
+      fdir: 6.5.0(picomatch@4.0.7)
+      picomatch: 4.0.7
 
   to-regex-range@5.0.1:
     dependencies:

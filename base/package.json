@@ -30,20 +30,43 @@
   "peerDependencies": {
     "@falcondev-oss/form-core": ">=0.23.5",
     "@falcondev-oss/form-vue": ">=0.23.5",
+    "@falcondev-oss/trpc-vue-query": ">=0.6.1",
     "@internationalized/date": ">=3.12.1",
     "@nuxt/ui": ">=4.9.0",
+    "@tanstack/vue-query": ">=5.102.1",
+    "@trpc/client": ">=11.18.0",
+    "@trpc/server": ">=11.18.0",
+    "reka-ui": ">=2.10.3",
     "tailwind-variants": ">=3.2.2",
-    "vue": ">=3.5.40"
+    "tailwindcss": ">=4.3.3",
+    "vue": ">=3.5.40",
+    "vue-router": ">=5.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@falcondev-oss/trpc-vue-query": {
+      "optional": true
+    },
+    "@trpc/client": {
+      "optional": true
+    },
+    "@trpc/server": {
+      "optional": true
+    },
+    "reka-ui": {
+      "optional": true
+    },
+    "tailwindcss": {
+      "optional": true
+    },
+    "vue-router": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@falcondev-oss/trpc-typed-form-data": "^0.5.3",
-    "@falcondev-oss/trpc-vue-query": "^0.6.1",
     "@iconify-json/lucide": "^1.2.125",
     "@nuxt/icon": "^2.5.0",
     "@nuxtjs/color-mode": "^4.0.1",
-    "@tanstack/vue-query": "^5.102.1",
-    "@trpc/client": "^11.18.0",
-    "@trpc/server": "^11.18.0",
     "@vue/devtools-api": "^8.2.1",
     "@vueuse/core": "^14.4.0",
     "@vueuse/nuxt": "^14.4.0",
@@ -52,19 +75,23 @@
     "consola": "^3.4.2",
     "defu": "^6.1.7",
     "maska": "^3.2.0",
-    "reka-ui": "~2.10.3",
     "remeda": "^2.43.0",
     "superjson": "^2.2.6",
-    "tailwindcss": "^4.3.3",
     "trpc-nuxt": "^2.1.2",
-    "type-fest": "^5.8.0",
-    "vue-router": "^5.2.0"
+    "type-fest": "^5.8.0"
   },
   "devDependencies": {
+    "@falcondev-oss/trpc-vue-query": "^0.6.1",
+    "@tanstack/vue-query": "^5.102.1",
+    "@trpc/client": "^11.18.0",
+    "@trpc/server": "^11.18.0",
     "@types/luxon": "^3.7.5",
     "luxon": "^3.7.2",
     "nuxt": "^4.5.2",
+    "reka-ui": "~2.10.3",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
+    "vue-router": "^5.2.0",
     "zod": "^4.4.3"
   }
 }
