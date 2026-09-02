@@ -43,20 +43,17 @@ export default defineSetupComponent(
                 // sections draw their own top/left border shifted by -1px, so the outer ones get clipped
                 <div
                   class={[
-                    'ring-default bg-elevated flex flex-wrap justify-end overflow-hidden rounded-t-lg shadow-[inset_0_2px_3px_-2px_rgb(0_0_0/0.06),inset_2px_0_3px_-2px_rgb(0_0_0/0.06),inset_-2px_0_3px_-2px_rgb(0_0_0/0.06)] ring',
+                    'ring-default bg-elevated flex flex-wrap overflow-hidden rounded-t-lg shadow-[inset_0_2px_3px_-2px_rgb(0_0_0/0.06),inset_2px_0_3px_-2px_rgb(0_0_0/0.06),inset_-2px_0_3px_-2px_rgb(0_0_0/0.06)] ring',
                     slots.default ? '-mb-2 pb-2' : 'rounded-b-lg',
                   ]}
                 >
                   {leadingSections}
 
-                  {/* every section hugs its content, so the spare space collects here instead of
-                      stretching the last leading section */}
-                  <div class="flex-1" />
-
                   {endSections.length > 0 ? (
                     // one flex item, so the end sections wrap onto their own line as a group
-                    // instead of splitting up — the leading sections give way first
-                    <div class="flex flex-wrap justify-end">{endSections}</div>
+                    // instead of splitting up — the leading sections give way first;
+                    // `ml-auto` eats the spare space, so leading sections stay left on every line
+                    <div class="ml-auto flex flex-wrap justify-end">{endSections}</div>
                   ) : null}
                 </div>
               ) : null}
