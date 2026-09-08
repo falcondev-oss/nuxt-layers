@@ -43,9 +43,6 @@
     "vue-router": ">=5.2.0"
   },
   "peerDependenciesMeta": {
-    "@falcondev-oss/trpc-vue-query": {
-      "optional": true
-    },
     "@trpc/client": {
       "optional": true
     },
