@@ -11,6 +11,9 @@
     },
     {
       "path": "./.nuxt/tsconfig.node.json"
+    },
+    {
+      "path": "./.playground"
     }
   ],
   "files": []
