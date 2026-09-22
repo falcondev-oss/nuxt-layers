@@ -58,6 +58,11 @@ interface TrpcNuxtPluginOptions {
    */
   transformer?: typeof superjsonDefault
   /**
+   * Batch queries into a single request via `httpBatchLink`.
+   * @default true
+   */
+  batch?: boolean
+  /**
    * Batching options passed to the `httpBatchLink`.
    */
   batchOptions?: {
@@ -96,14 +101,22 @@ export function trpcPlugin<Router extends AnyTRPCRouter>(opts: TrpcNuxtPluginOpt
                   headers,
                   fetchOptions: { ...opts.fetchOptions, ...opts.mutationFetchOptions },
                 }),
-                false: httpBatchLink({
-                  transformer: superjson,
-                  url: opts.url,
-                  headers,
-                  maxURLLength: 2000,
-                  ...opts.batchOptions,
-                  fetchOptions: { ...opts.fetchOptions, ...opts.queryFetchOptions },
-                }),
+                false:
+                  opts.batch === false
+                    ? httpLink({
+                        transformer: superjson,
+                        url: opts.url,
+                        headers,
+                        fetchOptions: { ...opts.fetchOptions, ...opts.queryFetchOptions },
+                      })
+                    : httpBatchLink({
+                        transformer: superjson,
+                        url: opts.url,
+                        headers,
+                        maxURLLength: 2000,
+                        ...opts.batchOptions,
+                        fetchOptions: { ...opts.fetchOptions, ...opts.queryFetchOptions },
+                      }),
               }),
             }),
           ],
