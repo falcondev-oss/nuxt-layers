@@ -7,7 +7,7 @@ export default defineSetupComponent((_: { props: { name: string } }) =>
     props: ['name'],
     emits: [],
     setup: (props) => {
-      console.log(props)
+      console.debug(props)
       // const form = useForm({
       //   schema: z.object({
       //     duration: z.number().meta({ title: 'Duration' }),

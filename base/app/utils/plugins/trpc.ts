@@ -22,6 +22,7 @@ const toastRequestErrors: OperationLink<AnyTRPCRouter> = ({ op, next }) =>
       next: (value) => observer.next(value),
       complete: () => observer.complete(),
       error(err) {
+        // eslint-disable-next-line unicorn/no-unsafe-property-key -- `vueQueryContext` is a unique symbol
         if (!op.context[vueQueryContext] && op.type !== 'subscription') {
           console.error(err)
           toastRequestError(err)
