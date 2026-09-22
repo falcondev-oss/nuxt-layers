@@ -51,7 +51,12 @@ const users = [
   { label: 'Clara Wolff', value: 'clara', hint: '60297', tag: 'Azubi' },
   { label: 'Simon Hartmann', value: 'simon', hint: '60354', tag: 'Vollzeit' },
   { label: 'Miriam Scholz', value: 'miriam', hint: '60412', tag: 'Teilzeit' },
-]
+  // in no team, so they trail the groups ungrouped
+  { label: 'Frieda Brandl', value: 'frieda', hint: '70105', tag: 'Teilzeit' },
+  { label: 'Konrad Weiß', value: 'konrad', hint: '70163', tag: 'Vollzeit' },
+  { label: 'Ida Neumann', value: 'ida', hint: '70221', tag: 'Azubi' },
+  { label: 'Theo Lang', value: 'theo', hint: '70284', tag: 'Vollzeit' },
+].toSorted((a, b) => a.label.localeCompare(b.label))
 
 const userTags = new Map(users.map((user) => [user.value, user.tag]))
 
@@ -66,25 +71,31 @@ const userColors = new Map(
   users.map((user, index) => [user.value, avatarColors[index % avatarColors.length]!]),
 )
 
-const teams = {
-  Entwicklung: [
-    'tom',
-    'alina',
-    'mika',
-    'jonas',
-    'svenja',
-    'felix',
-    'sophie',
-    'lukas',
-    'hannah',
-    'tobias',
-  ],
-  Design: ['lea', 'nico', 'pia', 'marie', 'jan', 'emilia'],
-  Vertrieb: ['markus', 'carolin', 'ben', 'yasmin', 'paul', 'laura', 'stefan', 'nina'],
-  Verwaltung: ['renate', 'daniel', 'helena', 'ursula', 'oliver'],
-  Support: ['katharina', 'dennis', 'julia', 'kevin', 'sarah'],
-  Marketing: ['moritz', 'anna', 'david', 'clara', 'simon', 'miriam'],
-}
+const teams = [
+  {
+    label: 'Entwicklung',
+    values: [
+      'tom',
+      'alina',
+      'mika',
+      'jonas',
+      'svenja',
+      'felix',
+      'sophie',
+      'lukas',
+      'hannah',
+      'tobias',
+    ],
+  },
+  { label: 'Design', values: ['lea', 'nico', 'pia', 'marie', 'jan', 'emilia'] },
+  {
+    label: 'Vertrieb',
+    values: ['markus', 'carolin', 'ben', 'yasmin', 'paul', 'laura', 'stefan', 'nina'],
+  },
+  { label: 'Verwaltung', values: ['renate', 'daniel', 'helena', 'ursula', 'oliver'] },
+  { label: 'Support', values: ['katharina', 'dennis', 'julia', 'kevin', 'sarah'] },
+  { label: 'Marketing', values: ['moritz', 'anna', 'david', 'clara', 'simon', 'miriam'] },
+]
 
 const schema = z.object({
   userIds: z.array(z.string()).min(1).meta({ title: 'Mitarbeiter' }),
