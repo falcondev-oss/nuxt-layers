@@ -42,6 +42,8 @@ export default defineSetupComponent(
       filterFn?: (item: T, filters: F[]) => boolean
       // `null` only comes from form bindings (nullable draft values); never emitted
       modelValue?: (string | null)[] | null
+      // awaited on save, spinner on the save button meanwhile; the menu stays open if it throws
+      onChange?: (value: string[]) => Promise<void> | void
       onBlur?: () => void
     }
     slots: {
@@ -65,6 +67,7 @@ export default defineSetupComponent(
       | 'filters'
       | 'filterFn'
       | 'modelValue'
+      | 'onChange'
     emits: { 'update:modelValue': (value: (string | null)[]) => void }
   }) =>
     options(_, {
@@ -77,6 +80,7 @@ export default defineSetupComponent(
         'filters',
         'filterFn',
         'modelValue',
+        'onChange',
       ],
       emits: ['update:modelValue'],
       // two roots (the menu and its mobile sheet), so the attributes are placed by hand
@@ -149,10 +153,21 @@ export default defineSetupComponent(
           draft.value = new Set(committed.value)
         }
 
-        function closeSheet(save: boolean) {
-          if (save && draft.value) emit('update:modelValue', [...draft.value])
+        function closeSheet() {
           draft.value = undefined
           attrs.onBlur?.()
+        }
+
+        const isSaving = ref(false)
+
+        async function save(value: string[], close: () => void) {
+          isSaving.value = true
+          try {
+            await props.onChange?.(value)
+            close()
+          } finally {
+            isSaving.value = false
+          }
         }
 
         // `list` holds the rows without a header: the list view's, or the ungrouped ones
@@ -434,12 +449,18 @@ export default defineSetupComponent(
             color="neutral"
             variant="outline"
             label="Abbrechen"
-            onClick={() => closeSheet(false)}
+            disabled={isSaving.value}
+            onClick={closeSheet}
           />,
           <UButton
             class="flex-1 justify-center"
             label={`${draft.value?.size ?? 0} auswählen`}
-            onClick={() => closeSheet(true)}
+            loading={isSaving.value}
+            onClick={() => {
+              if (!draft.value) return
+              emit('update:modelValue', [...draft.value])
+              void save([...draft.value], closeSheet)
+            }}
           />,
         ]
 
@@ -508,11 +529,14 @@ export default defineSetupComponent(
                   <UButton
                     class="flex-1 justify-center"
                     label={`${selected.value.size} auswählen`}
-                    onClick={() => {
-                      // closing through the prop skips `USelectMenu`'s own blur
-                      isOpen.value = false
-                      attrs.onBlur?.()
-                    }}
+                    loading={isSaving.value}
+                    onClick={() =>
+                      void save([...committed.value], () => {
+                        // closing through the prop skips `USelectMenu`'s own blur
+                        isOpen.value = false
+                        attrs.onBlur?.()
+                      })
+                    }
                   />
                 </div>,
               ],
@@ -537,7 +561,7 @@ export default defineSetupComponent(
               fullscreen
               close={false}
               open={!!draft.value}
-              onUpdate:open={(open) => !open && closeSheet(false)}
+              onUpdate:open={(open) => !open && !isSaving.value && closeSheet()}
               ui={{
                 // sideways there's little height, so everything shares one row
                 header: 'min-h-0 gap-2 p-4',
