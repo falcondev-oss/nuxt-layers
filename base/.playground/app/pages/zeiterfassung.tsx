@@ -1,19 +1,49 @@
 import { UAvatar, UBadge, UCard, UTreeSelectMenu } from '#components'
 
 const users = [
-  { label: 'Tom Weinhold', value: 'tom', hint: '10427', tag: 'Vollzeit' },
+  {
+    label: 'Tom Weinhold',
+    value: 'tom',
+    hint: '10427',
+    tag: 'Vollzeit',
+    description: 'Teamleitung Entwicklung',
+  },
   { label: 'Alina Berger', value: 'alina', hint: '10583', tag: 'Teilzeit' },
   { label: 'Mika Lindner', value: 'mika', hint: '10671', tag: 'Vollzeit' },
-  { label: 'Jonas Kerner', value: 'jonas', hint: '10744', tag: 'Azubi' },
+  {
+    label: 'Jonas Kerner',
+    value: 'jonas',
+    hint: '10744',
+    tag: 'Azubi',
+    description: 'Ausbildung Fachinformatik',
+  },
   { label: 'Svenja Rauh', value: 'svenja', hint: '10812', tag: 'Vollzeit' },
-  { label: 'Lea Hofmann', value: 'lea', hint: '20138', tag: 'Teilzeit' },
+  {
+    label: 'Lea Hofmann',
+    value: 'lea',
+    hint: '20138',
+    tag: 'Teilzeit',
+    description: 'Leitung Design',
+  },
   { label: 'Nico Brandt', value: 'nico', hint: '20256', tag: 'Vollzeit' },
   { label: 'Pia Sommer', value: 'pia', hint: '20390', tag: 'Vollzeit' },
-  { label: 'Markus Thiel', value: 'markus', hint: '30119', tag: 'Vollzeit' },
+  {
+    label: 'Markus Thiel',
+    value: 'markus',
+    hint: '30119',
+    tag: 'Vollzeit',
+    description: 'Vertriebsleitung, Region Nord',
+  },
   { label: 'Carolin Vogt', value: 'carolin', hint: '30264', tag: 'Teilzeit' },
   { label: 'Ben Ostermann', value: 'ben', hint: '30347', tag: 'Azubi' },
   { label: 'Yasmin Keller', value: 'yasmin', hint: '30455', tag: 'Vollzeit' },
-  { label: 'Renate Bischof', value: 'renate', hint: '40172', tag: 'Teilzeit' },
+  {
+    label: 'Renate Bischof',
+    value: 'renate',
+    hint: '40172',
+    tag: 'Teilzeit',
+    description: 'Personalwesen',
+  },
   { label: 'Daniel Schuster', value: 'daniel', hint: '40288', tag: 'Vollzeit' },
   { label: 'Helena Wirtz', value: 'helena', hint: '40361', tag: 'Vollzeit' },
   { label: 'Felix Arnold', value: 'felix', hint: '10856', tag: 'Vollzeit' },
@@ -30,12 +60,24 @@ const users = [
   { label: 'Nina Frank', value: 'nina', hint: '30694', tag: 'Vollzeit' },
   { label: 'Ursula Haas', value: 'ursula', hint: '40345', tag: 'Teilzeit' },
   { label: 'Oliver Kuhn', value: 'oliver', hint: '40419', tag: 'Vollzeit' },
-  { label: 'Katharina Maier', value: 'katharina', hint: '50103', tag: 'Vollzeit' },
+  {
+    label: 'Katharina Maier',
+    value: 'katharina',
+    hint: '50103',
+    tag: 'Vollzeit',
+    description: 'Leitung Support',
+  },
   { label: 'Dennis Roth', value: 'dennis', hint: '50167', tag: 'Teilzeit' },
   { label: 'Julia Schreiber', value: 'julia', hint: '50224', tag: 'Vollzeit' },
   { label: 'Kevin Albrecht', value: 'kevin', hint: '50289', tag: 'Azubi' },
   { label: 'Sarah Busch', value: 'sarah', hint: '50341', tag: 'Vollzeit' },
-  { label: 'Moritz Jung', value: 'moritz', hint: '60118', tag: 'Vollzeit' },
+  {
+    label: 'Moritz Jung',
+    value: 'moritz',
+    hint: '60118',
+    tag: 'Vollzeit',
+    description: 'Social Media',
+  },
   { label: 'Anna Lehmann', value: 'anna', hint: '60176', tag: 'Teilzeit' },
   { label: 'David Franke', value: 'david', hint: '60233', tag: 'Vollzeit' },
   { label: 'Clara Wolff', value: 'clara', hint: '60297', tag: 'Azubi' },
@@ -44,7 +86,13 @@ const users = [
   // in no team, so they trail the groups ungrouped
   { label: 'Frieda Brandl', value: 'frieda', hint: '70105', tag: 'Teilzeit' },
   { label: 'Konrad Weiß', value: 'konrad', hint: '70163', tag: 'Vollzeit' },
-  { label: 'Ida Neumann', value: 'ida', hint: '70221', tag: 'Azubi' },
+  {
+    label: 'Ida Neumann',
+    value: 'ida',
+    hint: '70221',
+    tag: 'Azubi',
+    description: 'Ausbildung Kauffrau für Büromanagement',
+  },
   { label: 'Theo Lang', value: 'theo', hint: '70284', tag: 'Vollzeit' },
 ].toSorted((a, b) => a.label.localeCompare(b.label))
 
@@ -129,7 +177,8 @@ export default defineSetupComponent((_: object) =>
         breadcrumb: [{ label: 'Übersicht', to: '/' }, { label: 'Zeiterfassung' }],
       })
 
-      // single/multiple × no `onChange`/succeeds/fails × without/with filters × with/without groups
+      // single/multiple × no `onChange`/succeeds/fails × without/with filters × with/without groups × without/with clear,
+      // plus without search, with/without groups
       const sections = [
         { title: 'Single', single: true },
         { title: 'Multiple', single: false },
@@ -149,13 +198,23 @@ export default defineSetupComponent((_: object) =>
         ].map(({ title, onChange }) => ({
           title,
           onChange,
-          variants: [false, true].flatMap((withFilters) =>
-            [true, false].map((withGroups) => ({
-              withFilters,
+          variants: [
+            ...[false, true].flatMap((withFilters) =>
+              [true, false].flatMap((withGroups) =>
+                [false, true].map((withClear) => ({ withFilters, withGroups, withClear })),
+              ),
+            ),
+            ...[true, false].map((withGroups) => ({
+              withFilters: false,
               withGroups,
-              value: ref<string | string[] | null>(single ? null : []),
+              withClear: false,
+              hideSearch: true,
             })),
-          ),
+          ].map((variant) => ({
+            hideSearch: false,
+            ...variant,
+            value: ref<string | string[] | null>(single ? null : []),
+          })),
         })),
       }))
 
@@ -171,27 +230,36 @@ export default defineSetupComponent((_: object) =>
                       <div class="flex flex-col gap-2">
                         {title && <h3 class="text-sm font-medium">{title}</h3>}
                         <div class="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4">
-                          {variants.map(({ withFilters, withGroups, value }) => (
-                            <div class="flex flex-col gap-1">
-                              <span class="text-muted text-xs">
-                                {[withFilters && 'Filter', !withGroups && 'Ohne Gruppen']
-                                  .filter(Boolean)
-                                  .join(' · ')}
-                              </span>
-                              <UTreeSelectMenu
-                                single={single}
-                                onChange={onChange}
-                                class="mt-auto w-full"
-                                items={users}
-                                groups={withGroups ? teams : undefined}
-                                filters={withFilters ? tags : undefined}
-                                filterFn={withFilters ? filterUser : undefined}
-                                v-model={value.value}
-                                placeholder="Mitarbeiter wählen"
-                                v-slots={userSlots}
-                              />
-                            </div>
-                          ))}
+                          {variants.map(
+                            ({ withFilters, withGroups, withClear, hideSearch, value }) => (
+                              <div class="flex flex-col gap-1">
+                                <span class="text-muted text-xs">
+                                  {[
+                                    withFilters && 'Filter',
+                                    !withGroups && 'Ohne Gruppen',
+                                    withClear && 'Clear',
+                                    hideSearch && 'Ohne Suche',
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' · ')}
+                                </span>
+                                <UTreeSelectMenu
+                                  single={single}
+                                  onChange={onChange}
+                                  clear={withClear}
+                                  hideSearch={hideSearch}
+                                  class="mt-auto w-full"
+                                  items={users}
+                                  groups={withGroups ? teams : undefined}
+                                  filters={withFilters ? tags : undefined}
+                                  filterFn={withFilters ? filterUser : undefined}
+                                  v-model={value.value}
+                                  placeholder="Mitarbeiter wählen"
+                                  v-slots={userSlots}
+                                />
+                              </div>
+                            ),
+                          )}
                         </div>
                       </div>
                     ))}

@@ -8,6 +8,7 @@ export type TreeSelectMenuItem = {
   label: string
   value: string
   hint: string
+  description?: string
   // extra text the search matches, besides the label
   search?: string
 }
@@ -68,6 +69,7 @@ export default defineSetupComponent(
       | 'defaultValue'
       | 'disabled'
       | 'loading'
+      | 'clear'
     > & {
       items: T[]
       // without, a flat list with no view toggle
@@ -82,7 +84,8 @@ export default defineSetupComponent(
       single?: Single
       // multiple: `null` only from form bindings, never emitted
       modelValue?: (Single extends true ? string : (string | null)[]) | null
-      // awaited before emit, spinner meanwhile. throws: no emit, stays open, single restores pick
+      // awaited before emit, spinner meanwhile. throws: no emit, stays open; single restores
+      // pick, multiple keeps picks
       onChange?: (value: Single extends true ? string | null : string[]) => Promise<void> | void
       onBlur?: () => void
       disabled?: boolean
@@ -92,12 +95,19 @@ export default defineSetupComponent(
       submitLabel?: (count: number) => string
       // single: clear button label
       deselectLabel?: string
+      // clear x in the trigger; single: also the clear button
+      clear?: boolean
+      // no search input, in the dropdown and the sheet
+      hideSearch?: boolean
     }
     slots: {
       'prefix': (props: { item: T }) => VNode[]
+      'description': (props: { item: T }) => VNode[]
       'suffix': (props: { item: T }) => VNode[]
       'hint': (props: { item: T }) => VNode[]
       'filter-item': (props: { item: F }) => VNode[]
+      // trigger with more than one pick; default "N ausgewählt"
+      'selected': (props: { items: T[] }) => VNode[]
       // replaces the filter select; spread the props onto the replacement to bind the selection
       'filter': (props: {
         'filters': readonly F[]
@@ -120,6 +130,8 @@ export default defineSetupComponent(
       | 'loading'
       | 'submitLabel'
       | 'deselectLabel'
+      | 'clear'
+      | 'hideSearch'
     emits: {
       'update:modelValue': (value: Single extends true ? string | null : (string | null)[]) => void
     }
@@ -140,6 +152,8 @@ export default defineSetupComponent(
         'loading',
         'submitLabel',
         'deselectLabel',
+        'clear',
+        'hideSearch',
       ],
       emits: ['update:modelValue'],
       // two roots (the menu and its mobile sheet), so the attributes are placed by hand
@@ -156,7 +170,9 @@ export default defineSetupComponent(
         })
         const hasFilterBar = computed(() => !!props.filters || hasGroups.value)
         // spares the dropdown the row beneath the search
-        const togglesInSearch = computed(() => hasGroups.value && !props.filters)
+        const togglesInSearch = computed(
+          () => hasGroups.value && !props.filters && !props.hideSearch,
+        )
 
         const filterValues = ref<string[]>([])
 
@@ -169,15 +185,33 @@ export default defineSetupComponent(
         const draft = ref<Set<string>>()
 
         // set on open: below while the trigger sits high, else beside (keeps list height);
-        // short screens always beside
+        // high = top half of the window and of its visible scroll container; short screens always beside
         const isShort = useMediaQuery('(max-height: 799px)')
         const menu = ref<{ triggerRef?: HTMLElement }>()
         const isBeside = ref(false)
         const isOpen = ref(false)
 
+        // one that scrolls vertically: `overflow-x-auto` computes `overflow-y: auto` too
+        function scrollParent(el: HTMLElement) {
+          for (let parent = el.parentElement; parent; parent = parent.parentElement) {
+            if (
+              parent.scrollHeight > parent.clientHeight &&
+              /auto|scroll|overlay/.test(getComputedStyle(parent).overflowY)
+            )
+              return parent
+          }
+        }
+
         function place() {
-          const top = menu.value?.triggerRef?.getBoundingClientRect().top ?? 0
-          isBeside.value = isShort.value || top >= window.innerHeight / 2
+          const trigger = menu.value?.triggerRef
+          if (!trigger) return void (isBeside.value = isShort.value)
+          const { top } = trigger.getBoundingClientRect()
+          const box = scrollParent(trigger)?.getBoundingClientRect()
+          // visible part of the container: clipped to the window
+          const boxMiddle = box
+            ? (Math.max(box.top, 0) + Math.min(box.bottom, window.innerHeight)) / 2
+            : Infinity
+          isBeside.value = isShort.value || top >= Math.min(window.innerHeight / 2, boxMiddle)
         }
 
         type Value = Single extends true ? string | null : string[]
@@ -213,10 +247,11 @@ export default defineSetupComponent(
         const picked = computed(() => [...selected.value][0])
         // clear empties pick before `onChange` settles; keep button till closed
         const isClearing = ref(false)
-        // single: Clear while pick unchanged, Save once changed
+        // single + `clear`: Clear while pick unchanged, Save once changed
         const showsClear = computed(
           () =>
             props.single &&
+            props.clear &&
             (isClearing.value ||
               (picked.value !== undefined && picked.value === pickedOnOpen.value)),
         )
@@ -240,11 +275,30 @@ export default defineSetupComponent(
           collapsed.value = next
         }
 
+        // refetch while open: drop picks whose item is gone.
+        // not mid-load: an empty or stale list would drop picks for good
+        watch(
+          () => [props.items, props.loading] as const,
+          ([items, loading]) => {
+            if (!draft.value && !isOpen.value) return
+            if (loading || items.length === 0) return
+            const kept = new Set(items.map((item) => item.value)).intersection(selected.value)
+            if (kept.size < selected.value.size) update(kept)
+          },
+        )
+
+        // single + `onChange`: same row picked twice in a row saves. click/tap: within 500ms;
+        // Enter: any time. the pick from open just closes
+        let lastPick: { value: string; at: number } | undefined
+        // set by the keydown listener for the pick its Enter causes (its own or reka's)
+        let isEnterPick = false
+
         // sheet, and menu if single or `onChange`: pick into draft; save emits, dismiss cancels
         function startDraft() {
           draft.value = new Set(committed.value)
           pickedOnOpen.value = picked.value
           isClearing.value = false
+          lastPick = undefined
         }
 
         function openSheet() {
@@ -261,12 +315,27 @@ export default defineSetupComponent(
 
         // single, no `onChange`: pick closes, no save button
         const closesOnPick = computed(() => props.single && !props.onChange)
-        const showsSave = computed(() =>
-          props.single ? !closesOnPick.value && picked.value !== pickedOnOpen.value : true,
+        const isDirty = computed(
+          // receiver must be raw: `draft` is a reactive proxy
+          () => !!draft.value && committed.value.symmetricDifference(draft.value).size > 0,
         )
+        // nothing picked: "Keine auswählen" only for a changed draft
+        const showsSave = computed(() => {
+          if (selected.value.size === 0) return isDirty.value
+          return props.single ? !closesOnPick.value && picked.value !== pickedOnOpen.value : true
+        })
 
         function pick(value: string) {
+          if (isSaving.value) return
           toggle(value)
+          if (props.single && props.onChange && draft.value) {
+            const at = Date.now()
+            const isDouble = lastPick?.value === value && (isEnterPick || at - lastPick.at < 500)
+            lastPick = isDouble ? undefined : { value, at }
+            if (!isDouble) return
+            if (picked.value === pickedOnOpen.value) return close()
+            return void save(toValue(draft.value))
+          }
           if (!closesOnPick.value) return
           if (draft.value) emit('update:modelValue', toValue(draft.value))
           close()
@@ -370,15 +439,29 @@ export default defineSetupComponent(
           tree.value.list.length > 0 ? [...tree.value.groups, tree.value.list] : tree.value.groups,
         )
 
-        // Enter toggles all matches, not just the highlighted row; captured ahead of reka.
+        const isList = computed(() => tree.value.groups.length === 0)
+
+        // Enter toggles all matches (single: a sole match); captured ahead of reka.
+        // after an arrow key, Enter is reka's again: picks the highlighted row, ringed meanwhile.
         // `searchId` scopes it to this instance: menu and sheet share it, never both mounted.
         // Backspace right after clears the search.
         const searchId = useId()
         let clearsOnBackspace = false
+        // typing moves the highlight to the first match, so it ends arrowing
+        const isArrowing = ref(false)
+        watch(searchTerm, () => (isArrowing.value = false))
         watch(
           () => isOpen.value || !!draft.value,
-          () => (clearsOnBackspace = false),
+          () => {
+            clearsOnBackspace = false
+            isArrowing.value = false
+          },
         )
+        // the mouse takes over the highlight. movement only: keyboard scrolling under a
+        // resting cursor fires synthetic moves without it
+        useEventListener(document, 'pointermove', (event) => {
+          if (isArrowing.value && (event.movementX || event.movementY)) isArrowing.value = false
+        })
         useEventListener(
           document,
           'keydown',
@@ -392,11 +475,23 @@ export default defineSetupComponent(
               searchTerm.value = ''
               return
             }
-            // single: Enter picks highlighted row (default)
-            if (props.single || event.key !== 'Enter' || !searchTerm.value.trim()) return
+            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') isArrowing.value = true
+            if (event.key !== 'Enter') return
+            // Enter passed on to reka: its keydown clicks the highlighted row after this listener;
+            // reset once all have run
+            isEnterPick = true
+            setTimeout(() => (isEnterPick = false), 0)
+            if (isArrowing.value) return
+            // no arrow key yet: the highlight is incidental, never reka's pick
             event.preventDefault()
             event.stopPropagation()
-            toggleGroup(grouped.value.flat().flatMap((row) => ('type' in row ? [] : row.value)))
+            if (!searchTerm.value.trim()) return
+            const matches = grouped.value.flat().flatMap((row) => ('type' in row ? [] : row.value))
+            if (props.single) {
+              if (matches.length === 1) pick(matches[0]!)
+              return
+            }
+            toggleGroup(matches)
             clearsOnBackspace = true
           },
           { capture: true },
@@ -422,24 +517,34 @@ export default defineSetupComponent(
         })
 
         // `inset`: 24px tall, centred in the search input's 32px;
-        // `sheet`: sm, for fingers, fits the sheet search's 48px
-        const viewTabs = (fit?: 'inset' | 'sheet') => (
-          <UTabs
-            size={fit === 'sheet' ? 'sm' : 'xs'}
-            content={false}
-            class="w-auto"
-            ui={
-              fit === 'inset'
-                ? { list: 'p-0.5', indicator: 'inset-y-0.5', trigger: 'px-1.5 py-0.5' }
-                : undefined
-            }
-            items={[
-              { value: 'tree', icon: 'lucide:folder-tree' },
-              { value: 'list', icon: 'lucide:list' },
-            ]}
-            v-model={view.value}
-          />
-        )
+        // `sheet`: sm, for fingers, fits the sheet search's 48px.
+        // both sit in a search input: a divider sets them apart from its clear x
+        const viewTabs = (fit?: 'inset' | 'sheet') => {
+          const tabs = (
+            <UTabs
+              size={fit === 'sheet' ? 'sm' : 'xs'}
+              content={false}
+              class="w-auto"
+              ui={
+                fit === 'inset'
+                  ? { list: 'p-0.5', indicator: 'inset-y-0.5', trigger: 'px-1.5 py-0.5' }
+                  : undefined
+              }
+              items={[
+                { value: 'tree', icon: 'lucide:folder-tree' },
+                { value: 'list', icon: 'lucide:list' },
+              ]}
+              v-model={view.value}
+            />
+          )
+          return fit ? (
+            <span class="border-default my-1 flex items-center self-stretch border-s ps-1">
+              {tabs}
+            </span>
+          ) : (
+            tabs
+          )
+        }
 
         // `compact` for a header row that shares its width with the search and buttons
         const filterBar = (compact = false) =>
@@ -564,8 +669,18 @@ export default defineSetupComponent(
                   />
                 ),
                 ...(slots.prefix?.({ item }) ?? []),
-                <span class="truncate">{item.label}</span>,
-                ...(slots.suffix?.({ item }) ?? []),
+                <span class="flex min-w-0 flex-col">
+                  {/* suffix beside the label: a longer description would push it aside */}
+                  <span class="flex min-w-0 items-center gap-1.5">
+                    <span class="truncate">{item.label}</span>
+                    {slots.suffix?.({ item })}
+                  </span>
+                  {(slots.description || item.description) && (
+                    <span class="text-muted truncate text-xs">
+                      {slots.description?.({ item }) ?? item.description}
+                    </span>
+                  )}
+                </span>,
                 <span class="text-muted ms-auto text-xs">
                   {slots.hint?.({ item }) ?? item.hint}
                 </span>,
@@ -598,7 +713,7 @@ export default defineSetupComponent(
             icon="lucide:search"
             placeholder={attrs.placeholder ?? 'Suchen…'}
             id={searchId}
-            ui={toggles ? { base: 'pe-22', trailing: 'pe-1' } : undefined}
+            ui={toggles ? { base: 'pe-24', trailing: 'pe-1' } : undefined}
             {...inputProps}
             v-slots={toggles ? { trailing: () => viewTabs('sheet') } : undefined}
           />
@@ -664,13 +779,26 @@ export default defineSetupComponent(
             key={isMobile.value ? 'mobile' : 'desktop'}
             ref={menu}
             disabled={props.disabled}
-            loading={props.loading}
+            // closed-menu clear saves with no other spinner
+            loading={props.loading || isSaving.value}
+            clear={props.clear}
+            // reka's reset goes through `onUpdate:modelValue`, where single re-picks the cleared row
+            resetModelValueOnClear={false}
+            onClear={() => {
+              if (isSaving.value) return
+              const picks = draft.value
+              if (picks) draft.value = new Set()
+              // failed (draft still open): multiple gets its picks back for retry
+              void save(toValue(new Set())).then(() => {
+                if (draft.value && !props.single) draft.value = picks
+              })
+            }}
             // held shut on mobile, where opening shows the sheet instead
             open={!isMobile.value && isOpen.value}
             onUpdate:open={(open: boolean) => {
+              // save closes once `onChange` settles; a clear's save would close a fresh open
+              if (isSaving.value) return
               if (isMobile.value) return open && openSheet()
-              // save closes once `onChange` settles
-              if (!open && isSaving.value) return
               isOpen.value = open
               if (!open) return void (draft.value = undefined)
               place()
@@ -684,12 +812,14 @@ export default defineSetupComponent(
             // multiple: pick several matches per search
             resetSearchTermOnSelect={false}
             v-model:searchTerm={searchTerm.value}
-            searchInput={{
-              type: 'search',
-              id: searchId,
-              // room for the view toggle laid over its end
-              ui: togglesInSearch.value ? { base: 'pe-18' } : undefined,
-            }}
+            searchInput={
+              !props.hideSearch && {
+                type: 'search',
+                id: searchId,
+                // room for the view toggle laid over its end
+                ui: togglesInSearch.value ? { base: 'pe-20' } : undefined,
+              }
+            }
             // beside: right (reka flips left), bottom-aligned, grows up.
             // below: left-aligned, no flip above, shrinks to fit
             content={
@@ -699,10 +829,17 @@ export default defineSetupComponent(
             }
             arrow={isBeside.value}
             ui={{
-              group: groupBox,
+              // flat (list view or no groups): a plain list, edge to edge
+              group: isList.value ? 'p-0' : groupBox,
               // striped from the header on; stripe hides the default `before` highlight,
-              // so the row highlights itself
-              item: 'items-center py-2 rounded-none border-b border-default last:border-b-0 even:bg-elevated/30 data-highlighted:not-data-disabled:bg-elevated',
+              // so the row highlights itself: hover fill for the mouse, ring while arrowing,
+              // as Enter picks it
+              item: [
+                'items-center py-2 rounded-none border-b border-default last:border-b-0 even:bg-elevated/30',
+                isArrowing.value
+                  ? 'data-highlighted:not-data-disabled:ring-2 data-highlighted:not-data-disabled:ring-inset data-highlighted:not-data-disabled:ring-primary'
+                  : 'data-highlighted:not-data-disabled:bg-elevated',
+              ].join(' '),
               // grows with the list up to what fits; min 24rem, below also trigger width
               content: [
                 'max-h-(--reka-combobox-content-available-height) w-max max-w-(--reka-combobox-content-available-width)',
@@ -712,7 +849,12 @@ export default defineSetupComponent(
               ].join(' '),
               empty: 'order-2',
               // stable gutter: collapsing can end the overflow
-              viewport: 'order-2 scrollbar-gutter-stable divide-y-0 space-y-3 p-2',
+              viewport: [
+                'order-2 scrollbar-gutter-stable divide-y-0 space-y-3',
+                !isList.value && 'p-2',
+              ]
+                .filter(Boolean)
+                .join(' '),
             }}
             modelValue={[...selected.value]}
             // headers select like rows (reka keeps scroll); header toggles group (single: collapses)
@@ -760,15 +902,24 @@ export default defineSetupComponent(
                 ),
               ],
               'default': ({ ui }: { ui: { placeholder: () => string; value: () => string } }) => {
-                const labels = [...committed.value].map(
-                  (value) => props.items.find((item) => item.value === value)?.label ?? value,
-                )
-                if (labels.length === 0)
+                const values = [...committed.value]
+                if (values.length === 0)
                   return [<span class={ui.placeholder()}>{attrs.placeholder ?? '\u{A0}'}</span>]
+                if (values.length > 1) {
+                  const items = props.items.filter((item) => committed.value.has(item.value))
+                  return [
+                    <span class={ui.value()}>
+                      {slots.selected?.({ items }) ?? `${values.length} ausgewählt`}
+                    </span>,
+                  ]
+                }
 
+                // one pick with its prefix, as in the list
+                const item = props.items.find((item) => item.value === values[0])
                 return [
-                  <span class={ui.value()}>
-                    {labels.length > 3 ? `${labels.length} ausgewählt` : labels.join(', ')}
+                  <span class={[ui.value(), 'flex items-center gap-1.5']}>
+                    {item && slots.prefix?.({ item })}
+                    <span class="truncate">{item?.label ?? values[0]}</span>
                   </span>,
                 ]
               },
@@ -801,7 +952,7 @@ export default defineSetupComponent(
                           </div>,
                         ]
                       : []),
-                    searchInput({ class: 'min-w-0 flex-1' }),
+                    ...(props.hideSearch ? [] : [searchInput({ class: 'min-w-0 flex-1' })]),
                     <div class="flex w-64 shrink-0 gap-1.5">{sheetButtons()}</div>,
                   ],
                 }),
@@ -856,10 +1007,14 @@ export default defineSetupComponent(
                     ...(hasFilterBar.value && !togglesInSearch.value
                       ? [<div>{filterBar()}</div>]
                       : []),
-                    searchInput(
-                      { variant: 'none', class: 'border-default border-b px-1 py-2' },
-                      togglesInSearch.value,
-                    ),
+                    ...(props.hideSearch
+                      ? []
+                      : [
+                          searchInput(
+                            { variant: 'none', class: 'border-default border-b px-1 py-2' },
+                            togglesInSearch.value,
+                          ),
+                        ]),
                     <div class="flex gap-1.5 p-4">{sheetButtons()}</div>,
                   ],
                 }),
