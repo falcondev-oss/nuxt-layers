@@ -853,6 +853,7 @@ export default defineSetupComponent(
             // below: left-aligned, no flip above, shrinks to fit
             content={{
               ...contentAttrs,
+              collisionPadding: { top: 8, right: 8, bottom: 56, left: 8 },
               ...(isBeside.value
                 ? { side: 'right', align: 'end' }
                 : { side: 'bottom', align: 'start', sideFlip: false }),
