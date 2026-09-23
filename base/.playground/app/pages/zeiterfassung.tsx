@@ -131,8 +131,12 @@ const teams = [
     values: ['markus', 'carolin', 'ben', 'yasmin', 'paul', 'laura', 'stefan', 'nina'],
   },
   { label: 'Verwaltung', values: ['renate', 'daniel', 'helena', 'ursula', 'oliver'] },
-  { label: 'Support', values: ['katharina', 'dennis', 'julia', 'kevin', 'sarah'] },
-  { label: 'Marketing', values: ['moritz', 'anna', 'david', 'clara', 'simon', 'miriam'] },
+  // tom, lea and markus also sit in a second team
+  { label: 'Support', values: ['katharina', 'dennis', 'julia', 'kevin', 'sarah', 'tom'] },
+  {
+    label: 'Marketing',
+    values: ['moritz', 'anna', 'david', 'clara', 'simon', 'miriam', 'lea', 'markus'],
+  },
 ]
 
 function filterUser(user: (typeof users)[number], filters: { value: string }[]) {

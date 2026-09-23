@@ -408,13 +408,13 @@ export default defineSetupComponent(
           // one menu group each, so each renders as its own box
           const boxes = entries.map<(ItemRow<T> | GroupRow)[]>(
             ({ label, values: groupValues }, index) => {
-              const claimed = groupValues.filter((value) => byValue.has(value))
+              // an item may sit in several groups; listed under each, once per group
+              const claimed = [...new Set(groupValues)].filter((value) => byValue.has(value))
               // `values` ignores the search (header checkbox stays stable), not the filter
               // (toggling mustn't select hidden items)
               const values = claimed.filter((value) => passes(byValue.get(value)!))
               const items = claimed.flatMap((value) => {
                 const item = byValue.get(value)!
-                byValue.delete(value)
                 // matching group label keeps the whole group
                 return passes(item) && (matches(label) || matchesItem(item)) ? item : []
               })
@@ -504,7 +504,10 @@ export default defineSetupComponent(
             event.preventDefault()
             event.stopPropagation()
             if (!searchTerm.value.trim()) return
-            const matches = grouped.value.flat().flatMap((row) => ('type' in row ? [] : row.value))
+            // a value under several groups counts once
+            const matches = [
+              ...new Set(grouped.value.flat().flatMap((row) => ('type' in row ? [] : row.value))),
+            ]
             if (props.single) {
               if (matches.length === 1) pick(matches[0]!)
               return
@@ -675,7 +678,7 @@ export default defineSetupComponent(
             : [
                 // spacer, not row padding: a class on the reused item survives view switches
                 item.indent ? (
-                  <div class="shrink-0" style={{ width: `${item.indent * 0.25}rem` }} />
+                  <div class="shrink-0" style={{ width: `${item.indent * 0.1}rem` }} />
                 ) : undefined,
                 props.single ? (
                   radio(selected.value.has(item.value))
@@ -799,7 +802,8 @@ export default defineSetupComponent(
             disabled={props.disabled}
             // closed-menu clear saves with no other spinner
             loading={props.loading || isSaving.value}
-            clear={props.clear}
+            // spinner alone while loading
+            clear={props.clear && !props.loading && !isSaving.value}
             // nothing beside the custom trigger
             {...(slots.default && {
               asChild: true,
@@ -853,7 +857,7 @@ export default defineSetupComponent(
             // below: left-aligned, no flip above, shrinks to fit
             content={{
               ...contentAttrs,
-              collisionPadding: { top: 8, right: 8, bottom: 56, left: 8 },
+              collisionPadding: { top: 8, right: 8, bottom: 48 * 2 + 8, left: 8 },
               ...(isBeside.value
                 ? { side: 'right', align: 'end' }
                 : { side: 'bottom', align: 'start', sideFlip: false }),
@@ -878,13 +882,18 @@ export default defineSetupComponent(
               ]
                 .filter(Boolean)
                 .join(' '),
-              // grows with the list up to what fits; min 24rem, below also trigger width
+              // grows with the list up to what fits; at least the trigger's width.
+              // the footer hangs below, outside the box: showing it never moves the list.
+              // footer and arrow sit outside the box, so the box never clips: the open animation's
+              // transform makes it their containing block, which would hide both till it ends
               content: [
-                'max-h-(--reka-combobox-content-available-height) w-max max-w-(--reka-combobox-content-available-width)',
-                isBeside.value
-                  ? 'min-w-96'
-                  : 'min-w-[max(var(--reka-combobox-trigger-width),24rem)]',
-              ].join(' '),
+                'overflow-visible max-h-(--reka-combobox-content-available-height) w-max min-w-(--reka-combobox-trigger-width) max-w-(--reka-combobox-content-available-width)',
+                (showsClear.value || showsSave.value) && 'rounded-b-none',
+              ]
+                .filter(Boolean)
+                .join(' '),
+              // clips for the box instead, rounded with it
+              focusScope: 'overflow-hidden rounded-[inherit]',
               empty: 'order-2',
               // tree: stable gutter, as collapsing can end the overflow
               viewport: [
@@ -930,8 +939,9 @@ export default defineSetupComponent(
               ],
               'content-bottom': () => [
                 (showsClear.value || showsSave.value) && (
+                  // fits the collision padding's bottom gap
                   <div
-                    class="border-default order-3 flex border-t p-2"
+                    class="bg-default ring-default absolute inset-x-0 top-full flex rounded-b-md p-2 shadow-lg ring"
                     // keeps focus in the search input, whose blur would close the menu first
                     onMousedown={(event) => event.preventDefault()}
                   >
