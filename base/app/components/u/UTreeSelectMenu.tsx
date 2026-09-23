@@ -675,7 +675,7 @@ export default defineSetupComponent(
             : [
                 // spacer, not row padding: a class on the reused item survives view switches
                 item.indent ? (
-                  <div class="shrink-0" style={{ width: `${item.indent * 0.5}rem` }} />
+                  <div class="shrink-0" style={{ width: `${item.indent * 0.25}rem` }} />
                 ) : undefined,
                 props.single ? (
                   radio(selected.value.has(item.value))
