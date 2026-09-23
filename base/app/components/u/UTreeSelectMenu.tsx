@@ -1,6 +1,7 @@
 import type { InputProps, SelectMenuProps } from '@nuxt/ui'
 import type { VNode } from 'vue'
 import { chunk } from 'remeda'
+import { Teleport } from 'vue'
 import { UButton, UCheckbox, UIcon, UInput, UModal, USelectMenu, UTabs } from '#components'
 
 export type TreeSelectMenuItem = {
@@ -69,7 +70,8 @@ export default defineSetupComponent(
       | 'loading'
     > & {
       items: T[]
-      groups: TreeSelectMenuGroup[]
+      // without, a flat list with no view toggle
+      groups?: TreeSelectMenuGroup[]
       // list ungrouped items flat below
       listUngrouped?: boolean
       // label for the group of ungrouped items
@@ -88,6 +90,8 @@ export default defineSetupComponent(
       loading?: boolean
       // save button label by pick count
       submitLabel?: (count: number) => string
+      // single: clear button label
+      deselectLabel?: string
     }
     slots: {
       'prefix': (props: { item: T }) => VNode[]
@@ -115,6 +119,7 @@ export default defineSetupComponent(
       | 'disabled'
       | 'loading'
       | 'submitLabel'
+      | 'deselectLabel'
     emits: {
       'update:modelValue': (value: Single extends true ? string | null : (string | null)[]) => void
     }
@@ -134,6 +139,7 @@ export default defineSetupComponent(
         'disabled',
         'loading',
         'submitLabel',
+        'deselectLabel',
       ],
       emits: ['update:modelValue'],
       // two roots (the menu and its mobile sheet), so the attributes are placed by hand
@@ -143,6 +149,14 @@ export default defineSetupComponent(
         const searchTerm = ref('')
 
         const view = ref<'tree' | 'list'>('tree')
+        const hasGroups = computed(() => !!props.groups?.length)
+        // groups gone: reset, so they return in the tree
+        watch(hasGroups, (has) => {
+          if (!has) view.value = 'tree'
+        })
+        const hasFilterBar = computed(() => !!props.filters || hasGroups.value)
+        // spares the dropdown the row beneath the search
+        const togglesInSearch = computed(() => hasGroups.value && !props.filters)
 
         const filterValues = ref<string[]>([])
 
@@ -197,7 +211,7 @@ export default defineSetupComponent(
         // single: pick at open, restored on failed save
         const pickedOnOpen = ref<string>()
         const picked = computed(() => [...selected.value][0])
-        // clear empties pick before `onChange` settles; keep button till then
+        // clear empties pick before `onChange` settles; keep button till closed
         const isClearing = ref(false)
         // single: Clear while pick unchanged, Save once changed
         const showsClear = computed(
@@ -230,6 +244,7 @@ export default defineSetupComponent(
         function startDraft() {
           draft.value = new Set(committed.value)
           pickedOnOpen.value = picked.value
+          isClearing.value = false
         }
 
         function openSheet() {
@@ -292,7 +307,9 @@ export default defineSetupComponent(
           const passes = (item: T) =>
             !active?.length || !props.filterFn || props.filterFn(item, active)
 
-          if (view.value === 'list') {
+          // a const, so it stays narrowed inside the callbacks
+          const groups = props.groups
+          if (view.value === 'list' || !groups?.length) {
             const rows = props.items.filter((item) => passes(item) && matchesItem(item))
             return { groups: [], list: rows }
           }
@@ -300,9 +317,9 @@ export default defineSetupComponent(
           const byValue = new Map(props.items.map((item) => [item.value, item]))
 
           // ungrouped items stay selectable: own group, or listed below the groups
-          const inGroup = new Set(props.groups.flatMap((group) => group.values))
+          const inGroup = new Set(groups.flatMap((group) => group.values))
           const ungrouped = props.items.filter((item) => !inGroup.has(item.value))
-          const entries = [...props.groups]
+          const entries = [...groups]
           if (!props.listUngrouped && ungrouped.length > 0)
             entries.push({
               label: props.ungroupedLabel ?? 'Ohne Gruppe',
@@ -310,7 +327,7 @@ export default defineSetupComponent(
             })
 
           // one menu group each, so each renders as its own box
-          const groups = entries.map<(ItemRow<T> | GroupRow)[]>(
+          const boxes = entries.map<(ItemRow<T> | GroupRow)[]>(
             ({ label, values: groupValues }, index) => {
               const claimed = groupValues.filter((value) => byValue.has(value))
               // `values` ignores the search (header checkbox stays stable), not the filter
@@ -333,7 +350,7 @@ export default defineSetupComponent(
                   values,
                   collapsed: isCollapsed,
                   // the ungrouped entry is only ever pushed after the given groups
-                  ungrouped: index === props.groups.length,
+                  ungrouped: index === groups.length,
                 },
                 ...(isCollapsed ? [] : items.map((item) => ({ ...item, indent: 1 }))),
               ]
@@ -341,7 +358,7 @@ export default defineSetupComponent(
           )
 
           return {
-            groups: groups.filter((rows) => rows.length > 0),
+            groups: boxes.filter((rows) => rows.length > 0),
             list: props.listUngrouped
               ? ungrouped.filter((item) => passes(item) && matchesItem(item))
               : [],
@@ -404,74 +421,88 @@ export default defineSetupComponent(
           return columns.map((column) => column.groups)
         })
 
-        // `compact` for a header row that shares its width with the search and buttons
-        const filterBar = (compact = false) => (
-          <div class="border-default relative z-10 order-1 flex items-center justify-between gap-2 border-b px-2.5 py-1.5">
-            {props.filters && slots.filter ? (
-              slots.filter({
-                'filters': props.filters,
-                'modelValue': filterValues.value,
-                'onUpdate:modelValue': (value) => (filterValues.value = value),
-              })
-            ) : props.filters ? (
-              <USelectMenu
-                // compact sits beside the search input, so it takes its height
-                size={compact ? 'md' : 'xs'}
-                class={compact ? 'w-auto' : 'w-40'}
-                valueKey="value"
-                // compact: funnel in the value; a leading icon overlaps the padding, gives no width
-                icon={compact ? undefined : 'lucide:funnel'}
-                placeholder={compact ? undefined : 'Filter'}
-                // list defaults to the trigger's width, too narrow when compact
-                ui={{ content: 'min-w-40' }}
-                multiple
-                clear
-                searchInput={false}
-                // portaled: focus moving there would blur the search and close the menu
-                portal={false}
-                // only read, but `USelectMenu` types `items` as mutable
-                items={props.filters as F[]}
-                v-model={filterValues.value}
-                v-slots={{
-                  // just the count, as the labels don't fit
-                  ...(compact && {
-                    default: () => [
-                      <UIcon name="lucide:funnel" class="size-5 shrink-0" />,
-                      filterValues.value.length > 0 && <span>{filterValues.value.length}</span>,
-                    ],
-                  }),
-                  'item-label': slots['filter-item']
-                    ? ({ item }: { item: F }) => slots['filter-item']!({ item })
-                    : undefined,
-                }}
-              />
-            ) : (
-              <div />
-            )}
-            {compact ? (
-              // one button that switches, showing the view it's in
-              <UButton
-                size="md"
-                color="neutral"
-                variant="outline"
-                icon={view.value === 'tree' ? 'lucide:folder-tree' : 'lucide:list'}
-                aria-label={view.value === 'tree' ? 'Listenansicht' : 'Baumansicht'}
-                onClick={() => (view.value = view.value === 'tree' ? 'list' : 'tree')}
-              />
-            ) : (
-              <UTabs
-                size="xs"
-                content={false}
-                class="w-auto"
-                items={[
-                  { value: 'tree', icon: 'lucide:folder-tree' },
-                  { value: 'list', icon: 'lucide:list' },
-                ]}
-                v-model={view.value}
-              />
-            )}
-          </div>
+        // `inset`: 24px tall, centred in the search input's 32px;
+        // `sheet`: sm, for fingers, fits the sheet search's 48px
+        const viewTabs = (fit?: 'inset' | 'sheet') => (
+          <UTabs
+            size={fit === 'sheet' ? 'sm' : 'xs'}
+            content={false}
+            class="w-auto"
+            ui={
+              fit === 'inset'
+                ? { list: 'p-0.5', indicator: 'inset-y-0.5', trigger: 'px-1.5 py-0.5' }
+                : undefined
+            }
+            items={[
+              { value: 'tree', icon: 'lucide:folder-tree' },
+              { value: 'list', icon: 'lucide:list' },
+            ]}
+            v-model={view.value}
+          />
         )
+
+        // `compact` for a header row that shares its width with the search and buttons
+        const filterBar = (compact = false) =>
+          hasFilterBar.value && (
+            <div class="border-default relative z-10 order-1 flex items-center justify-between gap-2 border-b px-2.5 py-1.5">
+              {props.filters && slots.filter ? (
+                slots.filter({
+                  'filters': props.filters,
+                  'modelValue': filterValues.value,
+                  'onUpdate:modelValue': (value) => (filterValues.value = value),
+                })
+              ) : props.filters ? (
+                <USelectMenu
+                  // compact sits beside the search input, so it takes its height
+                  size={compact ? 'md' : 'xs'}
+                  class={compact ? 'w-auto' : 'w-40'}
+                  valueKey="value"
+                  // compact: funnel in the value; a leading icon overlaps the padding, gives no width
+                  icon={compact ? undefined : 'lucide:funnel'}
+                  placeholder={compact ? undefined : 'Filter'}
+                  // list defaults to the trigger's width, too narrow when compact
+                  ui={{ content: 'min-w-40' }}
+                  multiple
+                  clear
+                  searchInput={false}
+                  // portaled: focus moving there would blur the search and close the menu
+                  portal={false}
+                  // only read, but `USelectMenu` types `items` as mutable
+                  items={props.filters as F[]}
+                  v-model={filterValues.value}
+                  v-slots={{
+                    // just the count, as the labels don't fit
+                    ...(compact && {
+                      default: () => [
+                        <UIcon name="lucide:funnel" class="size-5 shrink-0" />,
+                        filterValues.value.length > 0 && <span>{filterValues.value.length}</span>,
+                      ],
+                    }),
+                    'item-label': slots['filter-item']
+                      ? ({ item }: { item: F }) => slots['filter-item']!({ item })
+                      : undefined,
+                  }}
+                />
+              ) : (
+                // holds the toggle at the end; compact has no width to fill
+                !compact && <div />
+              )}
+              {hasGroups.value &&
+                (compact ? (
+                  // one button that switches, showing the view it's in
+                  <UButton
+                    size="md"
+                    color="neutral"
+                    variant="outline"
+                    icon={view.value === 'tree' ? 'lucide:folder-tree' : 'lucide:list'}
+                    aria-label={view.value === 'tree' ? 'Listenansicht' : 'Baumansicht'}
+                    onClick={() => (view.value = view.value === 'tree' ? 'list' : 'tree')}
+                  />
+                ) : (
+                  viewTabs()
+                ))}
+            </div>
+          )
 
         const itemContent = (item: ItemRow<T> | GroupRow) =>
           'type' in item
@@ -556,14 +587,20 @@ export default defineSetupComponent(
             </div>
           ))
 
-        const searchInput = (inputProps: Pick<InputProps, 'variant' | 'class'>) => (
+        // `toggles`: view tabs inside, at the end
+        const searchInput = (
+          inputProps: Pick<InputProps, 'variant' | 'class'>,
+          toggles = false,
+        ) => (
           <UInput
             v-model={searchTerm.value}
             type="search"
             icon="lucide:search"
             placeholder={attrs.placeholder ?? 'Suchen…'}
             id={searchId}
+            ui={toggles ? { base: 'pe-22', trailing: 'pe-1' } : undefined}
             {...inputProps}
+            v-slots={toggles ? { trailing: () => viewTabs('sheet') } : undefined}
           />
         )
 
@@ -580,15 +617,20 @@ export default defineSetupComponent(
           showsClear.value ? (
             <UButton
               class="flex-1 justify-center"
-              color="neutral"
-              variant="outline"
+              color="primary"
+              variant="subtle"
               icon="lucide:x"
-              label="Auswahl aufheben"
+              label={props.deselectLabel ?? 'Auswahl aufheben'}
               loading={isSaving.value}
               onClick={() => {
+                // closing after a clear: a second tap would save again
+                if (isClearing.value) return
                 isClearing.value = true
                 if (draft.value) draft.value = new Set()
-                void save(null as Value).finally(() => (isClearing.value = false))
+                // success closes (draft gone): keep the button through the close animation
+                void save(null as Value).finally(() => {
+                  if (draft.value) isClearing.value = false
+                })
               }}
             />
           ) : (
@@ -642,7 +684,12 @@ export default defineSetupComponent(
             // multiple: pick several matches per search
             resetSearchTermOnSelect={false}
             v-model:searchTerm={searchTerm.value}
-            searchInput={{ type: 'search', id: searchId }}
+            searchInput={{
+              type: 'search',
+              id: searchId,
+              // room for the view toggle laid over its end
+              ui: togglesInSearch.value ? { base: 'pe-18' } : undefined,
+            }}
             // beside: right (reka flips left), bottom-aligned, grows up.
             // below: left-aligned, no flip above, shrinks to fit
             content={
@@ -689,7 +736,18 @@ export default defineSetupComponent(
             v-slots={{
               // `content-top` renders above the search; flex order moves it below.
               // `z-10`: unportaled filter dropdown stays above the `relative` viewport
-              'content-top': () => filterBar(),
+              'content-top': () => [
+                !togglesInSearch.value && filterBar(),
+                // the search takes no slots, so the toggle moves into its wrapper;
+                // deferred, as the search renders after this slot
+                togglesInSearch.value && (
+                  <Teleport to={`:has(> #${searchId})`} defer>
+                    <span class="absolute inset-y-0 inset-e-0 flex items-center pe-1">
+                      {viewTabs('inset')}
+                    </span>
+                  </Teleport>
+                ),
+              ],
               'content-bottom': () => [
                 (showsClear.value || showsSave.value) && (
                   <div
@@ -736,9 +794,13 @@ export default defineSetupComponent(
                 ...(!isThumbReach.value && {
                   header: () => [
                     // the row pads itself and needs no divider
-                    <div class="shrink-0 *:border-b-0 *:p-0">
-                      {filterBar(!isLandscapeColumns.value)}
-                    </div>,
+                    ...(hasFilterBar.value
+                      ? [
+                          <div class="shrink-0 *:border-b-0 *:p-0">
+                            {filterBar(!isLandscapeColumns.value)}
+                          </div>,
+                        ]
+                      : []),
                     searchInput({ class: 'min-w-0 flex-1' }),
                     <div class="flex w-64 shrink-0 gap-1.5">{sheetButtons()}</div>,
                   ],
@@ -791,8 +853,13 @@ export default defineSetupComponent(
                   // filter, then search, so the search sits next to the results
                   footer: () => [
                     // wrapped, since the row's `order-1` would put it below its siblings here
-                    <div>{filterBar()}</div>,
-                    searchInput({ variant: 'none', class: 'border-default border-b px-1 py-2' }),
+                    ...(hasFilterBar.value && !togglesInSearch.value
+                      ? [<div>{filterBar()}</div>]
+                      : []),
+                    searchInput(
+                      { variant: 'none', class: 'border-default border-b px-1 py-2' },
+                      togglesInSearch.value,
+                    ),
                     <div class="flex gap-1.5 p-4">{sheetButtons()}</div>,
                   ],
                 }),

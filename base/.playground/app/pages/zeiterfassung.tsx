@@ -129,7 +129,7 @@ export default defineSetupComponent((_: object) =>
         breadcrumb: [{ label: 'Übersicht', to: '/' }, { label: 'Zeiterfassung' }],
       })
 
-      // single/multiple × no `onChange`/succeeds/fails × without/with filters
+      // single/multiple × no `onChange`/succeeds/fails × without/with filters × with/without groups
       const sections = [
         { title: 'Single', single: true },
         { title: 'Multiple', single: false },
@@ -149,10 +149,13 @@ export default defineSetupComponent((_: object) =>
         ].map(({ title, onChange }) => ({
           title,
           onChange,
-          variants: [false, true].map((withFilters) => ({
-            withFilters,
-            value: ref<string | string[] | null>(single ? null : []),
-          })),
+          variants: [false, true].flatMap((withFilters) =>
+            [true, false].map((withGroups) => ({
+              withFilters,
+              withGroups,
+              value: ref<string | string[] | null>(single ? null : []),
+            })),
+          ),
         })),
       }))
 
@@ -168,15 +171,19 @@ export default defineSetupComponent((_: object) =>
                       <div class="flex flex-col gap-2">
                         {title && <h3 class="text-sm font-medium">{title}</h3>}
                         <div class="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4">
-                          {variants.map(({ withFilters, value }) => (
+                          {variants.map(({ withFilters, withGroups, value }) => (
                             <div class="flex flex-col gap-1">
-                              {withFilters && <span class="text-muted text-xs">Filter</span>}
+                              <span class="text-muted text-xs">
+                                {[withFilters && 'Filter', !withGroups && 'Ohne Gruppen']
+                                  .filter(Boolean)
+                                  .join(' · ')}
+                              </span>
                               <UTreeSelectMenu
                                 single={single}
                                 onChange={onChange}
                                 class="mt-auto w-full"
                                 items={users}
-                                groups={teams}
+                                groups={withGroups ? teams : undefined}
                                 filters={withFilters ? tags : undefined}
                                 filterFn={withFilters ? filterUser : undefined}
                                 v-model={value.value}
