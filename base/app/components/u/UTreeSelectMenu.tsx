@@ -867,8 +867,10 @@ export default defineSetupComponent(
               // as Enter picks it
               item: [
                 'items-center py-2 rounded-none border-b border-default last:border-b-0 even:bg-elevated/30',
-                // edge rows match the clipping corners, so the ring follows
-                'first:rounded-t-md last:rounded-b-md',
+                // ring follows the corners; list view: square beside the search or footer
+                !(isList.value && (!props.hideSearch || hasFilterBar.value)) &&
+                  'first:rounded-t-md',
+                !(isList.value && (showsClear.value || showsSave.value)) && 'last:rounded-b-md',
                 isList.value && 'px-2.5',
                 isArrowing.value
                   ? 'data-highlighted:not-data-disabled:ring-2 data-highlighted:not-data-disabled:ring-inset data-highlighted:not-data-disabled:ring-primary'
