@@ -31,11 +31,42 @@ const groupBox = 'p-0 rounded-md border border-default overflow-hidden'
 // NUL can't appear in a value coming from `items`, so a group row never collides with one.
 const groupValue = (index: number) => `\0${index}`
 
+// `URadioGroup`'s radio look; it only renders whole groups
+function radio(checked: boolean) {
+  return (
+    <span class="ring-accented pointer-events-none size-4 shrink-0 overflow-hidden rounded-full ring ring-inset">
+      {checked && (
+        <span class="bg-primary after:bg-default flex size-full items-center justify-center after:size-1.5 after:rounded-full" />
+      )}
+    </span>
+  )
+}
+
+function loadingNote() {
+  return (
+    <span class="inline-flex items-center gap-1.5">
+      <UIcon name="lucide:loader-circle" class="size-4 shrink-0 animate-spin" />
+      Wird geladen…
+    </span>
+  )
+}
+
 export default defineSetupComponent(
-  <T extends TreeSelectMenuItem, F extends TreeSelectMenuFilter = TreeSelectMenuFilter>(_: {
+  <
+    T extends TreeSelectMenuItem,
+    F extends TreeSelectMenuFilter = TreeSelectMenuFilter,
+    Single extends boolean = false,
+  >(_: {
     props: Omit<
       SelectMenuProps<(ItemRow<T> | GroupRow)[][], 'value', true>,
-      'items' | 'valueKey' | 'labelKey' | 'descriptionKey' | 'modelValue' | 'defaultValue'
+      | 'items'
+      | 'valueKey'
+      | 'labelKey'
+      | 'descriptionKey'
+      | 'modelValue'
+      | 'defaultValue'
+      | 'disabled'
+      | 'loading'
     > & {
       items: T[]
       groups: TreeSelectMenuGroup[]
@@ -46,11 +77,17 @@ export default defineSetupComponent(
       filters?: readonly F[]
       // only called while at least one filter is selected
       filterFn?: (item: T, filters: F[]) => boolean
-      // `null` only comes from form bindings (nullable draft values); never emitted
-      modelValue?: (string | null)[] | null
-      // awaited on save, spinner on the save button meanwhile; the menu stays open if it throws
-      onChange?: (value: string[]) => Promise<void> | void
+      single?: Single
+      // multiple: `null` only from form bindings, never emitted
+      modelValue?: (Single extends true ? string : (string | null)[]) | null
+      // awaited before emit, spinner meanwhile. throws: no emit, stays open, single restores pick
+      onChange?: (value: Single extends true ? string | null : string[]) => Promise<void> | void
       onBlur?: () => void
+      disabled?: boolean
+      // items/groups loading: trigger spinner, loading note instead of no matches
+      loading?: boolean
+      // save button label by pick count
+      submitLabel?: (count: number) => string
     }
     slots: {
       'prefix': (props: { item: T }) => VNode[]
@@ -72,9 +109,15 @@ export default defineSetupComponent(
       | 'ungroupedLabel'
       | 'filters'
       | 'filterFn'
+      | 'single'
       | 'modelValue'
       | 'onChange'
-    emits: { 'update:modelValue': (value: (string | null)[]) => void }
+      | 'disabled'
+      | 'loading'
+      | 'submitLabel'
+    emits: {
+      'update:modelValue': (value: Single extends true ? string | null : (string | null)[]) => void
+    }
   }) =>
     options(_, {
       name: 'UTreeSelectMenu',
@@ -85,8 +128,12 @@ export default defineSetupComponent(
         'ungroupedLabel',
         'filters',
         'filterFn',
+        'single',
         'modelValue',
         'onChange',
+        'disabled',
+        'loading',
+        'submitLabel',
       ],
       emits: ['update:modelValue'],
       // two roots (the menu and its mobile sheet), so the attributes are placed by hand
@@ -119,21 +166,46 @@ export default defineSetupComponent(
           isBeside.value = isShort.value || top >= window.innerHeight / 2
         }
 
-        const committed = computed(
-          () => new Set(props.modelValue?.filter((value) => value !== null)),
-        )
+        type Value = Single extends true ? string | null : string[]
+
+        const committed = computed(() => {
+          const model = props.modelValue
+          const values: (string | null | undefined)[] = Array.isArray(model) ? model : [model]
+          return new Set(values.filter((value) => value != null))
+        })
         const selected = computed(() => draft.value ?? committed.value)
 
+        const toValue = (values: Set<string>) =>
+          (props.single ? ([...values][0] ?? null) : [...values]) as Value
+
+        const isSaving = ref(false)
+
         function update(next: Set<string>) {
+          if (isSaving.value) return
           if (draft.value) draft.value = next
-          else emit('update:modelValue', [...next])
+          else emit('update:modelValue', toValue(next))
         }
 
+        // single: always picks; clear has own button
         function toggle(value: string) {
+          if (props.single) return update(new Set([value]))
           const next = new Set(selected.value)
           if (!next.delete(value)) next.add(value)
           update(next)
         }
+
+        // single: pick at open, restored on failed save
+        const pickedOnOpen = ref<string>()
+        const picked = computed(() => [...selected.value][0])
+        // clear empties pick before `onChange` settles; keep button till then
+        const isClearing = ref(false)
+        // single: Clear while pick unchanged, Save once changed
+        const showsClear = computed(
+          () =>
+            props.single &&
+            (isClearing.value ||
+              (picked.value !== undefined && picked.value === pickedOnOpen.value)),
+        )
 
         function toggleGroup(values: string[]) {
           const next = new Set(selected.value)
@@ -154,27 +226,60 @@ export default defineSetupComponent(
           collapsed.value = next
         }
 
-        function openSheet() {
-          searchTerm.value = ''
+        // sheet, and menu if single or `onChange`: pick into draft; save emits, dismiss cancels
+        function startDraft() {
           draft.value = new Set(committed.value)
+          pickedOnOpen.value = picked.value
         }
 
-        function closeSheet() {
+        function openSheet() {
+          searchTerm.value = ''
+          startDraft()
+        }
+
+        function close() {
           draft.value = undefined
+          // prop close skips `USelectMenu`'s blur
+          isOpen.value = false
           attrs.onBlur?.()
         }
 
-        const isSaving = ref(false)
+        // single, no `onChange`: pick closes, no save button
+        const closesOnPick = computed(() => props.single && !props.onChange)
+        const showsSave = computed(() =>
+          props.single ? !closesOnPick.value && picked.value !== pickedOnOpen.value : true,
+        )
 
-        async function save(value: string[], close: () => void) {
+        function pick(value: string) {
+          toggle(value)
+          if (!closesOnPick.value) return
+          if (draft.value) emit('update:modelValue', toValue(draft.value))
+          close()
+        }
+
+        async function save(value: Value) {
           isSaving.value = true
           try {
             await props.onChange?.(value)
-            close()
+          } catch (err) {
+            // multiple: keep picks for retry
+            if (props.single && draft.value)
+              draft.value = new Set(pickedOnOpen.value === undefined ? [] : [pickedOnOpen.value])
+            // click handler not awaited; rethrow = unhandled rejection
+            console.error(err)
+            return
           } finally {
             isSaving.value = false
           }
+          emit('update:modelValue', value)
+          close()
         }
+
+        // menu remounts on flip; sheet draft must not leak in
+        watch(isMobile, () => {
+          draft.value = undefined
+          isOpen.value = false
+        })
 
         // `list` holds the rows without a header: the list view's, or the ungrouped ones
         const tree = computed<{ groups: (ItemRow<T> | GroupRow)[][]; list: ItemRow<T>[] }>(() => {
@@ -270,7 +375,8 @@ export default defineSetupComponent(
               searchTerm.value = ''
               return
             }
-            if (event.key !== 'Enter' || !searchTerm.value.trim()) return
+            // single: Enter picks highlighted row (default)
+            if (props.single || event.key !== 'Enter' || !searchTerm.value.trim()) return
             event.preventDefault()
             event.stopPropagation()
             toggleGroup(grouped.value.flat().flatMap((row) => ('type' in row ? [] : row.value)))
@@ -370,18 +476,20 @@ export default defineSetupComponent(
         const itemContent = (item: ItemRow<T> | GroupRow) =>
           'type' in item
             ? [
-                <UCheckbox
-                  size="md"
-                  class="pointer-events-none shrink-0"
-                  modelValue={
-                    item.values.length > 0 &&
-                    item.values.every((value) => selected.value.has(value))
-                      ? true
-                      : item.values.some((value) => selected.value.has(value))
-                        ? 'indeterminate'
-                        : false
-                  }
-                />,
+                !props.single && (
+                  <UCheckbox
+                    size="md"
+                    class="pointer-events-none shrink-0"
+                    modelValue={
+                      item.values.length > 0 &&
+                      item.values.every((value) => selected.value.has(value))
+                        ? true
+                        : item.values.some((value) => selected.value.has(value))
+                          ? 'indeterminate'
+                          : false
+                    }
+                  />
+                ),
                 <span
                   class={
                     item.ungrouped
@@ -399,7 +507,7 @@ export default defineSetupComponent(
                   // keeps focus in the search input, whose blur would close the menu
                   onMousedown={(event) => event.preventDefault()}
                   onClick={(event) => {
-                    // the row's own click would toggle the group's selection
+                    // else row click toggles group (single: collapses)
                     event.stopPropagation()
                     toggleCollapsed(item.label)
                   }}
@@ -415,11 +523,15 @@ export default defineSetupComponent(
                 item.indent ? (
                   <div class="shrink-0" style={{ width: `${item.indent * 0.5}rem` }} />
                 ) : undefined,
-                <UCheckbox
-                  size="md"
-                  class="pointer-events-none shrink-0"
-                  modelValue={selected.value.has(item.value)}
-                />,
+                props.single ? (
+                  radio(selected.value.has(item.value))
+                ) : (
+                  <UCheckbox
+                    size="md"
+                    class="pointer-events-none shrink-0"
+                    modelValue={selected.value.has(item.value)}
+                  />
+                ),
                 ...(slots.prefix?.({ item }) ?? []),
                 <span class="truncate">{item.label}</span>,
                 ...(slots.suffix?.({ item }) ?? []),
@@ -434,7 +546,11 @@ export default defineSetupComponent(
             <div
               role="button"
               class="border-default even:bg-elevated/30 flex w-full items-center gap-1.5 border-b px-2.5 py-3.5 text-start text-sm last:border-b-0"
-              onClick={() => ('type' in item ? toggleGroup(item.values) : toggle(item.value))}
+              onClick={() => {
+                if (!('type' in item)) pick(item.value)
+                else if (props.single) toggleCollapsed(item.label)
+                else toggleGroup(item.values)
+              }}
             >
               {itemContent(item)}
             </div>
@@ -451,6 +567,42 @@ export default defineSetupComponent(
           />
         )
 
+        // single: no count, max one
+        const saveLabel = () =>
+          props.submitLabel?.(selected.value.size) ??
+          (selected.value.size === 0
+            ? 'Keine auswählen'
+            : props.single
+              ? 'Auswählen'
+              : `${selected.value.size} auswählen`)
+
+        const footerButton = () =>
+          showsClear.value ? (
+            <UButton
+              class="flex-1 justify-center"
+              color="neutral"
+              variant="outline"
+              icon="lucide:x"
+              label="Auswahl aufheben"
+              loading={isSaving.value}
+              onClick={() => {
+                isClearing.value = true
+                if (draft.value) draft.value = new Set()
+                void save(null as Value).finally(() => (isClearing.value = false))
+              }}
+            />
+          ) : (
+            showsSave.value && (
+              <UButton
+                class="flex-1 justify-center"
+                label={saveLabel()}
+                loading={isSaving.value}
+                // live picks (multiple, no `onChange`) already emitted; re-emit harmless
+                onClick={() => void save(toValue(selected.value))}
+              />
+            )
+          )
+
         const sheetButtons = () => [
           <UButton
             class="flex-1 justify-center"
@@ -458,18 +610,9 @@ export default defineSetupComponent(
             variant="outline"
             label="Abbrechen"
             disabled={isSaving.value}
-            onClick={closeSheet}
+            onClick={close}
           />,
-          <UButton
-            class="flex-1 justify-center"
-            label={`${draft.value?.size ?? 0} auswählen`}
-            loading={isSaving.value}
-            onClick={() => {
-              if (!draft.value) return
-              emit('update:modelValue', [...draft.value])
-              void save([...draft.value], closeSheet)
-            }}
-          />,
+          footerButton(),
         ]
 
         return () => [
@@ -478,24 +621,34 @@ export default defineSetupComponent(
             // reka fixes controlled `open` at mount, media query settles later: remount on flip
             key={isMobile.value ? 'mobile' : 'desktop'}
             ref={menu}
+            disabled={props.disabled}
+            loading={props.loading}
             // held shut on mobile, where opening shows the sheet instead
             open={!isMobile.value && isOpen.value}
             onUpdate:open={(open: boolean) => {
               if (isMobile.value) return open && openSheet()
+              // save closes once `onChange` settles
+              if (!open && isSaving.value) return
               isOpen.value = open
-              if (open) place()
+              if (!open) return void (draft.value = undefined)
+              place()
+              if (props.single || props.onChange) startDraft()
             }}
             items={grouped.value}
             valueKey="value"
+            // single too: pick = row that differs from draft
             multiple
             ignoreFilter
-            // picking several matches of one search is the point of a multi-select
+            // multiple: pick several matches per search
             resetSearchTermOnSelect={false}
             v-model:searchTerm={searchTerm.value}
             searchInput={{ type: 'search', id: searchId }}
-            // beside: right (reka flips left), bottom-aligned so it grows up; below: left-aligned
+            // beside: right (reka flips left), bottom-aligned, grows up.
+            // below: left-aligned, no flip above, shrinks to fit
             content={
-              isBeside.value ? { side: 'right', align: 'end' } : { side: 'bottom', align: 'start' }
+              isBeside.value
+                ? { side: 'right', align: 'end' }
+                : { side: 'bottom', align: 'start', sideFlip: false }
             }
             arrow={isBeside.value}
             ui={{
@@ -514,39 +667,39 @@ export default defineSetupComponent(
               // stable gutter: collapsing can end the overflow
               viewport: 'order-2 scrollbar-gutter-stable divide-y-0 space-y-3 p-2',
             }}
-            modelValue={[...committed.value]}
-            // headers select like rows (reka keeps the scroll); a header's value toggles its group
+            modelValue={[...selected.value]}
+            // headers select like rows (reka keeps scroll); header toggles group (single: collapses)
             onUpdate:modelValue={(value) => {
+              const values = value as string[]
               const header = grouped.value
                 .flat()
-                .find((row): row is GroupRow => 'type' in row && value.includes(row.value))
-              if (header) toggleGroup(header.values)
-              else emit('update:modelValue', value)
+                .find((row): row is GroupRow => 'type' in row && values.includes(row.value))
+              if (header && props.single) toggleCollapsed(header.label)
+              else if (header) toggleGroup(header.values)
+              else if (props.single) {
+                // changed row: newly picked or unpicked
+                const changed =
+                  values.find((row) => !selected.value.has(row)) ??
+                  [...selected.value].find((row) => !values.includes(row))
+                if (changed !== undefined) pick(changed)
+              } else {
+                update(new Set(values))
+              }
             }}
             v-slots={{
               // `content-top` renders above the search; flex order moves it below.
               // `z-10`: unportaled filter dropdown stays above the `relative` viewport
               'content-top': () => filterBar(),
-              // selections already apply as they're made, so saving just closes the menu
               'content-bottom': () => [
-                <div
-                  class="border-default order-3 flex border-t p-2"
-                  // keeps focus in the search input, whose blur would close the menu first
-                  onMousedown={(event) => event.preventDefault()}
-                >
-                  <UButton
-                    class="flex-1 justify-center"
-                    label={`${selected.value.size} auswählen`}
-                    loading={isSaving.value}
-                    onClick={() =>
-                      void save([...committed.value], () => {
-                        // closing through the prop skips `USelectMenu`'s own blur
-                        isOpen.value = false
-                        attrs.onBlur?.()
-                      })
-                    }
-                  />
-                </div>,
+                (showsClear.value || showsSave.value) && (
+                  <div
+                    class="border-default order-3 flex border-t p-2"
+                    // keeps focus in the search input, whose blur would close the menu first
+                    onMousedown={(event) => event.preventDefault()}
+                  >
+                    {footerButton()}
+                  </div>
+                ),
               ],
               'default': ({ ui }: { ui: { placeholder: () => string; value: () => string } }) => {
                 const labels = [...committed.value].map(
@@ -562,6 +715,7 @@ export default defineSetupComponent(
                 ]
               },
               'item': ({ item }: { item: ItemRow<T> | GroupRow }) => itemContent(item),
+              ...(props.loading && { empty: loadingNote }),
             }}
           />,
           isMobile.value && (
@@ -569,7 +723,7 @@ export default defineSetupComponent(
               fullscreen
               close={false}
               open={!!draft.value}
-              onUpdate:open={(open) => !open && !isSaving.value && closeSheet()}
+              onUpdate:open={(open) => !open && !isSaving.value && close()}
               ui={{
                 // sideways there's little height, so everything shares one row
                 header: 'min-h-0 gap-2 p-4',
@@ -593,7 +747,9 @@ export default defineSetupComponent(
                   // `mt-auto`, not `justify-end`, which clips the top on overflow
                   <div class={isThumbReach.value && 'mt-auto'}>
                     {grouped.value.length === 0 ? (
-                      <p class="text-muted p-4 text-center text-sm">Keine Treffer</p>
+                      <p class="text-muted p-4 text-center text-sm">
+                        {props.loading ? loadingNote() : 'Keine Treffer'}
+                      </p>
                     ) : (
                       <div class="space-y-3">
                         {tree.value.groups.length > 0 &&

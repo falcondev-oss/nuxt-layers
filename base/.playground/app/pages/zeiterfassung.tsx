@@ -1,14 +1,4 @@
-import { z } from 'zod'
-import {
-  UAvatar,
-  UBadge,
-  UCard,
-  UField,
-  UForm,
-  UInputDurationMinutes,
-  UTextarea,
-  UTreeSelectMenu,
-} from '#components'
+import { UAvatar, UBadge, UCard, UTreeSelectMenu } from '#components'
 
 const users = [
   { label: 'Tom Weinhold', value: 'tom', hint: '10427', tag: 'Vollzeit' },
@@ -97,11 +87,35 @@ const teams = [
   { label: 'Marketing', values: ['moritz', 'anna', 'david', 'clara', 'simon', 'miriam'] },
 ]
 
-const schema = z.object({
-  userIds: z.array(z.string()).min(1).meta({ title: 'Mitarbeiter' }),
-  durationMinutes: z.number().min(1).meta({ title: 'Dauer' }),
-  description: z.string().min(1).max(200).meta({ title: 'Beschreibung' }),
-})
+function filterUser(user: (typeof users)[number], filters: { value: string }[]) {
+  return filters.some((filter) => filter.value === user.tag)
+}
+
+const userSlots = {
+  'filter-item': ({ item }: { item: { label: string } }) => [
+    <UBadge size="sm" color="neutral" variant="subtle">
+      {item.label}
+    </UBadge>,
+  ],
+  'prefix': ({ item }: { item: { label: string; value: string } }) => [
+    <UAvatar
+      size="2xs"
+      alt={item.label}
+      color={userColors.get(item.value)}
+      class="shrink-0"
+      ui={{ fallback: 'overflow-visible text-clip' }}
+    />,
+  ],
+  'suffix': ({ item }: { item: { value: string } }) => [
+    <UBadge size="sm" color="neutral" variant="subtle">
+      {userTags.get(item.value)}
+    </UBadge>,
+  ],
+}
+
+function wait(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
 
 export default defineSetupComponent((_: object) =>
   options(_, {
@@ -115,83 +129,71 @@ export default defineSetupComponent((_: object) =>
         breadcrumb: [{ label: 'Übersicht', to: '/' }, { label: 'Zeiterfassung' }],
       })
 
-      const form = useForm({
-        schema,
-        sourceValues: () => ({
-          userIds: [],
-          durationMinutes: null,
-          description: null,
-        }),
-        async submit({ values }) {
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          console.debug(values)
-        },
-      })
+      // single/multiple × no `onChange`/succeeds/fails × without/with filters
+      const sections = [
+        { title: 'Single', single: true },
+        { title: 'Multiple', single: false },
+      ].map(({ title, single }) => ({
+        title,
+        single,
+        groups: [
+          { title: undefined, onChange: undefined },
+          { title: 'onChange', onChange: () => wait(1000) },
+          {
+            title: 'onChange · Fehler',
+            onChange: () =>
+              wait(1000).then(() => {
+                throw new Error('Speichern fehlgeschlagen')
+              }),
+          },
+        ].map(({ title, onChange }) => ({
+          title,
+          onChange,
+          variants: [false, true].map((withFilters) => ({
+            withFilters,
+            value: ref<string | string[] | null>(single ? null : []),
+          })),
+        })),
+      }))
 
       return () => (
-        <UCard
-          class="max-w-md"
-          v-slots={vSlots(UCard, {
-            header: () => [<h1 class="text-highlighted font-semibold">Zeit erfassen</h1>],
-            default: () => [
-              <UForm form={form} submitLabel="Erstellen" successToast={{ title: 'Zeit erfasst' }}>
-                <div class="flex flex-col gap-4 pb-4">
-                  <UField
-                    field={form.fields.userIds.$use()}
-                    v-slots={{
-                      default: ({ bind }) => [
-                        <UTreeSelectMenu
-                          class="w-48"
-                          items={users}
-                          groups={teams}
-                          filters={tags}
-                          filterFn={(user: (typeof users)[number], filters) =>
-                            filters.some((filter) => filter.value === user.tag)
-                          }
-                          {...bind}
-                          placeholder="Mitarbeiter wählen"
-                          v-slots={{
-                            'filter-item': ({ item }) => [
-                              <UBadge size="sm" color="neutral" variant="subtle">
-                                {item.label}
-                              </UBadge>,
-                            ],
-                            'prefix': ({ item }) => [
-                              <UAvatar
-                                size="2xs"
-                                alt={item.label}
-                                color={userColors.get(item.value)}
-                                class="shrink-0"
-                                ui={{ fallback: 'overflow-visible text-clip' }}
-                              />,
-                            ],
-                            'suffix': ({ item }) => [
-                              <UBadge size="sm" color="neutral" variant="subtle">
-                                {userTags.get(item.value)}
-                              </UBadge>,
-                            ],
-                          }}
-                        />,
-                      ],
-                    }}
-                  />
-                  <UField
-                    field={form.fields.durationMinutes.$use()}
-                    v-slots={{
-                      default: ({ bind }) => [<UInputDurationMinutes class="w-full" {...bind} />],
-                    }}
-                  />
-                  <UField
-                    field={form.fields.description.$use()}
-                    v-slots={{
-                      default: ({ bind }) => [<UTextarea class="w-full" rows={3} {...bind} />],
-                    }}
-                  />
-                </div>
-              </UForm>,
-            ],
-          })}
-        />
+        <div class="flex flex-col gap-6">
+          {sections.map(({ title, single, groups }) => (
+            <UCard
+              v-slots={vSlots(UCard, {
+                header: () => [<h2 class="text-highlighted font-semibold">{title}</h2>],
+                default: () => [
+                  <div class="flex flex-col gap-6">
+                    {groups.map(({ title, onChange, variants }) => (
+                      <div class="flex flex-col gap-2">
+                        {title && <h3 class="text-sm font-medium">{title}</h3>}
+                        <div class="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4">
+                          {variants.map(({ withFilters, value }) => (
+                            <div class="flex flex-col gap-1">
+                              {withFilters && <span class="text-muted text-xs">Filter</span>}
+                              <UTreeSelectMenu
+                                single={single}
+                                onChange={onChange}
+                                class="mt-auto w-full"
+                                items={users}
+                                groups={teams}
+                                filters={withFilters ? tags : undefined}
+                                filterFn={withFilters ? filterUser : undefined}
+                                v-model={value.value}
+                                placeholder="Mitarbeiter wählen"
+                                v-slots={userSlots}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>,
+                ],
+              })}
+            />
+          ))}
+        </div>
       )
     },
   }),
