@@ -576,68 +576,72 @@ export default defineSetupComponent(
           )
         }
 
-        // `compact` for a header row that shares its width with the search and buttons
-        const filterBar = (compact = false) =>
-          hasFilterBar.value && (
-            <div class="border-default relative z-10 order-1 flex items-center justify-between gap-2 border-b px-2.5 py-1.5">
-              {props.filters && slots.filter ? (
-                slots.filter({
-                  'filters': props.filters,
-                  'modelValue': filterValues.value,
-                  'onUpdate:modelValue': (value) => (filterValues.value = value),
-                })
-              ) : props.filters ? (
-                <USelectMenu
-                  // compact sits beside the search input, so it takes its height
-                  size={compact ? 'md' : 'xs'}
-                  class={compact ? 'w-auto' : 'w-40'}
-                  valueKey="value"
-                  // compact: funnel in the value; a leading icon overlaps the padding, gives no width
-                  icon={compact ? undefined : 'lucide:funnel'}
-                  placeholder={compact ? undefined : 'Filter'}
-                  // list defaults to the trigger's width, too narrow when compact
-                  ui={{ content: 'min-w-40' }}
-                  multiple
-                  clear
-                  searchInput={false}
-                  // portaled: focus moving there would blur the search and close the menu
-                  portal={false}
-                  // only read, but `USelectMenu` types `items` as mutable
-                  items={props.filters as F[]}
-                  v-model={filterValues.value}
-                  v-slots={{
-                    // just the count, as the labels don't fit
-                    ...(compact && {
-                      default: () => [
-                        <UIcon name="lucide:funnel" class="size-5 shrink-0" />,
-                        filterValues.value.length > 0 && <span>{filterValues.value.length}</span>,
-                      ],
-                    }),
-                    'item-label': slots['filter-item']
-                      ? ({ item }: { item: F }) => slots['filter-item']!({ item })
-                      : undefined,
-                  }}
-                />
-              ) : (
-                // holds the toggle at the end; compact has no width to fill
-                !compact && <div />
-              )}
-              {hasGroups.value &&
-                (compact ? (
-                  // one button that switches, showing the view it's in
-                  <UButton
-                    size="md"
-                    color="neutral"
-                    variant="outline"
-                    icon={view.value === 'tree' ? 'lucide:folder-tree' : 'lucide:list'}
-                    aria-label={view.value === 'tree' ? 'Listenansicht' : 'Baumansicht'}
-                    onClick={() => (view.value = view.value === 'tree' ? 'list' : 'tree')}
+        // `inHeader`: the sheet's header row, beside the search, so it takes the search's height;
+        // compact there while the row is narrow, as it shares its width with the search and buttons
+        const filterBar = (inHeader = false) => {
+          const compact = inHeader && !isLandscapeColumns.value
+          return (
+            hasFilterBar.value && (
+              <div class="border-default relative z-10 order-1 flex items-center justify-between gap-2 border-b px-2.5 py-1.5">
+                {props.filters && slots.filter ? (
+                  slots.filter({
+                    'filters': props.filters,
+                    'modelValue': filterValues.value,
+                    'onUpdate:modelValue': (value) => (filterValues.value = value),
+                  })
+                ) : props.filters ? (
+                  <USelectMenu
+                    size={inHeader ? 'md' : 'xs'}
+                    class={compact ? 'w-auto' : 'w-40'}
+                    valueKey="value"
+                    // compact: funnel in the value; a leading icon overlaps the padding, gives no width
+                    icon={compact ? undefined : 'lucide:funnel'}
+                    placeholder={compact ? undefined : 'Filter'}
+                    // list defaults to the trigger's width, too narrow when compact
+                    ui={{ content: 'min-w-40' }}
+                    multiple
+                    clear
+                    searchInput={false}
+                    // portaled: focus moving there would blur the search and close the menu
+                    portal={false}
+                    // only read, but `USelectMenu` types `items` as mutable
+                    items={props.filters as F[]}
+                    v-model={filterValues.value}
+                    v-slots={{
+                      // just the count, as the labels don't fit
+                      ...(compact && {
+                        default: () => [
+                          <UIcon name="lucide:funnel" class="size-5 shrink-0" />,
+                          filterValues.value.length > 0 && <span>{filterValues.value.length}</span>,
+                        ],
+                      }),
+                      'item-label': slots['filter-item']
+                        ? ({ item }: { item: F }) => slots['filter-item']!({ item })
+                        : undefined,
+                    }}
                   />
                 ) : (
-                  viewTabs()
-                ))}
-            </div>
+                  // holds the toggle at the end; compact has no width to fill
+                  !compact && <div />
+                )}
+                {hasGroups.value &&
+                  (compact ? (
+                    // one button that switches, showing the view it's in
+                    <UButton
+                      size="md"
+                      color="neutral"
+                      variant="outline"
+                      icon={view.value === 'tree' ? 'lucide:folder-tree' : 'lucide:list'}
+                      aria-label={view.value === 'tree' ? 'Listenansicht' : 'Baumansicht'}
+                      onClick={() => (view.value = view.value === 'tree' ? 'list' : 'tree')}
+                    />
+                  ) : (
+                    viewTabs()
+                  ))}
+              </div>
+            )
           )
+        }
 
         const itemContent = (item: ItemRow<T> | GroupRow) =>
           'type' in item
@@ -1011,14 +1015,11 @@ export default defineSetupComponent(
                   header: () => [
                     // the row pads itself and needs no divider
                     ...(hasFilterBar.value
-                      ? [
-                          <div class="shrink-0 *:border-b-0 *:p-0">
-                            {filterBar(!isLandscapeColumns.value)}
-                          </div>,
-                        ]
+                      ? [<div class="shrink-0 *:border-b-0 *:p-0">{filterBar(true)}</div>]
                       : []),
                     ...searchInput({ class: 'min-w-0 flex-1' }),
-                    <div class="flex w-64 shrink-0 gap-1.5">{sheetButtons()}</div>,
+                    // `ms-auto`: at the end even without a search to push it there
+                    <div class="ms-auto flex w-64 shrink-0 gap-1.5">{sheetButtons()}</div>,
                   ],
                 }),
                 body: () => [
