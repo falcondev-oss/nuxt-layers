@@ -237,6 +237,7 @@ export default defineSetupComponent(
           (props.single ? ([...values][0] ?? null) : [...values]) as Value
 
         const isSaving = ref(false)
+        const isBusy = computed(() => props.loading || isSaving.value)
 
         function update(next: Set<string>) {
           if (isSaving.value) return
@@ -457,7 +458,15 @@ export default defineSetupComponent(
         // Backspace right after clears the search.
         const searchId = useId()
         // reka sets the content's own id; falls through as an attribute
-        const contentAttrs = { 'data-tree-select': searchId }
+        const contentAttrs = {
+          'data-tree-select': searchId,
+          // a clicked row (`tabindex=-1`) would take focus from the search, and reka's arrow keys
+          // only work there
+          'onMousedown': (event: MouseEvent) => {
+            if (props.hideSearch) return
+            if ((event.target as Element).closest('[role="option"]')) event.preventDefault()
+          },
+        }
         let clearsOnBackspace = false
         // typing moves the highlight to the first match, so it ends arrowing
         const isArrowing = ref(false)
@@ -801,9 +810,9 @@ export default defineSetupComponent(
             ref={menu}
             disabled={props.disabled}
             // closed-menu clear saves with no other spinner
-            loading={props.loading || isSaving.value}
+            loading={isBusy.value}
             // spinner alone while loading
-            clear={props.clear && !props.loading && !isSaving.value}
+            clear={props.clear && !isBusy.value}
             // nothing beside the custom trigger
             {...(slots.default && {
               asChild: true,
@@ -882,10 +891,8 @@ export default defineSetupComponent(
               ]
                 .filter(Boolean)
                 .join(' '),
-              // grows with the list up to what fits; at least the trigger's width.
-              // the footer hangs below, outside the box: showing it never moves the list.
-              // footer and arrow sit outside the box, so the box never clips: the open animation's
-              // transform makes it their containing block, which would hide both till it ends
+              // footer and arrow hang outside the box: the open animation's transform would clip them
+              // till it ends
               content: [
                 'overflow-visible max-h-(--reka-combobox-content-available-height) w-max min-w-(--reka-combobox-trigger-width) max-w-(--reka-combobox-content-available-width)',
                 (showsClear.value || showsSave.value) && 'rounded-b-none',
@@ -938,16 +945,20 @@ export default defineSetupComponent(
                 ),
               ],
               'content-bottom': () => [
-                (showsClear.value || showsSave.value) && (
-                  // fits the collision padding's bottom gap
+                (showsClear.value || showsSave.value) && [
+                  // flat and invisible: widens the box to the hanging button's label
+                  <div aria-hidden="true" class="invisible flex h-0 overflow-hidden px-2">
+                    {footerButton()}
+                  </div>,
+                  // hangs below, so showing it never moves the list; fits the collision padding's bottom gap
                   <div
                     class="bg-default ring-default absolute inset-x-0 top-full flex rounded-b-md p-2 shadow-lg ring"
                     // keeps focus in the search input, whose blur would close the menu first
                     onMousedown={(event) => event.preventDefault()}
                   >
                     {footerButton()}
-                  </div>
-                ),
+                  </div>,
+                ],
               ],
               'default': ({ ui }: { ui: { placeholder: () => string; value: () => string } }) => {
                 if (slots.default)
