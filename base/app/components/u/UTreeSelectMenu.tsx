@@ -258,14 +258,6 @@ export default defineSetupComponent(
         const picked = computed(() => [...selected.value][0])
         // clear empties pick before `onChange` settles; keep button till closed
         const isClearing = ref(false)
-        // single + `clear`: Clear while pick unchanged, Save once changed
-        const showsClear = computed(
-          () =>
-            props.single &&
-            props.clear &&
-            (isClearing.value ||
-              (picked.value !== undefined && picked.value === pickedOnOpen.value)),
-        )
 
         function toggleGroup(values: string[]) {
           const next = new Set(selected.value)
@@ -329,6 +321,16 @@ export default defineSetupComponent(
         const isDirty = computed(
           // receiver must be raw: `draft` is a reactive proxy
           () => !!draft.value && committed.value.symmetricDifference(draft.value).size > 0,
+        )
+        // `clear`: Clear while the picks are unchanged, Save once changed.
+        // multiple without `onChange` picks live, so it keeps Save
+        const showsClear = computed(
+          () =>
+            props.clear &&
+            (isClearing.value ||
+              (props.single
+                ? picked.value !== undefined && picked.value === pickedOnOpen.value
+                : !!props.onChange && selected.value.size > 0 && !isDirty.value)),
         )
         // nothing picked: "Keine auswählen" only for a changed draft
         const showsSave = computed(() => {
@@ -762,6 +764,20 @@ export default defineSetupComponent(
               ? 'Auswählen'
               : `${selected.value.size} auswählen`)
 
+        // success closes (draft gone): keeps the clear button through the close animation
+        function clearAll() {
+          if (isSaving.value) return
+          const picks = draft.value
+          if (picks) draft.value = new Set()
+          isClearing.value = true
+          // failed (draft still open): multiple gets its picks back for retry
+          void save(toValue(new Set())).then(() => {
+            if (!draft.value) return
+            isClearing.value = false
+            if (!props.single) draft.value = picks
+          })
+        }
+
         const footerButton = () =>
           showsClear.value ? (
             <UButton
@@ -771,16 +787,8 @@ export default defineSetupComponent(
               icon="lucide:x"
               label={props.deselectLabel ?? 'Auswahl aufheben'}
               loading={isSaving.value}
-              onClick={() => {
-                // closing after a clear: a second tap would save again
-                if (isClearing.value) return
-                isClearing.value = true
-                if (draft.value) draft.value = new Set()
-                // success closes (draft gone): keep the button through the close animation
-                void save(null as Value).finally(() => {
-                  if (draft.value) isClearing.value = false
-                })
-              }}
+              // closing after a clear: a second tap would save again
+              onClick={() => !isClearing.value && clearAll()}
             />
           ) : (
             showsSave.value && (
@@ -826,19 +834,7 @@ export default defineSetupComponent(
             })}
             // reka's reset goes through `onUpdate:modelValue`, where single re-picks the cleared row
             resetModelValueOnClear={false}
-            onClear={() => {
-              if (isSaving.value) return
-              const picks = draft.value
-              if (picks) draft.value = new Set()
-              // single: keeps the clear button while saving, as the footer's does
-              isClearing.value = true
-              // failed (draft still open): multiple gets its picks back for retry
-              void save(toValue(new Set())).then(() => {
-                if (!draft.value) return
-                isClearing.value = false
-                if (!props.single) draft.value = picks
-              })
-            }}
+            onClear={clearAll}
             // held shut on mobile, where opening shows the sheet instead
             open={!isMobile.value && isOpen.value}
             onUpdate:open={(open: boolean) => {
@@ -848,6 +844,8 @@ export default defineSetupComponent(
               isOpen.value = open
               if (!open) return void (draft.value = undefined)
               place()
+              // live picks start no draft to reset it: a clear button would stay
+              isClearing.value = false
               if (props.single || props.onChange) startDraft()
             }}
             items={grouped.value}
