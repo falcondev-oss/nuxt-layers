@@ -3,7 +3,13 @@ import type { VNode } from 'vue'
 import { chunk } from 'remeda'
 import { UButton, UCheckbox, UIcon, UInput, UModal, USelectMenu, UTabs } from '#components'
 
-export type TreeSelectMenuItem = { label: string; value: string; hint: string }
+export type TreeSelectMenuItem = {
+  label: string
+  value: string
+  hint: string
+  // extra text the search matches, besides the label
+  search?: string
+}
 export type TreeSelectMenuFilter = { label: string; value: string }
 export type TreeSelectMenuGroup = { label: string; values: string[] }
 
@@ -174,13 +180,15 @@ export default defineSetupComponent(
         const tree = computed<{ groups: (ItemRow<T> | GroupRow)[][]; list: ItemRow<T>[] }>(() => {
           const search = searchTerm.value.trim().toLowerCase()
           const matches = (label: string) => label.toLowerCase().includes(search)
+          const matchesItem = (item: T) =>
+            matches(item.label) || (item.search !== undefined && matches(item.search))
 
           const active = props.filters?.filter(({ value }) => filterValues.value.includes(value))
           const passes = (item: T) =>
             !active?.length || !props.filterFn || props.filterFn(item, active)
 
           if (view.value === 'list') {
-            const rows = props.items.filter((item) => passes(item) && matches(item.label))
+            const rows = props.items.filter((item) => passes(item) && matchesItem(item))
             return { groups: [], list: rows }
           }
 
@@ -207,7 +215,7 @@ export default defineSetupComponent(
                 const item = byValue.get(value)!
                 byValue.delete(value)
                 // matching group label keeps the whole group
-                return passes(item) && (matches(label) || matches(item.label)) ? item : []
+                return passes(item) && (matches(label) || matchesItem(item)) ? item : []
               })
               if (items.length === 0) return []
               const isCollapsed = !search && collapsed.value.has(label)
@@ -230,7 +238,7 @@ export default defineSetupComponent(
           return {
             groups: groups.filter((rows) => rows.length > 0),
             list: props.listUngrouped
-              ? ungrouped.filter((item) => passes(item) && matches(item.label))
+              ? ungrouped.filter((item) => passes(item) && matchesItem(item))
               : [],
           }
         })
