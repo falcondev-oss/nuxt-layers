@@ -178,7 +178,7 @@ export default defineSetupComponent((_: object) =>
       })
 
       // single/multiple × no `onChange`/succeeds/fails × without/with filters × with/without groups × without/with clear,
-      // plus without search, with/without groups
+      // plus without search, with/without groups, and with only 3 items
       const sections = [
         { title: 'Single', single: true },
         { title: 'Multiple', single: false },
@@ -210,8 +210,16 @@ export default defineSetupComponent((_: object) =>
               withClear: false,
               hideSearch: true,
             })),
+            {
+              withFilters: false,
+              withGroups: false,
+              withClear: false,
+              hideSearch: true,
+              few: true,
+            },
           ].map((variant) => ({
             hideSearch: false,
+            few: false,
             ...variant,
             value: ref<string | string[] | null>(single ? null : []),
           })),
@@ -231,14 +239,15 @@ export default defineSetupComponent((_: object) =>
                         {title && <h3 class="text-sm font-medium">{title}</h3>}
                         <div class="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4">
                           {variants.map(
-                            ({ withFilters, withGroups, withClear, hideSearch, value }) => (
+                            ({ withFilters, withGroups, withClear, hideSearch, few, value }) => (
                               <div class="flex flex-col gap-1">
                                 <span class="text-muted text-xs">
                                   {[
                                     withFilters && 'Filter',
                                     !withGroups && 'Ohne Gruppen',
                                     withClear && 'Clear',
-                                    hideSearch && 'Ohne Suche',
+                                    hideSearch && 'Keine Suche',
+                                    few && '3 Einträge',
                                   ]
                                     .filter(Boolean)
                                     .join(' · ')}
@@ -249,7 +258,7 @@ export default defineSetupComponent((_: object) =>
                                   clear={withClear}
                                   hideSearch={hideSearch}
                                   class="mt-auto w-full"
-                                  items={users}
+                                  items={few ? users.slice(0, 3) : users}
                                   groups={withGroups ? teams : undefined}
                                   filters={withFilters ? tags : undefined}
                                   filterFn={withFilters ? filterUser : undefined}

@@ -439,13 +439,15 @@ export default defineSetupComponent(
           tree.value.list.length > 0 ? [...tree.value.groups, tree.value.list] : tree.value.groups,
         )
 
-        const isList = computed(() => tree.value.groups.length === 0)
+        const isList = computed(() => view.value === 'list' || !hasGroups.value)
 
         // Enter toggles all matches (single: a sole match); captured ahead of reka.
         // after an arrow key, Enter is reka's again: picks the highlighted row, ringed meanwhile.
         // `searchId` scopes it to this instance: menu and sheet share it, never both mounted.
         // Backspace right after clears the search.
         const searchId = useId()
+        // reka sets the content's own id; falls through as an attribute
+        const contentAttrs = { 'data-tree-select': searchId }
         let clearsOnBackspace = false
         // typing moves the highlight to the first match, so it ends arrowing
         const isArrowing = ref(false)
@@ -466,7 +468,13 @@ export default defineSetupComponent(
           document,
           'keydown',
           (event) => {
-            if (!(event.target instanceof HTMLInputElement) || event.target.id !== searchId) return
+            const target = event.target instanceof HTMLElement ? event.target : undefined
+            // no search: focus sits on the listbox or a row; a nested filter's rows aren't ours
+            const list = target?.matches('[role="listbox"]')
+              ? target
+              : target?.closest('[role="option"]')?.closest('[role="listbox"]')
+            const inList = !!list?.matches(`[data-tree-select="${CSS.escape(searchId)}"]`)
+            if (target?.id !== searchId && !inList) return
             if (event.isComposing) return
             const clears = clearsOnBackspace
             clearsOnBackspace = false
@@ -703,21 +711,21 @@ export default defineSetupComponent(
           ))
 
         // `toggles`: view tabs inside, at the end
-        const searchInput = (
-          inputProps: Pick<InputProps, 'variant' | 'class'>,
-          toggles = false,
-        ) => (
-          <UInput
-            v-model={searchTerm.value}
-            type="search"
-            icon="lucide:search"
-            placeholder={attrs.placeholder ?? 'Suchen…'}
-            id={searchId}
-            ui={toggles ? { base: 'pe-24', trailing: 'pe-1' } : undefined}
-            {...inputProps}
-            v-slots={toggles ? { trailing: () => viewTabs('sheet') } : undefined}
-          />
-        )
+        const searchInput = (inputProps: Pick<InputProps, 'variant' | 'class'>, toggles = false) =>
+          props.hideSearch
+            ? []
+            : [
+                <UInput
+                  v-model={searchTerm.value}
+                  type="search"
+                  icon="lucide:search"
+                  placeholder={attrs.placeholder ?? 'Suchen…'}
+                  id={searchId}
+                  ui={toggles ? { base: 'pe-24', trailing: 'pe-1' } : undefined}
+                  {...inputProps}
+                  v-slots={toggles ? { trailing: () => viewTabs('sheet') } : undefined}
+                />,
+              ]
 
         // single: no count, max one
         const saveLabel = () =>
@@ -788,9 +796,13 @@ export default defineSetupComponent(
               if (isSaving.value) return
               const picks = draft.value
               if (picks) draft.value = new Set()
+              // single: keeps the clear button while saving, as the footer's does
+              isClearing.value = true
               // failed (draft still open): multiple gets its picks back for retry
               void save(toValue(new Set())).then(() => {
-                if (draft.value && !props.single) draft.value = picks
+                if (!draft.value) return
+                isClearing.value = false
+                if (!props.single) draft.value = picks
               })
             }}
             // held shut on mobile, where opening shows the sheet instead
@@ -822,11 +834,12 @@ export default defineSetupComponent(
             }
             // beside: right (reka flips left), bottom-aligned, grows up.
             // below: left-aligned, no flip above, shrinks to fit
-            content={
-              isBeside.value
+            content={{
+              ...contentAttrs,
+              ...(isBeside.value
                 ? { side: 'right', align: 'end' }
-                : { side: 'bottom', align: 'start', sideFlip: false }
-            }
+                : { side: 'bottom', align: 'start', sideFlip: false }),
+            }}
             arrow={isBeside.value}
             ui={{
               // flat (list view or no groups): a plain list, edge to edge
@@ -836,10 +849,15 @@ export default defineSetupComponent(
               // as Enter picks it
               item: [
                 'items-center py-2 rounded-none border-b border-default last:border-b-0 even:bg-elevated/30',
+                // edge rows match the clipping corners, so the ring follows
+                'first:rounded-t-md last:rounded-b-md',
+                isList.value && 'px-2.5',
                 isArrowing.value
                   ? 'data-highlighted:not-data-disabled:ring-2 data-highlighted:not-data-disabled:ring-inset data-highlighted:not-data-disabled:ring-primary'
                   : 'data-highlighted:not-data-disabled:bg-elevated',
-              ].join(' '),
+              ]
+                .filter(Boolean)
+                .join(' '),
               // grows with the list up to what fits; min 24rem, below also trigger width
               content: [
                 'max-h-(--reka-combobox-content-available-height) w-max max-w-(--reka-combobox-content-available-width)',
@@ -848,10 +866,10 @@ export default defineSetupComponent(
                   : 'min-w-[max(var(--reka-combobox-trigger-width),24rem)]',
               ].join(' '),
               empty: 'order-2',
-              // stable gutter: collapsing can end the overflow
+              // tree: stable gutter, as collapsing can end the overflow
               viewport: [
-                'order-2 scrollbar-gutter-stable divide-y-0 space-y-3',
-                !isList.value && 'p-2',
+                'order-2 divide-y-0 space-y-3',
+                !isList.value && 'p-2 scrollbar-gutter-stable',
               ]
                 .filter(Boolean)
                 .join(' '),
@@ -952,7 +970,7 @@ export default defineSetupComponent(
                           </div>,
                         ]
                       : []),
-                    ...(props.hideSearch ? [] : [searchInput({ class: 'min-w-0 flex-1' })]),
+                    ...searchInput({ class: 'min-w-0 flex-1' }),
                     <div class="flex w-64 shrink-0 gap-1.5">{sheetButtons()}</div>,
                   ],
                 }),
@@ -1007,14 +1025,10 @@ export default defineSetupComponent(
                     ...(hasFilterBar.value && !togglesInSearch.value
                       ? [<div>{filterBar()}</div>]
                       : []),
-                    ...(props.hideSearch
-                      ? []
-                      : [
-                          searchInput(
-                            { variant: 'none', class: 'border-default border-b px-1 py-2' },
-                            togglesInSearch.value,
-                          ),
-                        ]),
+                    ...searchInput(
+                      { variant: 'none', class: 'border-default border-b px-1 py-2' },
+                      togglesInSearch.value,
+                    ),
                     <div class="flex gap-1.5 p-4">{sheetButtons()}</div>,
                   ],
                 }),
