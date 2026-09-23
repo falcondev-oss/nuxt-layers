@@ -1,4 +1,4 @@
-import { UAvatar, UBadge, UCard, UTreeSelectMenu } from '#components'
+import { UAvatar, UBadge, UButton, UCard, UTreeSelectMenu } from '#components'
 
 const users = [
   {
@@ -178,7 +178,7 @@ export default defineSetupComponent((_: object) =>
       })
 
       // single/multiple × no `onChange`/succeeds/fails × without/with filters × with/without groups × without/with clear,
-      // plus without search, with/without groups, and with only 3 items
+      // plus without search, with/without groups, with only 3 items, and with a custom trigger
       const sections = [
         { title: 'Single', single: true },
         { title: 'Multiple', single: false },
@@ -217,9 +217,11 @@ export default defineSetupComponent((_: object) =>
               hideSearch: true,
               few: true,
             },
+            { withFilters: false, withGroups: true, withClear: false, customTrigger: true },
           ].map((variant) => ({
             hideSearch: false,
             few: false,
+            customTrigger: false,
             ...variant,
             value: ref<string | string[] | null>(single ? null : []),
           })),
@@ -239,7 +241,15 @@ export default defineSetupComponent((_: object) =>
                         {title && <h3 class="text-sm font-medium">{title}</h3>}
                         <div class="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4">
                           {variants.map(
-                            ({ withFilters, withGroups, withClear, hideSearch, few, value }) => (
+                            ({
+                              withFilters,
+                              withGroups,
+                              withClear,
+                              hideSearch,
+                              few,
+                              customTrigger,
+                              value,
+                            }) => (
                               <div class="flex flex-col gap-1">
                                 <span class="text-muted text-xs">
                                   {[
@@ -248,6 +258,7 @@ export default defineSetupComponent((_: object) =>
                                     withClear && 'Clear',
                                     hideSearch && 'Keine Suche',
                                     few && '3 Einträge',
+                                    customTrigger && 'Eigener Trigger',
                                   ]
                                     .filter(Boolean)
                                     .join(' · ')}
@@ -264,7 +275,22 @@ export default defineSetupComponent((_: object) =>
                                   filterFn={withFilters ? filterUser : undefined}
                                   v-model={value.value}
                                   placeholder="Mitarbeiter wählen"
-                                  v-slots={userSlots}
+                                  v-slots={{
+                                    ...userSlots,
+                                    ...(customTrigger && {
+                                      default: () => [
+                                        <UButton
+                                          class="mt-auto self-start"
+                                          icon="lucide:users"
+                                          label={
+                                            [value.value ?? []].flat().length > 0
+                                              ? `${[value.value ?? []].flat().length} Mitarbeiter`
+                                              : 'Mitarbeiter wählen'
+                                          }
+                                        />,
+                                      ],
+                                    }),
+                                  }}
                                 />
                               </div>
                             ),

@@ -1,7 +1,8 @@
 import type { InputProps, SelectMenuProps } from '@nuxt/ui'
-import type { VNode } from 'vue'
+import type { FunctionalComponent, VNode } from 'vue'
+import { Slot } from 'reka-ui'
 import { chunk } from 'remeda'
-import { Teleport } from 'vue'
+import { h, Teleport } from 'vue'
 import { UButton, UCheckbox, UIcon, UInput, UModal, USelectMenu, UTabs } from '#components'
 
 export type TreeSelectMenuItem = {
@@ -43,6 +44,11 @@ function radio(checked: boolean) {
     </span>
   )
 }
+
+// the trigger's props for the custom trigger, minus the input's class
+const CustomTrigger: FunctionalComponent = (_, { attrs: { class: __, ...attrs }, slots }) =>
+  h(Slot, attrs, slots)
+CustomTrigger.inheritAttrs = false
 
 function loadingNote() {
   return (
@@ -101,6 +107,8 @@ export default defineSetupComponent(
       hideSearch?: boolean
     }
     slots: {
+      // custom trigger, e.g. a button; no clear x or spinner
+      'default': (props: { open: boolean }) => VNode[]
       'prefix': (props: { item: T }) => VNode[]
       'description': (props: { item: T }) => VNode[]
       'suffix': (props: { item: T }) => VNode[]
@@ -187,12 +195,12 @@ export default defineSetupComponent(
         // set on open: below while the trigger sits high, else beside (keeps list height);
         // high = top half of the window and of its visible scroll container; short screens always beside
         const isShort = useMediaQuery('(max-height: 799px)')
-        const menu = ref<{ triggerRef?: HTMLElement }>()
+        const menu = ref<{ triggerRef?: Element | CharacterData }>()
         const isBeside = ref(false)
         const isOpen = ref(false)
 
         // one that scrolls vertically: `overflow-x-auto` computes `overflow-y: auto` too
-        function scrollParent(el: HTMLElement) {
+        function scrollParent(el: Element) {
           for (let parent = el.parentElement; parent; parent = parent.parentElement) {
             if (
               parent.scrollHeight > parent.clientHeight &&
@@ -203,7 +211,9 @@ export default defineSetupComponent(
         }
 
         function place() {
-          const trigger = menu.value?.triggerRef
+          // a fragment root (e.g. `UButton`) exposes its text anchor, as reka handles too
+          const el = menu.value?.triggerRef
+          const trigger = el instanceof Element ? el : el?.nextElementSibling
           if (!trigger) return void (isBeside.value = isShort.value)
           const { top } = trigger.getBoundingClientRect()
           const box = scrollParent(trigger)?.getBoundingClientRect()
@@ -790,6 +800,13 @@ export default defineSetupComponent(
             // closed-menu clear saves with no other spinner
             loading={props.loading || isSaving.value}
             clear={props.clear}
+            // nothing beside the custom trigger
+            {...(slots.default && {
+              asChild: true,
+              loading: false,
+              clear: false,
+              trailingIcon: '',
+            })}
             // reka's reset goes through `onUpdate:modelValue`, where single re-picks the cleared row
             resetModelValueOnClear={false}
             onClear={() => {
@@ -920,6 +937,12 @@ export default defineSetupComponent(
                 ),
               ],
               'default': ({ ui }: { ui: { placeholder: () => string; value: () => string } }) => {
+                if (slots.default)
+                  return [
+                    <CustomTrigger>
+                      {() => slots.default!({ open: isOpen.value || !!draft.value })}
+                    </CustomTrigger>,
+                  ]
                 const values = [...committed.value]
                 if (values.length === 0)
                   return [<span class={ui.placeholder()}>{attrs.placeholder ?? '\u{A0}'}</span>]
