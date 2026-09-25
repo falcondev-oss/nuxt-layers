@@ -5,24 +5,27 @@ import { chunk, uniqueBy } from 'remeda'
 import { h, Teleport } from 'vue'
 import { UButton, UCheckbox, UIcon, UInput, UModal, USelectMenu, UTabs } from '#components'
 
-export type TreeSelectMenuItem = {
+type Primitive = string | number | boolean | null
+
+export type TreeSelectMenuItem<V extends Primitive = Primitive> = {
   label: string
-  value: string
+  value: V
   hint: string
   description?: string
   // extra text the search matches, besides the label
   search?: string
 }
 export type TreeSelectMenuFilter = { label: string; value: string }
-export type TreeSelectMenuGroup = { label: string; values: string[] }
+export type TreeSelectMenuGroup<V extends Primitive = Primitive> = { label: string; values: V[] }
 
-type ItemRow<T> = T & { indent?: number }
+// `rowKey`: `USelectMenu`'s value for the row, one string space for item and group rows
+type ItemRow<T> = T & { rowKey: string; indent?: number }
 
-type GroupRow = {
+type GroupRow<V> = {
   type: 'group'
   label: string
-  value: string
-  values: string[]
+  rowKey: string
+  values: V[]
   collapsed: boolean
   // leftover items' group; styled muted
   ungrouped?: boolean
@@ -31,8 +34,10 @@ type GroupRow = {
 
 const groupBox = 'p-0 rounded-md border border-default overflow-hidden'
 
-// NUL can't appear in a value coming from `items`, so a group row never collides with one.
-const groupValue = (index: number) => `\0${index}`
+// JSON keeps `1`, `'1'`, `true` and `null` apart, and never starts with NUL like a group row's key
+const toKey = (value: Primitive) => JSON.stringify(value)
+const fromKey = (key: string) => JSON.parse(key) as Primitive
+const groupKey = (index: number) => `\0${index}`
 
 // `URadioGroup`'s radio look; it only renders whole groups
 function radio(checked: boolean) {
@@ -66,7 +71,7 @@ export default defineSetupComponent(
     Single extends boolean = false,
   >(_: {
     props: Omit<
-      SelectMenuProps<(ItemRow<T> | GroupRow)[][], 'value', true>,
+      SelectMenuProps<(ItemRow<T> | GroupRow<T['value']>)[][], 'rowKey', true>,
       | 'items'
       | 'valueKey'
       | 'labelKey'
@@ -79,7 +84,7 @@ export default defineSetupComponent(
     > & {
       items: T[]
       // without, a flat list with no view toggle
-      groups?: TreeSelectMenuGroup[]
+      groups?: TreeSelectMenuGroup<T['value']>[]
       // list ungrouped items flat below
       listUngrouped?: boolean
       // label for the group of ungrouped items
@@ -88,11 +93,13 @@ export default defineSetupComponent(
       // only called while at least one filter is selected
       filterFn?: (item: T, filters: F[]) => boolean
       single?: Single
-      // multiple: `null` only from form bindings, never emitted
-      modelValue?: (Single extends true ? string : (string | null)[]) | null
+      // `null` without an item holding it comes from form bindings: nothing picked, never emitted
+      modelValue?: (Single extends true ? T['value'] : (T['value'] | null)[]) | null
       // awaited before emit, spinner meanwhile. throws: no emit, stays open; single restores
       // pick, multiple keeps picks
-      onChange?: (value: Single extends true ? string | null : string[]) => Promise<void> | void
+      onChange?: (
+        value: Single extends true ? T['value'] | undefined : T['value'][],
+      ) => Promise<void> | void
       onBlur?: () => void
       disabled?: boolean
       // items/groups loading: trigger spinner, loading note instead of no matches
@@ -141,7 +148,9 @@ export default defineSetupComponent(
       | 'clear'
       | 'hideSearch'
     emits: {
-      'update:modelValue': (value: Single extends true ? string | null : (string | null)[]) => void
+      'update:modelValue': (
+        value: Single extends true ? T['value'] | undefined : T['value'][],
+      ) => void
     }
   }) =>
     options(_, {
@@ -193,7 +202,7 @@ export default defineSetupComponent(
         )
         // phone widths: search + results at the bottom (thumb reach); wider: bar on top
         const isThumbReach = useMediaQuery('(max-width: 639px)')
-        const draft = ref<Set<string>>()
+        const draft = ref<Set<T['value']>>()
 
         // set on open: below while the trigger sits high, else beside (keeps list height);
         // high = top half of the window and of its visible scroll container; short screens always beside
@@ -227,29 +236,35 @@ export default defineSetupComponent(
           isBeside.value = isShort.value || top >= Math.min(window.innerHeight / 2, boxMiddle)
         }
 
-        type Value = Single extends true ? string | null : string[]
+        type Value = Single extends true ? T['value'] | undefined : T['value'][]
 
+        const hasNullItem = computed(() => items.value.some((item) => item.value === null))
         const committed = computed(() => {
-          const model = props.modelValue
-          const values: (string | null | undefined)[] = Array.isArray(model) ? model : [model]
-          return new Set(values.filter((value) => value != null))
+          const model = props.modelValue as T['value'] | (T['value'] | null)[] | null | undefined
+          const values = Array.isArray(model) ? model : [model]
+          return new Set(
+            values.filter(
+              (value): value is T['value'] =>
+                value !== undefined && (value !== null || hasNullItem.value),
+            ),
+          )
         })
         const selected = computed(() => draft.value ?? committed.value)
 
-        const toValue = (values: Set<string>) =>
-          (props.single ? ([...values][0] ?? null) : [...values]) as Value
+        const toValue = (values: Set<T['value']>) =>
+          (props.single ? [...values][0] : [...values]) as Value
 
         const isSaving = ref(false)
         const isBusy = computed(() => props.loading || isSaving.value)
 
-        function update(next: Set<string>) {
+        function update(next: Set<T['value']>) {
           if (isSaving.value) return
           if (draft.value) draft.value = next
           else emit('update:modelValue', toValue(next))
         }
 
         // single: always picks; clear has own button
-        function toggle(value: string) {
+        function toggle(value: T['value']) {
           if (props.single) return update(new Set([value]))
           const next = new Set(selected.value)
           if (!next.delete(value)) next.add(value)
@@ -257,12 +272,12 @@ export default defineSetupComponent(
         }
 
         // single: pick at open, restored on failed save
-        const pickedOnOpen = ref<string>()
+        const pickedOnOpen = ref<T['value']>()
         const picked = computed(() => [...selected.value][0])
         // clear empties pick before `onChange` settles; keep button till closed
         const isClearing = ref(false)
 
-        function toggleGroup(values: string[]) {
+        function toggleGroup(values: T['value'][]) {
           const next = new Set(selected.value)
           const isFullySelected = values.every((value) => next.has(value))
           for (const value of values) {
@@ -295,7 +310,7 @@ export default defineSetupComponent(
 
         // single + `onChange`: same row picked twice in a row saves. click/tap: within 500ms;
         // Enter: any time. the pick from open just closes
-        let lastPick: { value: string; at: number } | undefined
+        let lastPick: { value: T['value']; at: number } | undefined
         // set by the keydown listener for the pick its Enter causes (its own or reka's)
         let isEnterPick = false
 
@@ -341,7 +356,7 @@ export default defineSetupComponent(
           return props.single ? !closesOnPick.value && picked.value !== pickedOnOpen.value : true
         })
 
-        function pick(value: string) {
+        function pick(value: T['value']) {
           if (isSaving.value) return
           toggle(value)
           if (props.single && props.onChange && draft.value) {
@@ -382,7 +397,16 @@ export default defineSetupComponent(
         })
 
         // `list` holds the rows without a header: the list view's, or the ungrouped ones
-        const tree = computed<{ groups: (ItemRow<T> | GroupRow)[][]; list: ItemRow<T>[] }>(() => {
+        const toRow = (item: T, indent?: number): ItemRow<T> => ({
+          ...item,
+          rowKey: toKey(item.value),
+          indent,
+        })
+
+        const tree = computed<{
+          groups: (ItemRow<T> | GroupRow<T['value']>)[][]
+          list: ItemRow<T>[]
+        }>(() => {
           const search = searchTerm.value.trim().toLowerCase()
           const matches = (label: string) => label.toLowerCase().includes(search)
           const matchesItem = (item: T) =>
@@ -396,7 +420,7 @@ export default defineSetupComponent(
           const groups = props.groups
           if (view.value === 'list' || !groups?.length) {
             const rows = items.value.filter((item) => passes(item) && matchesItem(item))
-            return { groups: [], list: rows }
+            return { groups: [], list: rows.map((item) => toRow(item)) }
           }
 
           const byValue = new Map(items.value.map((item) => [item.value, item]))
@@ -412,7 +436,7 @@ export default defineSetupComponent(
             })
 
           // one menu group each, so each renders as its own box
-          const boxes = entries.map<(ItemRow<T> | GroupRow)[]>(
+          const boxes = entries.map<(ItemRow<T> | GroupRow<T['value']>)[]>(
             ({ label, values: groupValues }, index) => {
               // an item may sit in several groups; listed under each, once per group
               const claimed = [...new Set(groupValues)].filter((value) => byValue.has(value))
@@ -431,13 +455,13 @@ export default defineSetupComponent(
                 {
                   type: 'group' as const,
                   label,
-                  value: groupValue(index),
+                  rowKey: groupKey(index),
                   values,
                   collapsed: isCollapsed,
                   // the ungrouped entry is only ever pushed after the given groups
                   ungrouped: index === groups.length,
                 },
-                ...(isCollapsed ? [] : items.map((item) => ({ ...item, indent: 1 }))),
+                ...(isCollapsed ? [] : items.map((item) => toRow(item, 1))),
               ]
             },
           )
@@ -445,7 +469,9 @@ export default defineSetupComponent(
           return {
             groups: boxes.filter((rows) => rows.length > 0),
             list: props.listUngrouped
-              ? ungrouped.filter((item) => passes(item) && matchesItem(item))
+              ? ungrouped
+                  .filter((item) => passes(item) && matchesItem(item))
+                  .map((item) => toRow(item))
               : [],
           }
         })
@@ -538,12 +564,12 @@ export default defineSetupComponent(
         // each group joins the shorter column, measured expanded so collapsing never reshuffles;
         // a collapsed header's `values` = its rows (no search while collapsed)
         const groupColumns = computed(() => {
-          const columns: { height: number; groups: (ItemRow<T> | GroupRow)[][] }[] = [
+          const columns: { height: number; groups: (ItemRow<T> | GroupRow<T['value']>)[][] }[] = [
             { height: 0, groups: [] },
             { height: 0, groups: [] },
           ]
           for (const rows of tree.value.groups) {
-            const header = rows[0] as GroupRow
+            const header = rows[0] as GroupRow<T['value']>
             const column = columns[0]!.height <= columns[1]!.height ? columns[0]! : columns[1]!
             column.height += header.collapsed ? 1 + header.values.length : rows.length
             column.groups.push(rows)
@@ -648,7 +674,7 @@ export default defineSetupComponent(
           )
         }
 
-        const itemContent = (item: ItemRow<T> | GroupRow) =>
+        const itemContent = (item: ItemRow<T> | GroupRow<T['value']>) =>
           'type' in item
             ? [
                 !props.single && (
@@ -725,7 +751,7 @@ export default defineSetupComponent(
                 </span>,
               ]
 
-        const sheetRows = (rows: (ItemRow<T> | GroupRow)[]) =>
+        const sheetRows = (rows: (ItemRow<T> | GroupRow<T['value']>)[]) =>
           rows.map((item) => (
             // not a <button>: a group row holds the collapse button
             <div
@@ -852,7 +878,7 @@ export default defineSetupComponent(
               if (props.single || props.onChange) startDraft()
             }}
             items={grouped.value}
-            valueKey="value"
+            valueKey="rowKey"
             // single too: pick = row that differs from draft
             multiple
             ignoreFilter
@@ -915,23 +941,26 @@ export default defineSetupComponent(
                 .filter(Boolean)
                 .join(' '),
             }}
-            modelValue={[...selected.value]}
+            modelValue={[...selected.value].map(toKey)}
             // headers select like rows (reka keeps scroll); header toggles group (single: collapses)
             onUpdate:modelValue={(value) => {
-              const values = value as string[]
+              const keys = value as string[]
               const header = grouped.value
                 .flat()
-                .find((row): row is GroupRow => 'type' in row && values.includes(row.value))
+                .find(
+                  (row): row is GroupRow<T['value']> => 'type' in row && keys.includes(row.rowKey),
+                )
               if (header && props.single) toggleCollapsed(header.label)
               else if (header) toggleGroup(header.values)
               else if (props.single) {
                 // changed row: newly picked or unpicked
+                const selectedKeys = [...selected.value].map(toKey)
                 const changed =
-                  values.find((row) => !selected.value.has(row)) ??
-                  [...selected.value].find((row) => !values.includes(row))
-                if (changed !== undefined) pick(changed)
+                  keys.find((key) => !selectedKeys.includes(key)) ??
+                  selectedKeys.find((key) => !keys.includes(key))
+                if (changed !== undefined) pick(fromKey(changed))
               } else {
-                update(new Set(values))
+                update(new Set(keys.map((key) => fromKey(key) as T['value'])))
               }
             }}
             v-slots={{
@@ -989,11 +1018,11 @@ export default defineSetupComponent(
                 return [
                   <span class={[ui.value(), 'flex items-center gap-1.5']}>
                     {item && slots.prefix?.({ item })}
-                    <span class="truncate">{item?.label ?? values[0]}</span>
+                    <span class="truncate">{item?.label ?? String(values[0])}</span>
                   </span>,
                 ]
               },
-              'item': ({ item }: { item: ItemRow<T> | GroupRow }) => itemContent(item),
+              'item': ({ item }: { item: ItemRow<T> | GroupRow<T['value']> }) => itemContent(item),
               ...(props.loading && { empty: loadingNote }),
             }}
           />,

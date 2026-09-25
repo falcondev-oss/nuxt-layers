@@ -227,7 +227,7 @@ export default defineSetupComponent((_: object) =>
             few: false,
             customTrigger: false,
             ...variant,
-            value: ref<string | string[] | null>(single ? null : []),
+            value: ref<string | string[] | undefined>(single ? undefined : []),
           })),
         })),
       }))
