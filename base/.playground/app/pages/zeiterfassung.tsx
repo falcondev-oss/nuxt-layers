@@ -151,6 +151,14 @@ const pinnedUsers = teamedUsers.map((user) => ({
   pinned: user.value === 'tom' || user.value === 'ida',
 }))
 
+// values JSON tells apart but a string key wouldn't: `null`, `1`, `'1'`, `true`
+const primitives = [
+  { label: 'Keine', value: null, hint: 'null' },
+  { label: 'Eins (Zahl)', value: 1, hint: '1' },
+  { label: 'Eins (Text)', value: '1', hint: "'1'" },
+  { label: 'Ja', value: true, hint: 'true' },
+]
+
 function filterUser(user: (typeof users)[number], filters: { value: string }[]) {
   return filters.some((filter) => filter.value === user.tag)
 }
@@ -261,6 +269,8 @@ export default defineSetupComponent((_: object) =>
           })),
         })),
       }))
+      const primitiveSingle = ref<(typeof primitives)[number]['value'] | undefined>(null)
+      const primitiveMultiple = ref<(typeof primitives)[number]['value'][]>([1])
 
       return () => (
         <div class="flex flex-col gap-6">
@@ -353,6 +363,27 @@ export default defineSetupComponent((_: object) =>
               })}
             />
           ))}
+          <UCard
+            v-slots={vSlots(UCard, {
+              header: () => [<h2 class="text-highlighted font-semibold">Werte</h2>],
+              default: () => [
+                <div class="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4">
+                  <div class="flex flex-col gap-1">
+                    <UTreeSelectMenu single items={primitives} v-model={primitiveSingle.value} />
+                    <code class="text-muted text-xs">
+                      {JSON.stringify(primitiveSingle.value) ?? 'undefined'}
+                    </code>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <UTreeSelectMenu items={primitives} v-model={primitiveMultiple.value} />
+                    <code class="text-muted text-xs">
+                      {JSON.stringify(primitiveMultiple.value)}
+                    </code>
+                  </div>
+                </div>,
+              ],
+            })}
+          />
         </div>
       )
     },
