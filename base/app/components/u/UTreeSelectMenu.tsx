@@ -1,7 +1,7 @@
 import type { InputProps, SelectMenuProps } from '@nuxt/ui'
 import type { FunctionalComponent, VNode } from 'vue'
 import { Slot } from 'reka-ui'
-import { chunk } from 'remeda'
+import { chunk, uniqueBy } from 'remeda'
 import { h, Teleport } from 'vue'
 import { UButton, UCheckbox, UIcon, UInput, UModal, USelectMenu, UTabs } from '#components'
 
@@ -170,6 +170,9 @@ export default defineSetupComponent(
         // `USelectMenu`'s own filter would drop the group headers, so we filter ourselves.
         const searchTerm = ref('')
 
+        // a repeated value would list its row twice
+        const items = computed(() => uniqueBy(props.items, (item) => item.value))
+
         const view = ref<'tree' | 'list'>('tree')
         const hasGroups = computed(() => !!props.groups?.length)
         // groups gone: reset, so they return in the tree
@@ -281,7 +284,7 @@ export default defineSetupComponent(
         // refetch while open: drop picks whose item is gone.
         // not mid-load: an empty or stale list would drop picks for good
         watch(
-          () => [props.items, props.loading] as const,
+          () => [items.value, props.loading] as const,
           ([items, loading]) => {
             if (!draft.value && !isOpen.value) return
             if (loading || items.length === 0) return
@@ -392,15 +395,15 @@ export default defineSetupComponent(
           // a const, so it stays narrowed inside the callbacks
           const groups = props.groups
           if (view.value === 'list' || !groups?.length) {
-            const rows = props.items.filter((item) => passes(item) && matchesItem(item))
+            const rows = items.value.filter((item) => passes(item) && matchesItem(item))
             return { groups: [], list: rows }
           }
 
-          const byValue = new Map(props.items.map((item) => [item.value, item]))
+          const byValue = new Map(items.value.map((item) => [item.value, item]))
 
           // ungrouped items stay selectable: own group, or listed below the groups
           const inGroup = new Set(groups.flatMap((group) => group.values))
-          const ungrouped = props.items.filter((item) => !inGroup.has(item.value))
+          const ungrouped = items.value.filter((item) => !inGroup.has(item.value))
           const entries = [...groups]
           if (!props.listUngrouped && ungrouped.length > 0)
             entries.push({
@@ -973,16 +976,16 @@ export default defineSetupComponent(
                 if (values.length === 0)
                   return [<span class={ui.placeholder()}>{attrs.placeholder ?? '\u{A0}'}</span>]
                 if (values.length > 1) {
-                  const items = props.items.filter((item) => committed.value.has(item.value))
+                  const picks = items.value.filter((item) => committed.value.has(item.value))
                   return [
                     <span class={ui.value()}>
-                      {slots.selected?.({ items }) ?? `${values.length} ausgewählt`}
+                      {slots.selected?.({ items: picks }) ?? `${values.length} ausgewählt`}
                     </span>,
                   ]
                 }
 
                 // one pick with its prefix, as in the list
-                const item = props.items.find((item) => item.value === values[0])
+                const item = items.value.find((item) => item.value === values[0])
                 return [
                   <span class={[ui.value(), 'flex items-center gap-1.5']}>
                     {item && slots.prefix?.({ item })}
