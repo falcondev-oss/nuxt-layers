@@ -1025,7 +1025,7 @@ export default defineSetupComponent(
               // tree: stable gutter, as collapsing can end the overflow
               viewport: [
                 'order-2 divide-y-0',
-                isList.value ? 'is-list' : 'space-y-3 p-2 scrollbar-gutter-stable',
+                isList.value ? 'is-list' : 'space-y-2 p-2 scrollbar-gutter-stable',
               ]
                 .filter(Boolean)
                 .join(' '),
