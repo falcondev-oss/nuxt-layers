@@ -185,6 +185,10 @@ const userSlots = {
   ],
 }
 
+function shown(value: unknown) {
+  return <code class="text-muted text-xs">{JSON.stringify(value) ?? 'undefined'}</code>
+}
+
 function wait(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms))
 }
@@ -351,11 +355,7 @@ export default defineSetupComponent((_: object) =>
                                     }),
                                   }}
                                 />
-                                {stale && (
-                                  <code class="text-muted text-xs">
-                                    {JSON.stringify(value.value) ?? 'undefined'}
-                                  </code>
-                                )}
+                                {stale && shown(value.value)}
                               </div>
                             ),
                           )}
@@ -374,9 +374,7 @@ export default defineSetupComponent((_: object) =>
                 <div class="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4">
                   <div class="flex flex-col gap-1">
                     <UUniversalSelectMenu items={primitives} v-model={primitiveSingle.value} />
-                    <code class="text-muted text-xs">
-                      {JSON.stringify(primitiveSingle.value) ?? 'undefined'}
-                    </code>
+                    {shown(primitiveSingle.value)}
                   </div>
                   <div class="flex flex-col gap-1">
                     <UUniversalSelectMenu
@@ -384,9 +382,7 @@ export default defineSetupComponent((_: object) =>
                       items={primitives}
                       v-model={primitiveMultiple.value}
                     />
-                    <code class="text-muted text-xs">
-                      {JSON.stringify(primitiveMultiple.value)}
-                    </code>
+                    {shown(primitiveMultiple.value)}
                   </div>
                 </div>,
               ],

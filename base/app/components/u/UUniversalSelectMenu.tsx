@@ -48,7 +48,8 @@ type LabelRow = { type: 'label'; label: string; rowKey: string }
 
 const groupBox = 'p-0 rounded-md border border-default overflow-hidden'
 
-// JSON keeps `1`, `'1'`, `true` and `null` apart, and never starts with NUL like a group row's key
+// reka's `ComboboxItem` throws on a `''` value (its "cleared" value, even in multiple mode), which
+// JSON turns into `'""'`. never starts with NUL like a group row's key
 const toKey = (value: Primitive) => JSON.stringify(value)
 const fromKey = (key: string) => JSON.parse(key) as Primitive
 const groupKey = (index: number) => `\0${index}`
@@ -312,6 +313,7 @@ export default defineSetupComponent(
         // single: pick at open, restored on failed save
         const pickedOnOpen = ref<T['value']>()
         const picked = computed(() => [...selected.value][0])
+        const selectedKeys = computed(() => [...selected.value].map(toKey))
         // clear empties pick before `onChange` settles; keep button till closed
         const isClearing = ref(false)
 
@@ -448,6 +450,8 @@ export default defineSetupComponent(
         // `list` holds the rows without a header: the list view's, or the ungrouped ones
         const toRow = (item: T): ItemRow<T> => ({ ...item, rowKey: toKey(item.value) })
 
+        const isList = computed(() => view.value === 'list' || !hasGroups.value)
+
         const tree = computed<{
           pinned: ItemRow<T>[]
           pinnedHeader?: LabelRow | GroupRow<T['value']>
@@ -463,19 +467,23 @@ export default defineSetupComponent(
           const passes = (item: T) =>
             !active?.length || !props.filterFn || props.filterFn(item, active)
 
-          const isFlat = view.value === 'list' || !hasGroups.value
-          const pinnedItems = items.value.filter((item) => item.pinned && passes(item))
           // tree view, searching: a match in a box (the ungrouped one too) shows there only
           const inBox = (item: T) => !!item.groups?.length || !props.listUngrouped
-          const pinned = pinnedItems
-            .filter((item) => matchesItem(item) && (isFlat || !search || !inBox(item)))
-            .map((item) => toRow(item))
+          const pinned = items.value
+            .filter(
+              (item) =>
+                item.pinned &&
+                passes(item) &&
+                matchesItem(item) &&
+                (isList.value || !search || !inBox(item)),
+            )
+            .map(toRow)
           const label = props.pinnedLabel
           // tree view, multiple: a header like a group's, toggling the shown pinned items; else a caption
           const pinnedHeader =
             pinned.length === 0 || !label
               ? undefined
-              : !props.multiple || isFlat
+              : !props.multiple || isList.value
                 ? { type: 'label' as const, label, rowKey: '\0pinned' }
                 : {
                     type: 'group' as const,
@@ -487,11 +495,11 @@ export default defineSetupComponent(
                     pinned: true,
                   }
 
-          if (isFlat) {
+          if (isList.value) {
             const rows = items.value.filter(
               (item) => !item.pinned && passes(item) && matchesItem(item),
             )
-            return { pinned, pinnedHeader, groups: [], list: rows.map((item) => toRow(item)) }
+            return { pinned, pinnedHeader, groups: [], list: rows.map(toRow) }
           }
 
           // an item may sit in several groups; listed under each, pinned ones too
@@ -530,7 +538,7 @@ export default defineSetupComponent(
                   // the ungrouped entry is only ever pushed after the labelled groups
                   ungrouped: index === labels.length,
                 },
-                ...(isCollapsed ? [] : items.map((item) => toRow(item))),
+                ...(isCollapsed ? [] : items.map(toRow)),
               ]
             },
           )
@@ -542,7 +550,7 @@ export default defineSetupComponent(
             list: props.listUngrouped
               ? ungrouped
                   .filter((item) => !item.pinned && passes(item) && matchesItem(item))
-                  .map((item) => toRow(item))
+                  .map(toRow)
               : [],
           }
         })
@@ -556,9 +564,7 @@ export default defineSetupComponent(
           return rest.length > 0 ? [box, [separator], ...rest] : [box]
         })
 
-        const isList = computed(() => view.value === 'list' || !hasGroups.value)
-
-        // Enter toggles all matches (single: a sole match); captured ahead of reka.
+        // Enter toggles all shown matches (single: a sole match); captured ahead of reka.
         // after an arrow key, Enter is reka's again: picks the highlighted row, ringed meanwhile.
         // `searchId` scopes it to this instance: menu and sheet share it, never both mounted.
         // Backspace right after clears the search.
@@ -638,7 +644,7 @@ export default defineSetupComponent(
             event.preventDefault()
             event.stopPropagation()
             if (!searchTerm.value.trim()) return
-            // a value under several groups counts once
+            // a value under several groups counts once; a collapsed group's are left out
             const matches = [
               ...new Set(grouped.value.flat().flatMap((row) => ('type' in row ? [] : row.value))),
             ]
@@ -852,11 +858,8 @@ export default defineSetupComponent(
               class="border-default even:bg-elevated/30 flex w-full items-center gap-1.5 border-b px-2.5 py-3.5 text-start text-sm last:border-b-0"
               onClick={() => {
                 if (!('type' in item)) pick(item.value)
-                else if (props.multiple) {
-                  toggleGroup(item.shown)
-                } else {
-                  toggleCollapsed(item.label)
-                }
+                else if (props.multiple) toggleGroup(item.shown)
+                else toggleCollapsed(item.label)
               }}
             >
               {itemContent(item)}
@@ -878,8 +881,7 @@ export default defineSetupComponent(
           )
           if (groups.length === 0 && list.length === 0) return [box]
           // the dropdown's band, across the body's padding
-          const divider = <div class="bg-accented -mx-4 h-0.75" />
-          return [box, divider]
+          return [box, <div class="bg-accented -mx-4 h-0.75" />]
         }
 
         // `toggles`: view tabs inside, at the end
@@ -1070,7 +1072,7 @@ export default defineSetupComponent(
               // empty: its padding would pad the empty text's bottom
               viewport: `order-2 divide-y-0 empty:hidden ${isList.value ? 'is-list' : 'space-y-2 p-2'}`,
             }}
-            modelValue={[...selected.value].map(toKey)}
+            modelValue={selectedKeys.value}
             // headers select like rows (reka keeps scroll); header toggles group (single: collapses)
             onUpdate:modelValue={(value) => {
               const keys = value as string[]
@@ -1082,14 +1084,13 @@ export default defineSetupComponent(
                 )
               if (header && !props.multiple) toggleCollapsed(header.label)
               else if (header) toggleGroup(header.shown)
-              else if (props.multiple) {
+              else if (props.multiple)
                 update(new Set(keys.map((key) => fromKey(key) as T['value'])))
-              } else {
+              else {
                 // changed row: newly picked or unpicked
-                const selectedKeys = [...selected.value].map(toKey)
                 const changed =
-                  keys.find((key) => !selectedKeys.includes(key)) ??
-                  selectedKeys.find((key) => !keys.includes(key))
+                  keys.find((key) => !selectedKeys.value.includes(key)) ??
+                  selectedKeys.value.find((key) => !keys.includes(key))
                 if (changed !== undefined) pick(fromKey(changed))
               }
             }}
