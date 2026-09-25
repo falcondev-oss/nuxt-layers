@@ -505,7 +505,8 @@ export default defineSetupComponent(
                   // the ungrouped entry is only ever pushed after the labelled groups
                   ungrouped: index === labels.length,
                 },
-                ...(isCollapsed ? [] : items.map((item) => toRow(item, 1))),
+                // single: the header has no checkbox to indent under
+                ...(isCollapsed ? [] : items.map((item) => toRow(item, props.single ? 0 : 1))),
               ]
             },
           )
