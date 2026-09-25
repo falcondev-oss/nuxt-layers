@@ -341,10 +341,10 @@ export default defineSetupComponent(
           set.value = next
         }
 
-        // drop values no item holds, from the model and an open draft.
-        // not mid-load: an empty or stale list would drop picks for good
+        // drop values no item holds, from the model and an open draft (also once a failed save
+        // restores it). not mid-load: an empty or stale list would drop picks for good
         watch(
-          () => [items.value, props.loading, committed.value] as const,
+          () => [items.value, props.loading, committed.value, draft.value] as const,
           ([items, loading, model]) => {
             if (loading || items.length === 0) return
             const known = new Set(items.map((item) => item.value))
