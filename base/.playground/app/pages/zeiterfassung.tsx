@@ -145,6 +145,12 @@ const teamedUsers = users.map((user) => ({
   groups: teams.filter((team) => team.values.includes(user.value)).map((team) => team.label),
 }))
 
+// tom sits in two teams, ida in none
+const pinnedUsers = teamedUsers.map((user) => ({
+  ...user,
+  pinned: user.value === 'tom' || user.value === 'ida',
+}))
+
 function filterUser(user: (typeof users)[number], filters: { value: string }[]) {
   return filters.some((filter) => filter.value === user.tag)
 }
@@ -188,7 +194,8 @@ export default defineSetupComponent((_: object) =>
       })
 
       // single/multiple × no `onChange`/succeeds/fails × without/with filters × with/without groups × without/with clear,
-      // plus without search, with/without groups, with only 3 items, and with a custom trigger
+      // plus without search, with/without groups, with only 3 items, with a custom trigger, and
+      // with pinned items with/without groups
       const sections = [
         { title: 'Single', single: true },
         { title: 'Multiple', single: false },
@@ -228,10 +235,17 @@ export default defineSetupComponent((_: object) =>
               few: true,
             },
             { withFilters: false, withGroups: true, withClear: false, customTrigger: true },
+            ...[true, false].map((withGroups) => ({
+              withFilters: false,
+              withGroups,
+              withClear: false,
+              withPinned: true,
+            })),
           ].map((variant) => ({
             hideSearch: false,
             few: false,
             customTrigger: false,
+            withPinned: false,
             ...variant,
             value: ref<string | string[] | undefined>(single ? undefined : []),
           })),
@@ -258,6 +272,7 @@ export default defineSetupComponent((_: object) =>
                               hideSearch,
                               few,
                               customTrigger,
+                              withPinned,
                               value,
                             }) => (
                               <div class="flex flex-col gap-1">
@@ -269,6 +284,7 @@ export default defineSetupComponent((_: object) =>
                                     hideSearch && 'Keine Suche',
                                     few && '3 Einträge',
                                     customTrigger && 'Eigener Trigger',
+                                    withPinned && 'Angeheftet',
                                   ]
                                     .filter(Boolean)
                                     .join(' · ')}
@@ -279,8 +295,15 @@ export default defineSetupComponent((_: object) =>
                                   clear={withClear}
                                   hideSearch={hideSearch}
                                   class="mt-auto w-full"
-                                  items={few ? teamedUsers.slice(0, 3) : teamedUsers}
+                                  items={
+                                    withPinned
+                                      ? pinnedUsers
+                                      : few
+                                        ? teamedUsers.slice(0, 3)
+                                        : teamedUsers
+                                  }
                                   group={withGroups}
+                                  pinnedLabel={withPinned ? 'Favoriten' : undefined}
                                   filters={withFilters ? tags : undefined}
                                   filterFn={withFilters ? filterUser : undefined}
                                   v-model={value.value}

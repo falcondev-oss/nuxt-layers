@@ -17,6 +17,8 @@ export type TreeSelectMenuItem<V extends Primitive = Primitive> = {
   // labels of the groups it's listed under, in the order they first appear across `items`;
   // no item with one: a flat list with no view toggle
   groups?: string[]
+  // listed first, above a divider, instead of under its groups; search and filters don't hide it
+  pinned?: boolean
 }
 export type TreeSelectMenuFilter = { label: string; value: string }
 
@@ -31,8 +33,14 @@ type GroupRow<V> = {
   collapsed: boolean
   // leftover items' group; styled muted
   ungrouped?: boolean
+  // the pinned items' header; never collapses
+  pinned?: boolean
   hint?: never
 }
+
+// `USelectMenu` draws it as a line between the pinned rows and the rest; `rowKey` only for its types
+const separator = { type: 'separator' as const, rowKey: '\0' }
+type LabelRow = { type: 'label'; label: string; rowKey: string }
 
 const groupBox = 'p-0 rounded-md border border-default overflow-hidden'
 
@@ -73,7 +81,11 @@ export default defineSetupComponent(
     Single extends boolean = false,
   >(_: {
     props: Omit<
-      SelectMenuProps<(ItemRow<T> | GroupRow<T['value']>)[][], 'rowKey', true>,
+      SelectMenuProps<
+        (ItemRow<T> | GroupRow<T['value']> | LabelRow | typeof separator)[][],
+        'rowKey',
+        true
+      >,
       | 'items'
       | 'valueKey'
       | 'labelKey'
@@ -91,6 +103,8 @@ export default defineSetupComponent(
       listUngrouped?: boolean
       // label for the group of ungrouped items
       ungroupedLabel?: string
+      // header over the pinned items; without, they're listed bare
+      pinnedLabel?: string
       filters?: readonly F[]
       // only called while at least one filter is selected
       filterFn?: (item: T, filters: F[]) => boolean
@@ -138,6 +152,7 @@ export default defineSetupComponent(
       | 'group'
       | 'listUngrouped'
       | 'ungroupedLabel'
+      | 'pinnedLabel'
       | 'filters'
       | 'filterFn'
       | 'single'
@@ -162,6 +177,7 @@ export default defineSetupComponent(
         'group',
         'listUngrouped',
         'ungroupedLabel',
+        'pinnedLabel',
         'filters',
         'filterFn',
         'single',
@@ -413,6 +429,8 @@ export default defineSetupComponent(
         })
 
         const tree = computed<{
+          pinned: ItemRow<T>[]
+          pinnedHeader?: LabelRow | GroupRow<T['value']>
           groups: (ItemRow<T> | GroupRow<T['value']>)[][]
           list: ItemRow<T>[]
         }>(() => {
@@ -425,19 +443,39 @@ export default defineSetupComponent(
           const passes = (item: T) =>
             !active?.length || !props.filterFn || props.filterFn(item, active)
 
-          if (view.value === 'list' || !hasGroups.value) {
-            const rows = items.value.filter((item) => passes(item) && matchesItem(item))
-            return { groups: [], list: rows.map((item) => toRow(item)) }
+          const pinnedItems = items.value.filter((item) => item.pinned)
+          const pinned = pinnedItems.map((item) => toRow(item))
+          const label = props.pinnedLabel
+          const isFlat = view.value === 'list' || !hasGroups.value
+          // tree view, multiple: a header like a group's, toggling every pinned item; else a caption
+          const pinnedHeader =
+            pinned.length === 0 || !label
+              ? undefined
+              : props.single || isFlat
+                ? { type: 'label' as const, label, rowKey: '\0pinned' }
+                : {
+                    type: 'group' as const,
+                    label,
+                    rowKey: '\0pinned',
+                    values: pinnedItems.map((item) => item.value),
+                    collapsed: false,
+                    pinned: true,
+                  }
+          const rest = items.value.filter((item) => !item.pinned)
+
+          if (isFlat) {
+            const rows = rest.filter((item) => passes(item) && matchesItem(item))
+            return { pinned, pinnedHeader, groups: [], list: rows.map((item) => toRow(item)) }
           }
 
           // an item may sit in several groups; listed under each
-          const labels = [...new Set(items.value.flatMap((item) => item.groups ?? []))]
+          const labels = [...new Set(rest.flatMap((item) => item.groups ?? []))]
           const entries = labels.map((label) => ({
             label,
-            items: items.value.filter((item) => item.groups?.includes(label)),
+            items: rest.filter((item) => item.groups?.includes(label)),
           }))
           // ungrouped items stay selectable: own group, or listed below the groups
-          const ungrouped = items.value.filter((item) => !item.groups?.length)
+          const ungrouped = rest.filter((item) => !item.groups?.length)
           if (!props.listUngrouped && ungrouped.length > 0)
             entries.push({ label: props.ungroupedLabel ?? 'Ohne Gruppe', items: ungrouped })
 
@@ -470,6 +508,8 @@ export default defineSetupComponent(
           )
 
           return {
+            pinned,
+            pinnedHeader,
             groups: boxes.filter((rows) => rows.length > 0),
             list: props.listUngrouped
               ? ungrouped
@@ -480,9 +520,13 @@ export default defineSetupComponent(
         })
 
         // an empty group would still draw its box
-        const grouped = computed(() =>
-          tree.value.list.length > 0 ? [...tree.value.groups, tree.value.list] : tree.value.groups,
-        )
+        const grouped = computed(() => {
+          const { pinned, pinnedHeader, groups, list } = tree.value
+          const rest = list.length > 0 ? [...groups, list] : groups
+          if (pinned.length === 0) return rest
+          const box = pinnedHeader ? [pinnedHeader, ...pinned] : pinned
+          return rest.length > 0 ? [box, [separator], ...rest] : [box]
+        })
 
         const isList = computed(() => view.value === 'list' || !hasGroups.value)
 
@@ -547,9 +591,13 @@ export default defineSetupComponent(
             event.preventDefault()
             event.stopPropagation()
             if (!searchTerm.value.trim()) return
-            // a value under several groups counts once
+            // a value under several groups counts once; pinned rows show regardless, so match nothing
             const matches = [
-              ...new Set(grouped.value.flat().flatMap((row) => ('type' in row ? [] : row.value))),
+              ...new Set(
+                grouped.value
+                  .flat()
+                  .flatMap((row) => ('type' in row || row.pinned ? [] : row.value)),
+              ),
             ]
             if (props.single) {
               if (matches.length === 1) pick(matches[0]!)
@@ -703,24 +751,26 @@ export default defineSetupComponent(
                 >
                   {item.label}
                 </span>,
-                <button
-                  type="button"
-                  class="text-muted hover:text-highlighted hover:bg-accented -my-1 ms-auto flex rounded-md p-1"
-                  aria-label={item.collapsed ? 'Aufklappen' : 'Zuklappen'}
-                  aria-expanded={!item.collapsed}
-                  // keeps focus in the search input, whose blur would close the menu
-                  onMousedown={(event) => event.preventDefault()}
-                  onClick={(event) => {
-                    // else row click toggles group (single: collapses)
-                    event.stopPropagation()
-                    toggleCollapsed(item.label)
-                  }}
-                >
-                  <UIcon
-                    name={item.collapsed ? 'lucide:chevron-right' : 'lucide:chevron-down'}
-                    class="size-5"
-                  />
-                </button>,
+                !item.pinned && (
+                  <button
+                    type="button"
+                    class="text-muted hover:text-highlighted hover:bg-accented -my-1 ms-auto flex rounded-md p-1"
+                    aria-label={item.collapsed ? 'Aufklappen' : 'Zuklappen'}
+                    aria-expanded={!item.collapsed}
+                    // keeps focus in the search input, whose blur would close the menu
+                    onMousedown={(event) => event.preventDefault()}
+                    onClick={(event) => {
+                      // else row click toggles group (single: collapses)
+                      event.stopPropagation()
+                      toggleCollapsed(item.label)
+                    }}
+                  >
+                    <UIcon
+                      name={item.collapsed ? 'lucide:chevron-right' : 'lucide:chevron-down'}
+                      class="size-5"
+                    />
+                  </button>
+                ),
               ]
             : [
                 // spacer, not row padding: a class on the reused item survives view switches
@@ -769,6 +819,25 @@ export default defineSetupComponent(
               {itemContent(item)}
             </div>
           ))
+
+        const sheetPinned = () => {
+          const { pinned, pinnedHeader, groups, list } = tree.value
+          if (pinned.length === 0) return []
+          const box = (
+            <div class={groupBox}>
+              {pinnedHeader?.type === 'label' && (
+                <div class="text-highlighted border-default border-b px-2.5 py-3.5 text-sm font-semibold">
+                  {pinnedHeader.label}
+                </div>
+              )}
+              {sheetRows(pinnedHeader?.type === 'group' ? [pinnedHeader, ...pinned] : pinned)}
+            </div>
+          )
+          if (groups.length === 0 && list.length === 0) return [box]
+          // the dropdown's band, across the body's padding
+          const divider = <div class="bg-accented -mx-4 h-0.75" />
+          return [box, divider]
+        }
 
         // `toggles`: view tabs inside, at the end
         const searchInput = (inputProps: Pick<InputProps, 'variant' | 'class'>, toggles = false) =>
@@ -907,8 +976,20 @@ export default defineSetupComponent(
             }}
             arrow={isBeside.value}
             ui={{
-              // flat (list view or no groups): a plain list, edge to edge
-              group: isList.value ? 'p-0' : groupBox,
+              // flat (list view or no groups): a plain list, edge to edge.
+              // the divider's own group draws no box, nor clips the band's bleed
+              group: [
+                isList.value ? 'p-0' : groupBox,
+                'has-data-[slot=separator]:border-0 has-data-[slot=separator]:overflow-visible',
+              ].join(' '),
+              // a band, as each row already ends in a line; tree view: across the viewport's padding
+              separator: ['my-0 h-0.75 bg-accented', isList.value ? 'mx-0' : '-mx-2'].join(' '),
+              // the pinned header, lined up with the rows as a group header is
+              label: [
+                'border-b border-default',
+                // list view: a light caption, as no group header sets the tone there
+                isList.value ? 'px-2.5 py-1 text-xs font-medium' : 'py-2 text-sm',
+              ].join(' '),
               // striped from the header on; stripe hides the default `before` highlight,
               // so the row highlights itself: hover fill for the mouse, ring while arrowing,
               // as Enter picks it
@@ -938,8 +1019,8 @@ export default defineSetupComponent(
               empty: 'order-2',
               // tree: stable gutter, as collapsing can end the overflow
               viewport: [
-                'order-2 divide-y-0 space-y-3',
-                !isList.value && 'p-2 scrollbar-gutter-stable',
+                'order-2 divide-y-0',
+                !isList.value && 'space-y-3 p-2 scrollbar-gutter-stable',
               ]
                 .filter(Boolean)
                 .join(' '),
@@ -951,7 +1032,8 @@ export default defineSetupComponent(
               const header = grouped.value
                 .flat()
                 .find(
-                  (row): row is GroupRow<T['value']> => 'type' in row && keys.includes(row.rowKey),
+                  (row): row is GroupRow<T['value']> =>
+                    'type' in row && row.type === 'group' && keys.includes(row.rowKey),
                 )
               if (header && props.single) toggleCollapsed(header.label)
               else if (header) toggleGroup(header.values)
@@ -1056,6 +1138,11 @@ export default defineSetupComponent(
                   ],
                 }),
                 body: () => [
+                  // search at the bottom: the list starts halfway down, in thumb reach, and
+                  // scrolls up into the space above
+                  ...(isThumbReach.value
+                    ? [<div aria-hidden="true" class="h-1/2 shrink-0" />]
+                    : []),
                   // `mt-auto`, not `justify-end`, which clips the top on overflow
                   <div class={isThumbReach.value && 'mt-auto'}>
                     {grouped.value.length === 0 ? (
@@ -1064,6 +1151,7 @@ export default defineSetupComponent(
                       </p>
                     ) : (
                       <div class="space-y-3">
+                        {sheetPinned()}
                         {tree.value.groups.length > 0 &&
                           (isLandscapeColumns.value ? (
                             <div class="grid grid-cols-2 items-start gap-3">
