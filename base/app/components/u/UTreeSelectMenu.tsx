@@ -109,7 +109,8 @@ export default defineSetupComponent(
       // only called while at least one filter is selected
       filterFn?: (item: T, filters: F[]) => boolean
       single?: Single
-      // `null` without an item holding it comes from form bindings: nothing picked, never emitted
+      // a value no item holds is dropped once `items` are in: single to `undefined`, multiple
+      // filtered out
       modelValue?: (Single extends true ? T['value'] : (T['value'] | null)[]) | null
       // awaited before emit, spinner meanwhile. throws: no emit, stays open; single restores
       // pick, multiple keeps picks
@@ -258,16 +259,10 @@ export default defineSetupComponent(
 
         type Value = Single extends true ? T['value'] | undefined : T['value'][]
 
-        const hasNullItem = computed(() => items.value.some((item) => item.value === null))
         const committed = computed(() => {
           const model = props.modelValue as T['value'] | (T['value'] | null)[] | null | undefined
           const values = Array.isArray(model) ? model : [model]
-          return new Set(
-            values.filter(
-              (value): value is T['value'] =>
-                value !== undefined && (value !== null || hasNullItem.value),
-            ),
-          )
+          return new Set(values.filter((value): value is T['value'] => value !== undefined))
         })
         const selected = computed(() => draft.value ?? committed.value)
 
@@ -321,16 +316,20 @@ export default defineSetupComponent(
           collapsed.value = next
         }
 
-        // refetch while open: drop picks whose item is gone.
+        // drop values no item holds, from the model and an open draft.
         // not mid-load: an empty or stale list would drop picks for good
         watch(
-          () => [items.value, props.loading] as const,
-          ([items, loading]) => {
-            if (!draft.value && !isOpen.value) return
+          () => [items.value, props.loading, committed.value] as const,
+          ([items, loading, model]) => {
             if (loading || items.length === 0) return
-            const kept = new Set(items.map((item) => item.value)).intersection(selected.value)
-            if (kept.size < selected.value.size) update(kept)
+            const known = new Set(items.map((item) => item.value))
+            // receiver must be raw: `draft` is a reactive proxy
+            if (draft.value && !known.isSupersetOf(draft.value))
+              draft.value = known.intersection(draft.value)
+            if (!model.isSubsetOf(known))
+              emit('update:modelValue', toValue(known.intersection(model)))
           },
+          { immediate: true },
         )
 
         // single + `onChange`: same row picked twice in a row saves. click/tap: within 500ms;
@@ -1086,24 +1085,23 @@ export default defineSetupComponent(
                       {() => slots.default!({ open: isOpen.value || !!draft.value })}
                     </CustomTrigger>,
                   ]
-                const values = [...committed.value]
-                if (values.length === 0)
+                // mid-load, a value no item holds yet shows as nothing
+                const picks = items.value.filter((item) => committed.value.has(item.value))
+                const [item] = picks
+                if (!item)
                   return [<span class={ui.placeholder()}>{attrs.placeholder ?? '\u{A0}'}</span>]
-                if (values.length > 1) {
-                  const picks = items.value.filter((item) => committed.value.has(item.value))
+                if (picks.length > 1)
                   return [
                     <span class={ui.value()}>
-                      {slots.selected?.({ items: picks }) ?? `${values.length} ausgewählt`}
+                      {slots.selected?.({ items: picks }) ?? `${picks.length} ausgewählt`}
                     </span>,
                   ]
-                }
 
                 // one pick with its prefix, as in the list
-                const item = items.value.find((item) => item.value === values[0])
                 return [
                   <span class={[ui.value(), 'flex items-center gap-1.5']}>
-                    {item && slots.prefix?.({ item })}
-                    <span class="truncate">{item?.label ?? String(values[0])}</span>
+                    {slots.prefix?.({ item })}
+                    <span class="truncate">{item.label}</span>
                   </span>,
                 ]
               },

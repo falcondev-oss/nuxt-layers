@@ -195,7 +195,7 @@ export default defineSetupComponent((_: object) =>
 
       // single/multiple × no `onChange`/succeeds/fails × without/with filters × with/without groups × without/with clear,
       // plus without search, with/without groups, with only 3 items, with a custom trigger, and
-      // with pinned items with/without groups
+      // with pinned items with/without groups, and starting on a value no item holds
       const sections = [
         { title: 'Single', single: true },
         { title: 'Multiple', single: false },
@@ -241,13 +241,23 @@ export default defineSetupComponent((_: object) =>
               withClear: false,
               withPinned: true,
             })),
+            { withFilters: false, withGroups: true, withClear: false, stale: true },
           ].map((variant) => ({
             hideSearch: false,
             few: false,
             customTrigger: false,
             withPinned: false,
+            stale: false,
             ...variant,
-            value: ref<string | string[] | undefined>(single ? undefined : []),
+            value: ref<string | string[] | undefined>(
+              'stale' in variant
+                ? single
+                  ? 'nobody'
+                  : ['tom', 'nobody']
+                : single
+                  ? undefined
+                  : [],
+            ),
           })),
         })),
       }))
@@ -273,6 +283,7 @@ export default defineSetupComponent((_: object) =>
                               few,
                               customTrigger,
                               withPinned,
+                              stale,
                               value,
                             }) => (
                               <div class="flex flex-col gap-1">
@@ -285,6 +296,7 @@ export default defineSetupComponent((_: object) =>
                                     few && '3 Einträge',
                                     customTrigger && 'Eigener Trigger',
                                     withPinned && 'Angeheftet',
+                                    stale && 'Unbekannter Wert',
                                   ]
                                     .filter(Boolean)
                                     .join(' · ')}
@@ -325,6 +337,11 @@ export default defineSetupComponent((_: object) =>
                                     }),
                                   }}
                                 />
+                                {stale && (
+                                  <code class="text-muted text-xs">
+                                    {JSON.stringify(value.value) ?? 'undefined'}
+                                  </code>
+                                )}
                               </div>
                             ),
                           )}
