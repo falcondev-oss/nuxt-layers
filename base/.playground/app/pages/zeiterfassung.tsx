@@ -139,6 +139,12 @@ const teams = [
   },
 ]
 
+// each user listed under the teams they sit in
+const teamedUsers = users.map((user) => ({
+  ...user,
+  groups: teams.filter((team) => team.values.includes(user.value)).map((team) => team.label),
+}))
+
 function filterUser(user: (typeof users)[number], filters: { value: string }[]) {
   return filters.some((filter) => filter.value === user.tag)
 }
@@ -273,8 +279,10 @@ export default defineSetupComponent((_: object) =>
                                   clear={withClear}
                                   hideSearch={hideSearch}
                                   class="mt-auto w-full"
-                                  items={few ? users.slice(0, 3) : users}
-                                  groups={withGroups ? teams : undefined}
+                                  items={(withGroups ? teamedUsers : users).slice(
+                                    0,
+                                    few ? 3 : undefined,
+                                  )}
                                   filters={withFilters ? tags : undefined}
                                   filterFn={withFilters ? filterUser : undefined}
                                   v-model={value.value}

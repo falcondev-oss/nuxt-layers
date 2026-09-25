@@ -14,9 +14,11 @@ export type TreeSelectMenuItem<V extends Primitive = Primitive> = {
   description?: string
   // extra text the search matches, besides the label
   search?: string
+  // labels of the groups it's listed under, in the order they first appear across `items`;
+  // no item with one: a flat list with no view toggle
+  groups?: string[]
 }
 export type TreeSelectMenuFilter = { label: string; value: string }
-export type TreeSelectMenuGroup<V extends Primitive = Primitive> = { label: string; values: V[] }
 
 // `rowKey`: `USelectMenu`'s value for the row, one string space for item and group rows
 type ItemRow<T> = T & { rowKey: string; indent?: number }
@@ -83,8 +85,6 @@ export default defineSetupComponent(
       | 'clear'
     > & {
       items: T[]
-      // without, a flat list with no view toggle
-      groups?: TreeSelectMenuGroup<T['value']>[]
       // list ungrouped items flat below
       listUngrouped?: boolean
       // label for the group of ungrouped items
@@ -133,7 +133,6 @@ export default defineSetupComponent(
     // the rest reaches `USelectMenu` as inherited attributes
     propKeys:
       | 'items'
-      | 'groups'
       | 'listUngrouped'
       | 'ungroupedLabel'
       | 'filters'
@@ -157,7 +156,6 @@ export default defineSetupComponent(
       name: 'UTreeSelectMenu',
       props: [
         'items',
-        'groups',
         'listUngrouped',
         'ungroupedLabel',
         'filters',
@@ -183,7 +181,7 @@ export default defineSetupComponent(
         const items = computed(() => uniqueBy(props.items, (item) => item.value))
 
         const view = ref<'tree' | 'list'>('tree')
-        const hasGroups = computed(() => !!props.groups?.length)
+        const hasGroups = computed(() => items.value.some((item) => !!item.groups?.length))
         // groups gone: reset, so they return in the tree
         watch(hasGroups, (has) => {
           if (!has) view.value = 'tree'
@@ -421,38 +419,32 @@ export default defineSetupComponent(
           const passes = (item: T) =>
             !active?.length || !props.filterFn || props.filterFn(item, active)
 
-          // a const, so it stays narrowed inside the callbacks
-          const groups = props.groups
-          if (view.value === 'list' || !groups?.length) {
+          if (view.value === 'list' || !hasGroups.value) {
             const rows = items.value.filter((item) => passes(item) && matchesItem(item))
             return { groups: [], list: rows.map((item) => toRow(item)) }
           }
 
-          const byValue = new Map(items.value.map((item) => [item.value, item]))
-
+          // an item may sit in several groups; listed under each
+          const labels = [...new Set(items.value.flatMap((item) => item.groups ?? []))]
+          const entries = labels.map((label) => ({
+            label,
+            items: items.value.filter((item) => item.groups?.includes(label)),
+          }))
           // ungrouped items stay selectable: own group, or listed below the groups
-          const inGroup = new Set(groups.flatMap((group) => group.values))
-          const ungrouped = items.value.filter((item) => !inGroup.has(item.value))
-          const entries = [...groups]
+          const ungrouped = items.value.filter((item) => !item.groups?.length)
           if (!props.listUngrouped && ungrouped.length > 0)
-            entries.push({
-              label: props.ungroupedLabel ?? 'Ohne Gruppe',
-              values: ungrouped.map((item) => item.value),
-            })
+            entries.push({ label: props.ungroupedLabel ?? 'Ohne Gruppe', items: ungrouped })
 
           // one menu group each, so each renders as its own box
           const boxes = entries.map<(ItemRow<T> | GroupRow<T['value']>)[]>(
-            ({ label, values: groupValues }, index) => {
-              // an item may sit in several groups; listed under each, once per group
-              const claimed = [...new Set(groupValues)].filter((value) => byValue.has(value))
+            ({ label, items: groupItems }, index) => {
               // `values` ignores the search (header checkbox stays stable), not the filter
               // (toggling mustn't select hidden items)
-              const values = claimed.filter((value) => passes(byValue.get(value)!))
-              const items = claimed.flatMap((value) => {
-                const item = byValue.get(value)!
-                // matching group label keeps the whole group
-                return passes(item) && (matches(label) || matchesItem(item)) ? item : []
-              })
+              const values = groupItems.filter(passes).map((item) => item.value)
+              // matching group label keeps the whole group
+              const items = groupItems.filter(
+                (item) => passes(item) && (matches(label) || matchesItem(item)),
+              )
               if (items.length === 0) return []
               const isCollapsed = !search && collapsed.value.has(label)
 
@@ -463,8 +455,8 @@ export default defineSetupComponent(
                   rowKey: groupKey(index),
                   values,
                   collapsed: isCollapsed,
-                  // the ungrouped entry is only ever pushed after the given groups
-                  ungrouped: index === groups.length,
+                  // the ungrouped entry is only ever pushed after the labelled groups
+                  ungrouped: index === labels.length,
                 },
                 ...(isCollapsed ? [] : items.map((item) => toRow(item, 1))),
               ]
