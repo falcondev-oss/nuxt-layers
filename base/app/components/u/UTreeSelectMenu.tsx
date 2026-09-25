@@ -986,24 +986,23 @@ export default defineSetupComponent(
                 isList.value ? 'p-0' : groupBox,
                 'has-data-[slot=separator]:border-0 has-data-[slot=separator]:overflow-visible',
               ].join(' '),
+              // rows, the band and the caption keep their classes across a view switch, as
+              // `USelectMenu` reuses rendered rows: the view reaches them as `is-list` on the viewport.
               // a band, as each row already ends in a line; tree view: across the viewport's padding
-              separator: ['my-0 h-0.75 bg-accented', isList.value ? 'mx-0' : '-mx-2'].join(' '),
-              // the pinned header, lined up with the rows as a group header is
-              label: [
-                'border-b border-default',
-                // list view: a light caption, as no group header sets the tone there
-                isList.value ? 'px-2.5 py-1 text-xs font-medium' : 'py-2 text-sm',
-              ].join(' '),
+              separator: 'my-0 h-0.75 bg-accented -mx-2 in-[.is-list]:mx-0',
+              // the pinned header, lined up with the rows as a group header is.
+              // list view: a light caption, as no group header sets the tone there
+              label:
+                'border-b border-default py-2 text-sm in-[.is-list]:px-2.5 in-[.is-list]:py-1 in-[.is-list]:text-xs in-[.is-list]:font-medium',
               // striped from the header on; stripe hides the default `before` highlight,
               // so the row highlights itself: hover fill for the mouse, ring while arrowing,
               // as Enter picks it
               item: [
                 'items-center py-2 rounded-none border-b border-default last:border-b-0 even:bg-elevated/30',
                 // ring follows the corners; list view: square beside the search or footer
-                !(isList.value && (!props.hideSearch || hasFilterBar.value)) &&
-                  'first:rounded-t-md',
-                !(isList.value && (showsClear.value || showsSave.value)) && 'last:rounded-b-md',
-                isList.value && 'px-2.5',
+                'first:rounded-t-md last:rounded-b-md in-[.is-list]:px-2.5',
+                (!props.hideSearch || hasFilterBar.value) && 'in-[.is-list]:first:rounded-t-none',
+                (showsClear.value || showsSave.value) && 'in-[.is-list]:last:rounded-b-none',
                 // a header row, marked by its label, gets no hover fill, nor `USelectMenu`'s own
                 'has-data-group-header:before:hidden',
                 isArrowing.value
@@ -1026,7 +1025,7 @@ export default defineSetupComponent(
               // tree: stable gutter, as collapsing can end the overflow
               viewport: [
                 'order-2 divide-y-0',
-                !isList.value && 'space-y-3 p-2 scrollbar-gutter-stable',
+                isList.value ? 'is-list' : 'space-y-3 p-2 scrollbar-gutter-stable',
               ]
                 .filter(Boolean)
                 .join(' '),
