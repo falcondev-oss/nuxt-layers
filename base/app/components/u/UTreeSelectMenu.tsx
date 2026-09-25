@@ -131,8 +131,8 @@ export default defineSetupComponent(
       hideSearch?: boolean
     }
     slots: {
-      // custom trigger, e.g. a button; no clear x or spinner
-      'default': (props: { open: boolean }) => VNode[]
+      // custom trigger, e.g. a button; no clear x or spinner. `items`: the saved picks
+      'default': (props: { open: boolean; items: T[] }) => VNode[]
       'prefix': (props: { item: T }) => VNode[]
       'description': (props: { item: T }) => VNode[]
       'suffix': (props: { item: T }) => VNode[]
@@ -265,6 +265,10 @@ export default defineSetupComponent(
           return new Set(values.filter((value): value is T['value'] => value !== undefined))
         })
         const selected = computed(() => draft.value ?? committed.value)
+        // saved picks with an item, in item order: mid-load, a value no item holds yet is missing
+        const pickedItems = computed(() =>
+          items.value.filter((item) => committed.value.has(item.value)),
+        )
 
         const order = computed(() => new Map(items.value.map((item, index) => [item.value, index])))
         // in item order, not pick order; values without an item trail
@@ -1085,11 +1089,15 @@ export default defineSetupComponent(
                 if (slots.default)
                   return [
                     <CustomTrigger>
-                      {() => slots.default!({ open: isOpen.value || !!draft.value })}
+                      {() =>
+                        slots.default!({
+                          open: isOpen.value || !!draft.value,
+                          items: pickedItems.value,
+                        })
+                      }
                     </CustomTrigger>,
                   ]
-                // mid-load, a value no item holds yet shows as nothing
-                const picks = items.value.filter((item) => committed.value.has(item.value))
+                const picks = pickedItems.value
                 const [item] = picks
                 if (!item)
                   return [<span class={ui.placeholder()}>{attrs.placeholder ?? '\u{A0}'}</span>]

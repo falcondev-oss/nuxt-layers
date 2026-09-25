@@ -333,14 +333,18 @@ export default defineSetupComponent((_: object) =>
                                   v-slots={{
                                     ...userSlots,
                                     ...(customTrigger && {
-                                      default: () => [
+                                      default: ({
+                                        items: picks,
+                                      }: {
+                                        items: { label: string }[]
+                                      }) => [
                                         <UButton
                                           class="mt-auto self-start"
                                           icon="lucide:users"
                                           label={
-                                            [value.value ?? []].flat().length > 0
-                                              ? `${[value.value ?? []].flat().length} Mitarbeiter`
-                                              : 'Mitarbeiter wählen'
+                                            picks.length === 0
+                                              ? 'Mitarbeiter wählen'
+                                              : `Mitarbeiter (${picks.length})`
                                           }
                                         />,
                                       ],
