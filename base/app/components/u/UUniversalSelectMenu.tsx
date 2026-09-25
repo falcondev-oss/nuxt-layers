@@ -23,7 +23,7 @@ export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
 export type UniversalSelectMenuFilter = { label: string; value: string }
 
 // `rowKey`: `USelectMenu`'s value for the row, one string space for item and group rows
-type ItemRow<T> = T & { rowKey: string; indent?: number }
+type ItemRow<T> = T & { rowKey: string }
 
 type GroupRow<V> = {
   type: 'group'
@@ -426,11 +426,7 @@ export default defineSetupComponent(
         })
 
         // `list` holds the rows without a header: the list view's, or the ungrouped ones
-        const toRow = (item: T, indent?: number): ItemRow<T> => ({
-          ...item,
-          rowKey: toKey(item.value),
-          indent,
-        })
+        const toRow = (item: T): ItemRow<T> => ({ ...item, rowKey: toKey(item.value) })
 
         const tree = computed<{
           pinned: ItemRow<T>[]
@@ -506,8 +502,7 @@ export default defineSetupComponent(
                   // the ungrouped entry is only ever pushed after the labelled groups
                   ungrouped: index === labels.length,
                 },
-                // single: the header has no checkbox to indent under
-                ...(isCollapsed ? [] : items.map((item) => toRow(item, props.multiple ? 1 : 0))),
+                ...(isCollapsed ? [] : items.map((item) => toRow(item))),
               ]
             },
           )
@@ -779,10 +774,6 @@ export default defineSetupComponent(
                 ),
               ]
             : [
-                // spacer, not row padding: a class on the reused item survives view switches
-                item.indent ? (
-                  <div class="shrink-0" style={{ width: `${item.indent * 0.1}rem` }} />
-                ) : undefined,
                 props.multiple ? (
                   <UCheckbox
                     size="md"
