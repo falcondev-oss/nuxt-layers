@@ -17,7 +17,7 @@ export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
   // labels of the groups it's listed under, in the order they first appear across `items`;
   // no item with one: a flat list with no view toggle
   groups?: string[]
-  // listed first, above a divider; tree view: under its groups as well
+  // listed first, above a divider; tree view: in its boxes as well (the ungrouped one too), only there during a search
   pinned?: boolean
 }
 export type UniversalSelectMenuFilter = { label: string; value: string }
@@ -29,9 +29,9 @@ type GroupRow<V> = {
   type: 'group'
   label: string
   rowKey: string
-  // what the checkbox reflects: ignores the search, not the filter
+  // what the checkbox reflects: ignores search and filter
   values: V[]
-  // what a click toggles: the shown ones, so a search picks only its matches
+  // what a click toggles: the shown ones, so a search or filter picks only its matches
   shown: V[]
   collapsed: boolean
   // leftover items' group; styled muted
@@ -324,14 +324,17 @@ export default defineSetupComponent(
           update(next)
         }
 
-        // group labels. a search collapses its own, from all expanded, so its matches show;
-        // a new search term expands them again
+        // group labels. a search or filter collapses its own, from all expanded, so its matches
+        // show; a new search term or filter expands them again
         const collapsed = ref(new Set<string>())
-        const searchCollapsed = ref(new Set<string>())
-        watch(searchTerm, () => (searchCollapsed.value = new Set()))
+        const narrowedCollapsed = ref(new Set<string>())
+        const isNarrowed = computed(
+          () => !!searchTerm.value.trim() || filterValues.value.length > 0,
+        )
+        watch([searchTerm, filterValues], () => (narrowedCollapsed.value = new Set()))
 
         function toggleCollapsed(label: string) {
-          const set = searchTerm.value.trim() ? searchCollapsed : collapsed
+          const set = isNarrowed.value ? narrowedCollapsed : collapsed
           const next = new Set(set.value)
           if (!next.delete(label)) next.add(label)
           set.value = next
@@ -459,10 +462,14 @@ export default defineSetupComponent(
           const passes = (item: T) =>
             !active?.length || !props.filterFn || props.filterFn(item, active)
 
-          const pinnedItems = items.value.filter((item) => item.pinned && passes(item))
-          const pinned = pinnedItems.filter(matchesItem).map((item) => toRow(item))
-          const label = props.pinnedLabel
           const isFlat = view.value === 'list' || !hasGroups.value
+          const pinnedItems = items.value.filter((item) => item.pinned && passes(item))
+          // tree view, searching: a match in a box (the ungrouped one too) shows there only
+          const inBox = (item: T) => !!item.groups?.length || !props.listUngrouped
+          const pinned = pinnedItems
+            .filter((item) => matchesItem(item) && (isFlat || !search || !inBox(item)))
+            .map((item) => toRow(item))
+          const label = props.pinnedLabel
           // tree view, multiple: a header like a group's, toggling the shown pinned items; else a caption
           const pinnedHeader =
             pinned.length === 0 || !label
@@ -473,15 +480,16 @@ export default defineSetupComponent(
                     type: 'group' as const,
                     label,
                     rowKey: '\0pinned',
-                    values: pinnedItems.map((item) => item.value),
+                    values: items.value.filter((item) => item.pinned).map((item) => item.value),
                     shown: pinned.map((item) => item.value),
                     collapsed: false,
                     pinned: true,
                   }
-          const rest = items.value.filter((item) => !item.pinned)
 
           if (isFlat) {
-            const rows = rest.filter((item) => passes(item) && matchesItem(item))
+            const rows = items.value.filter(
+              (item) => !item.pinned && passes(item) && matchesItem(item),
+            )
             return { pinned, pinnedHeader, groups: [], list: rows.map((item) => toRow(item)) }
           }
 
@@ -491,23 +499,24 @@ export default defineSetupComponent(
             label,
             items: items.value.filter((item) => item.groups?.includes(label)),
           }))
-          // ungrouped items stay selectable: own group, or listed below the groups.
-          // a pinned one already is, up top
-          const ungrouped = rest.filter((item) => !item.groups?.length)
+          // ungrouped items stay selectable: own group, pinned ones too, or listed below the groups
+          // (a pinned one already is, up top)
+          const ungrouped = items.value.filter((item) => !item.groups?.length)
           if (!props.listUngrouped && ungrouped.length > 0)
             entries.push({ label: props.ungroupedLabel ?? 'Ohne Gruppe', items: ungrouped })
 
           // one menu group each, so each renders as its own box
           const boxes = entries.map<(ItemRow<T> | GroupRow<T['value']>)[]>(
             ({ label, items: groupItems }, index) => {
-              // the filter hides items from both: toggling mustn't select hidden items
-              const values = groupItems.filter(passes).map((item) => item.value)
+              const values = groupItems.map((item) => item.value)
               // matching group label keeps the whole group
               const items = groupItems.filter(
                 (item) => passes(item) && (matches(label) || matchesItem(item)),
               )
               if (items.length === 0) return []
-              const isCollapsed = (search ? searchCollapsed : collapsed).value.has(label)
+              const isCollapsed = (isNarrowed.value ? narrowedCollapsed : collapsed).value.has(
+                label,
+              )
 
               return [
                 {
@@ -531,7 +540,7 @@ export default defineSetupComponent(
             groups: boxes.filter((rows) => rows.length > 0),
             list: props.listUngrouped
               ? ungrouped
-                  .filter((item) => passes(item) && matchesItem(item))
+                  .filter((item) => !item.pinned && passes(item) && matchesItem(item))
                   .map((item) => toRow(item))
               : [],
           }
