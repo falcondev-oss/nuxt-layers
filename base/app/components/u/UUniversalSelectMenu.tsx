@@ -74,6 +74,15 @@ function loadingNote() {
   )
 }
 
+function emptyNote() {
+  return (
+    <span class="flex flex-col items-center gap-1.5">
+      <UIcon name="lucide:list-x" class="size-6 shrink-0" />
+      Keine Treffer
+    </span>
+  )
+}
+
 export default defineSetupComponent(
   <
     T extends UniversalSelectMenuItem,
@@ -1018,9 +1027,10 @@ export default defineSetupComponent(
               // clips for the box instead, rounded with it
               focusScope: 'overflow-hidden rounded-[inherit]',
               empty: 'order-2',
-              // tree: stable gutter, as collapsing can end the overflow
+              // tree: stable gutter, as collapsing can end the overflow;
+              // empty: its padding would pad the empty text's bottom
               viewport: [
-                'order-2 divide-y-0',
+                'order-2 divide-y-0 empty:hidden',
                 isList.value ? 'is-list' : 'space-y-2 p-2 scrollbar-gutter-stable',
               ]
                 .filter(Boolean)
@@ -1112,7 +1122,7 @@ export default defineSetupComponent(
                 ]
               },
               'item': ({ item }: { item: ItemRow<T> | GroupRow<T['value']> }) => itemContent(item),
-              ...(props.loading && { empty: loadingNote }),
+              'empty': props.loading ? loadingNote : emptyNote,
             }}
           />,
           isMobile.value && (
@@ -1151,7 +1161,7 @@ export default defineSetupComponent(
                   <div class={isThumbReach.value && 'mt-auto'}>
                     {grouped.value.length === 0 ? (
                       <p class="text-muted p-4 text-center text-sm">
-                        {props.loading ? loadingNote() : 'Keine Treffer'}
+                        {props.loading ? loadingNote() : emptyNote()}
                       </p>
                     ) : (
                       <div class="space-y-3">
