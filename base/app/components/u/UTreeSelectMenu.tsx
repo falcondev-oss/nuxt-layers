@@ -251,8 +251,13 @@ export default defineSetupComponent(
         })
         const selected = computed(() => draft.value ?? committed.value)
 
-        const toValue = (values: Set<T['value']>) =>
-          (props.single ? [...values][0] : [...values]) as Value
+        const order = computed(() => new Map(items.value.map((item, index) => [item.value, index])))
+        // in item order, not pick order; values without an item trail
+        const toValue = (values: Set<T['value']>) => {
+          const rank = (value: T['value']) => order.value.get(value) ?? order.value.size
+          const sorted = [...values].toSorted((a, b) => rank(a) - rank(b))
+          return (props.single ? sorted[0] : sorted) as Value
+        }
 
         const isSaving = ref(false)
         const isBusy = computed(() => props.loading || isSaving.value)
