@@ -17,7 +17,7 @@ export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
   // labels of the groups it's listed under, in the order they first appear across `items`;
   // no item with one: a flat list with no view toggle
   groups?: string[]
-  // listed first, above a divider, instead of under its groups; search and filters don't hide it
+  // listed first, above a divider; tree view: under its groups as well
   pinned?: boolean
 }
 export type UniversalSelectMenuFilter = { label: string; value: string }
@@ -29,7 +29,10 @@ type GroupRow<V> = {
   type: 'group'
   label: string
   rowKey: string
+  // what the checkbox reflects: ignores the search, not the filter
   values: V[]
+  // what a click toggles: the shown ones, so a search picks only its matches
+  shown: V[]
   collapsed: boolean
   // leftover items' group; styled muted
   ungrouped?: boolean
@@ -321,13 +324,17 @@ export default defineSetupComponent(
           update(next)
         }
 
-        // group labels; a search shows every group expanded, so its matches are visible
+        // group labels. a search collapses its own, from all expanded, so its matches show;
+        // a new search term expands them again
         const collapsed = ref(new Set<string>())
+        const searchCollapsed = ref(new Set<string>())
+        watch(searchTerm, () => (searchCollapsed.value = new Set()))
 
         function toggleCollapsed(label: string) {
-          const next = new Set(collapsed.value)
+          const set = searchTerm.value.trim() ? searchCollapsed : collapsed
+          const next = new Set(set.value)
           if (!next.delete(label)) next.add(label)
-          collapsed.value = next
+          set.value = next
         }
 
         // drop values no item holds, from the model and an open draft.
@@ -452,11 +459,11 @@ export default defineSetupComponent(
           const passes = (item: T) =>
             !active?.length || !props.filterFn || props.filterFn(item, active)
 
-          const pinnedItems = items.value.filter((item) => item.pinned)
-          const pinned = pinnedItems.map((item) => toRow(item))
+          const pinnedItems = items.value.filter((item) => item.pinned && passes(item))
+          const pinned = pinnedItems.filter(matchesItem).map((item) => toRow(item))
           const label = props.pinnedLabel
           const isFlat = view.value === 'list' || !hasGroups.value
-          // tree view, multiple: a header like a group's, toggling every pinned item; else a caption
+          // tree view, multiple: a header like a group's, toggling the shown pinned items; else a caption
           const pinnedHeader =
             pinned.length === 0 || !label
               ? undefined
@@ -467,6 +474,7 @@ export default defineSetupComponent(
                     label,
                     rowKey: '\0pinned',
                     values: pinnedItems.map((item) => item.value),
+                    shown: pinned.map((item) => item.value),
                     collapsed: false,
                     pinned: true,
                   }
@@ -477,13 +485,14 @@ export default defineSetupComponent(
             return { pinned, pinnedHeader, groups: [], list: rows.map((item) => toRow(item)) }
           }
 
-          // an item may sit in several groups; listed under each
-          const labels = [...new Set(rest.flatMap((item) => item.groups ?? []))]
+          // an item may sit in several groups; listed under each, pinned ones too
+          const labels = [...new Set(items.value.flatMap((item) => item.groups ?? []))]
           const entries = labels.map((label) => ({
             label,
-            items: rest.filter((item) => item.groups?.includes(label)),
+            items: items.value.filter((item) => item.groups?.includes(label)),
           }))
-          // ungrouped items stay selectable: own group, or listed below the groups
+          // ungrouped items stay selectable: own group, or listed below the groups.
+          // a pinned one already is, up top
           const ungrouped = rest.filter((item) => !item.groups?.length)
           if (!props.listUngrouped && ungrouped.length > 0)
             entries.push({ label: props.ungroupedLabel ?? 'Ohne Gruppe', items: ungrouped })
@@ -491,15 +500,14 @@ export default defineSetupComponent(
           // one menu group each, so each renders as its own box
           const boxes = entries.map<(ItemRow<T> | GroupRow<T['value']>)[]>(
             ({ label, items: groupItems }, index) => {
-              // `values` ignores the search (header checkbox stays stable), not the filter
-              // (toggling mustn't select hidden items)
+              // the filter hides items from both: toggling mustn't select hidden items
               const values = groupItems.filter(passes).map((item) => item.value)
               // matching group label keeps the whole group
               const items = groupItems.filter(
                 (item) => passes(item) && (matches(label) || matchesItem(item)),
               )
               if (items.length === 0) return []
-              const isCollapsed = !search && collapsed.value.has(label)
+              const isCollapsed = (search ? searchCollapsed : collapsed).value.has(label)
 
               return [
                 {
@@ -507,6 +515,7 @@ export default defineSetupComponent(
                   label,
                   rowKey: groupKey(index),
                   values,
+                  shown: items.map((item) => item.value),
                   collapsed: isCollapsed,
                   // the ungrouped entry is only ever pushed after the labelled groups
                   ungrouped: index === labels.length,
@@ -600,13 +609,9 @@ export default defineSetupComponent(
             event.preventDefault()
             event.stopPropagation()
             if (!searchTerm.value.trim()) return
-            // a value under several groups counts once; pinned rows show regardless, so match nothing
+            // a value under several groups counts once
             const matches = [
-              ...new Set(
-                grouped.value
-                  .flat()
-                  .flatMap((row) => ('type' in row || row.pinned ? [] : row.value)),
-              ),
+              ...new Set(grouped.value.flat().flatMap((row) => ('type' in row ? [] : row.value))),
             ]
             if (!props.multiple) {
               if (matches.length === 1) pick(matches[0]!)
@@ -622,7 +627,7 @@ export default defineSetupComponent(
         const isLandscapeColumns = useMediaQuery('(min-width: 768px)')
 
         // each group joins the shorter column, measured expanded so collapsing never reshuffles;
-        // a collapsed header's `values` = its rows (no search while collapsed)
+        // a collapsed header's `shown` = its rows
         const groupColumns = computed(() => {
           const columns: { height: number; groups: (ItemRow<T> | GroupRow<T['value']>)[][] }[] = [
             { height: 0, groups: [] },
@@ -631,7 +636,7 @@ export default defineSetupComponent(
           for (const rows of tree.value.groups) {
             const header = rows[0] as GroupRow<T['value']>
             const column = columns[0]!.height <= columns[1]!.height ? columns[0]! : columns[1]!
-            column.height += header.collapsed ? 1 + header.values.length : rows.length
+            column.height += header.collapsed ? 1 + header.shown.length : rows.length
             column.groups.push(rows)
           }
           return columns.map((column) => column.groups)
@@ -819,7 +824,7 @@ export default defineSetupComponent(
               onClick={() => {
                 if (!('type' in item)) pick(item.value)
                 else if (props.multiple) {
-                  toggleGroup(item.values)
+                  toggleGroup(item.shown)
                 } else {
                   toggleCollapsed(item.label)
                 }
@@ -1027,14 +1032,8 @@ export default defineSetupComponent(
               // clips for the box instead, rounded with it
               focusScope: 'overflow-hidden rounded-[inherit]',
               empty: 'order-2',
-              // tree: stable gutter, as collapsing can end the overflow;
               // empty: its padding would pad the empty text's bottom
-              viewport: [
-                'order-2 divide-y-0 empty:hidden',
-                isList.value ? 'is-list' : 'space-y-2 p-2 scrollbar-gutter-stable',
-              ]
-                .filter(Boolean)
-                .join(' '),
+              viewport: `order-2 divide-y-0 empty:hidden ${isList.value ? 'is-list' : 'space-y-2 p-2'}`,
             }}
             modelValue={[...selected.value].map(toKey)}
             // headers select like rows (reka keeps scroll); header toggles group (single: collapses)
@@ -1047,7 +1046,7 @@ export default defineSetupComponent(
                     'type' in row && row.type === 'group' && keys.includes(row.rowKey),
                 )
               if (header && !props.multiple) toggleCollapsed(header.label)
-              else if (header) toggleGroup(header.values)
+              else if (header) toggleGroup(header.shown)
               else if (props.multiple) {
                 update(new Set(keys.map((key) => fromKey(key) as T['value'])))
               } else {

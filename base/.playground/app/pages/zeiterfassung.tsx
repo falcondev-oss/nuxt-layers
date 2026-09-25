@@ -153,7 +153,7 @@ const pinnedUsers = teamedUsers.map((user) => ({
 
 // values JSON tells apart but a string key wouldn't: `null`, `1`, `'1'`, `true`
 const primitives = [
-  { label: 'Keine', value: null, hint: 'null' },
+  { label: 'Keine', value: null, hint: 'null', pinned: true },
   { label: 'Eins (Zahl)', value: 1, hint: '1' },
   { label: 'Eins (Text)', value: '1', hint: "'1'" },
   { label: 'Ja', value: true, hint: 'true' },
