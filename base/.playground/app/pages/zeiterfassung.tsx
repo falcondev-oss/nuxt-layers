@@ -1,4 +1,4 @@
-import { UAvatar, UBadge, UButton, UCard, UTreeSelectMenu } from '#components'
+import { UAvatar, UBadge, UButton, UCard, UUniversalSelectMenu } from '#components'
 
 const users = [
   {
@@ -311,7 +311,7 @@ export default defineSetupComponent((_: object) =>
                                     .filter(Boolean)
                                     .join(' · ')}
                                 </span>
-                                <UTreeSelectMenu
+                                <UUniversalSelectMenu
                                   multiple={multiple}
                                   onChange={onChange}
                                   clear={withClear}
@@ -373,13 +373,13 @@ export default defineSetupComponent((_: object) =>
               default: () => [
                 <div class="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4">
                   <div class="flex flex-col gap-1">
-                    <UTreeSelectMenu items={primitives} v-model={primitiveSingle.value} />
+                    <UUniversalSelectMenu items={primitives} v-model={primitiveSingle.value} />
                     <code class="text-muted text-xs">
                       {JSON.stringify(primitiveSingle.value) ?? 'undefined'}
                     </code>
                   </div>
                   <div class="flex flex-col gap-1">
-                    <UTreeSelectMenu
+                    <UUniversalSelectMenu
                       multiple
                       items={primitives}
                       v-model={primitiveMultiple.value}

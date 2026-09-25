@@ -7,7 +7,7 @@ import { UButton, UCheckbox, UIcon, UInput, UModal, USelectMenu, UTabs } from '#
 
 type Primitive = string | number | boolean | null
 
-export type TreeSelectMenuItem<V extends Primitive = Primitive> = {
+export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
   label: string
   value: V
   hint: string
@@ -20,7 +20,7 @@ export type TreeSelectMenuItem<V extends Primitive = Primitive> = {
   // listed first, above a divider, instead of under its groups; search and filters don't hide it
   pinned?: boolean
 }
-export type TreeSelectMenuFilter = { label: string; value: string }
+export type UniversalSelectMenuFilter = { label: string; value: string }
 
 // `rowKey`: `USelectMenu`'s value for the row, one string space for item and group rows
 type ItemRow<T> = T & { rowKey: string; indent?: number }
@@ -76,8 +76,8 @@ function loadingNote() {
 
 export default defineSetupComponent(
   <
-    T extends TreeSelectMenuItem,
-    F extends TreeSelectMenuFilter = TreeSelectMenuFilter,
+    T extends UniversalSelectMenuItem,
+    F extends UniversalSelectMenuFilter = UniversalSelectMenuFilter,
     Multiple extends boolean = false,
   >(_: {
     props: Omit<
@@ -173,7 +173,7 @@ export default defineSetupComponent(
     }
   }) =>
     options(_, {
-      name: 'UTreeSelectMenu',
+      name: 'UUniversalSelectMenu',
       props: [
         'items',
         'group',
@@ -542,7 +542,7 @@ export default defineSetupComponent(
         const searchId = useId()
         // reka sets the content's own id; falls through as an attribute
         const contentAttrs = {
-          'data-tree-select': searchId,
+          'data-universal-select': searchId,
           // a clicked row (`tabindex=-1`) would take focus from the search, and reka's arrow keys
           // only work there
           'onMousedown': (event: MouseEvent) => {
@@ -575,7 +575,7 @@ export default defineSetupComponent(
             const list = target?.matches('[role="listbox"]')
               ? target
               : target?.closest('[role="option"]')?.closest('[role="listbox"]')
-            const inList = !!list?.matches(`[data-tree-select="${CSS.escape(searchId)}"]`)
+            const inList = !!list?.matches(`[data-universal-select="${CSS.escape(searchId)}"]`)
             if (target?.id !== searchId && !inList) return
             if (event.isComposing) return
             const clears = clearsOnBackspace
