@@ -742,6 +742,7 @@ export default defineSetupComponent(
                   />
                 ),
                 <span
+                  data-group-header
                   class={
                     item.ungrouped
                       ? 'text-muted truncate text-sm'
@@ -999,9 +1000,11 @@ export default defineSetupComponent(
                   'first:rounded-t-md',
                 !(isList.value && (showsClear.value || showsSave.value)) && 'last:rounded-b-md',
                 isList.value && 'px-2.5',
+                // a header row, marked by its label, gets no hover fill, nor `USelectMenu`'s own
+                'has-data-group-header:before:hidden',
                 isArrowing.value
                   ? 'data-highlighted:not-data-disabled:ring-2 data-highlighted:not-data-disabled:ring-inset data-highlighted:not-data-disabled:ring-primary'
-                  : 'data-highlighted:not-data-disabled:bg-elevated',
+                  : 'data-highlighted:not-data-disabled:not-has-data-group-header:bg-elevated',
               ]
                 .filter(Boolean)
                 .join(' '),
