@@ -1,5 +1,6 @@
 import type { InputProps, SelectMenuProps } from '@nuxt/ui'
 import type { FunctionalComponent, VNode } from 'vue'
+import { useResizeObserver } from '@vueuse/core'
 import { Slot } from 'reka-ui'
 import { chunk, uniqueBy } from 'remeda'
 import { h, Teleport } from 'vue'
@@ -572,6 +573,25 @@ export default defineSetupComponent(
             if ((event.target as Element).closest('[role="option"]')) event.preventDefault()
           },
         }
+        // widest since open: a search or filter narrows the rows, the menu keeps its width
+        const contentEl = shallowRef<HTMLElement>()
+        const openWidth = ref(0)
+        watch(
+          isOpen,
+          (open) => {
+            openWidth.value = 0
+            contentEl.value = open
+              ? (document.querySelector<HTMLElement>(
+                  `[data-universal-select="${CSS.escape(searchId)}"]`,
+                ) ?? undefined)
+              : undefined
+          },
+          { flush: 'post' },
+        )
+        useResizeObserver(contentEl, () => {
+          if (contentEl.value)
+            openWidth.value = Math.max(openWidth.value, contentEl.value.offsetWidth)
+        })
         let clearsOnBackspace = false
         // typing moves the highlight to the first match, so it ends arrowing
         const isArrowing = ref(false)
@@ -992,6 +1012,12 @@ export default defineSetupComponent(
             // below: left-aligned, no flip above, shrinks to fit
             content={{
               ...contentAttrs,
+              // falls through as an attribute; still within the window
+              ...(openWidth.value && {
+                style: {
+                  minWidth: `min(${openWidth.value}px, var(--reka-combobox-content-available-width))`,
+                },
+              }),
               collisionPadding: { top: 8, right: 8, bottom: 48 * 2 + 8, left: 8 },
               ...(isBeside.value
                 ? { side: 'right', align: 'end' }
