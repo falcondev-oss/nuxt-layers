@@ -279,10 +279,8 @@ export default defineSetupComponent((_: object) =>
                                   clear={withClear}
                                   hideSearch={hideSearch}
                                   class="mt-auto w-full"
-                                  items={(withGroups ? teamedUsers : users).slice(
-                                    0,
-                                    few ? 3 : undefined,
-                                  )}
+                                  items={few ? teamedUsers.slice(0, 3) : teamedUsers}
+                                  group={withGroups}
                                   filters={withFilters ? tags : undefined}
                                   filterFn={withFilters ? filterUser : undefined}
                                   v-model={value.value}

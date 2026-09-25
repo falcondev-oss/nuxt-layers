@@ -85,6 +85,8 @@ export default defineSetupComponent(
       | 'clear'
     > & {
       items: T[]
+      // `false`: a flat list with no view toggle, whatever `item.groups` say
+      group?: boolean
       // list ungrouped items flat below
       listUngrouped?: boolean
       // label for the group of ungrouped items
@@ -133,6 +135,7 @@ export default defineSetupComponent(
     // the rest reaches `USelectMenu` as inherited attributes
     propKeys:
       | 'items'
+      | 'group'
       | 'listUngrouped'
       | 'ungroupedLabel'
       | 'filters'
@@ -156,6 +159,7 @@ export default defineSetupComponent(
       name: 'UTreeSelectMenu',
       props: [
         'items',
+        'group',
         'listUngrouped',
         'ungroupedLabel',
         'filters',
@@ -181,7 +185,9 @@ export default defineSetupComponent(
         const items = computed(() => uniqueBy(props.items, (item) => item.value))
 
         const view = ref<'tree' | 'list'>('tree')
-        const hasGroups = computed(() => items.value.some((item) => !!item.groups?.length))
+        const hasGroups = computed(
+          () => props.group !== false && items.value.some((item) => !!item.groups?.length),
+        )
         // groups gone: reset, so they return in the tree
         watch(hasGroups, (has) => {
           if (!has) view.value = 'tree'
