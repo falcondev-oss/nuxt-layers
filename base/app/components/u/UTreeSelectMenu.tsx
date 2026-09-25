@@ -78,7 +78,7 @@ export default defineSetupComponent(
   <
     T extends TreeSelectMenuItem,
     F extends TreeSelectMenuFilter = TreeSelectMenuFilter,
-    Single extends boolean = false,
+    Multiple extends boolean = false,
   >(_: {
     props: Omit<
       SelectMenuProps<
@@ -95,6 +95,7 @@ export default defineSetupComponent(
       | 'disabled'
       | 'loading'
       | 'clear'
+      | 'multiple'
     > & {
       items: T[]
       // `false`: a flat list with no view toggle, whatever `item.groups` say
@@ -108,14 +109,14 @@ export default defineSetupComponent(
       filters?: readonly F[]
       // only called while at least one filter is selected
       filterFn?: (item: T, filters: F[]) => boolean
-      single?: Single
+      multiple?: Multiple
       // a value no item holds is dropped once `items` are in: single to `undefined`, multiple
       // filtered out
-      modelValue?: (Single extends true ? T['value'] : (T['value'] | null)[]) | null
+      modelValue?: (Multiple extends true ? (T['value'] | null)[] : T['value']) | null
       // awaited before emit, spinner meanwhile. throws: no emit, stays open; single restores
       // pick, multiple keeps picks
       onChange?: (
-        value: Single extends true ? T['value'] | undefined : T['value'][],
+        value: Multiple extends true ? T['value'][] : T['value'] | undefined,
       ) => Promise<void> | void
       onBlur?: () => void
       disabled?: boolean
@@ -156,7 +157,7 @@ export default defineSetupComponent(
       | 'pinnedLabel'
       | 'filters'
       | 'filterFn'
-      | 'single'
+      | 'multiple'
       | 'modelValue'
       | 'onChange'
       | 'disabled'
@@ -167,7 +168,7 @@ export default defineSetupComponent(
       | 'hideSearch'
     emits: {
       'update:modelValue': (
-        value: Single extends true ? T['value'] | undefined : T['value'][],
+        value: Multiple extends true ? T['value'][] : T['value'] | undefined,
       ) => void
     }
   }) =>
@@ -181,7 +182,7 @@ export default defineSetupComponent(
         'pinnedLabel',
         'filters',
         'filterFn',
-        'single',
+        'multiple',
         'modelValue',
         'onChange',
         'disabled',
@@ -257,7 +258,7 @@ export default defineSetupComponent(
           isBeside.value = isShort.value || top >= Math.min(window.innerHeight / 2, boxMiddle)
         }
 
-        type Value = Single extends true ? T['value'] | undefined : T['value'][]
+        type Value = Multiple extends true ? T['value'][] : T['value'] | undefined
 
         const committed = computed(() => {
           const model = props.modelValue as T['value'] | (T['value'] | null)[] | null | undefined
@@ -275,7 +276,7 @@ export default defineSetupComponent(
         const toValue = (values: Set<T['value']>) => {
           const rank = (value: T['value']) => order.value.get(value) ?? order.value.size
           const sorted = [...values].toSorted((a, b) => rank(a) - rank(b))
-          return (props.single ? sorted[0] : sorted) as Value
+          return (props.multiple ? sorted : sorted[0]) as Value
         }
 
         const isSaving = ref(false)
@@ -289,7 +290,7 @@ export default defineSetupComponent(
 
         // single: always picks; clear has own button
         function toggle(value: T['value']) {
-          if (props.single) return update(new Set([value]))
+          if (!props.multiple) return update(new Set([value]))
           const next = new Set(selected.value)
           if (!next.delete(value)) next.add(value)
           update(next)
@@ -363,7 +364,7 @@ export default defineSetupComponent(
         }
 
         // single, no `onChange`: pick closes, no save button
-        const closesOnPick = computed(() => props.single && !props.onChange)
+        const closesOnPick = computed(() => !props.multiple && !props.onChange)
         const isDirty = computed(
           // receiver must be raw: `draft` is a reactive proxy
           () => !!draft.value && committed.value.symmetricDifference(draft.value).size > 0,
@@ -374,20 +375,20 @@ export default defineSetupComponent(
           () =>
             props.clear &&
             (isClearing.value ||
-              (props.single
-                ? picked.value !== undefined && picked.value === pickedOnOpen.value
-                : !!props.onChange && selected.value.size > 0 && !isDirty.value)),
+              (props.multiple
+                ? !!props.onChange && selected.value.size > 0 && !isDirty.value
+                : picked.value !== undefined && picked.value === pickedOnOpen.value)),
         )
         // nothing picked: "Keine auswählen" only for a changed draft
         const showsSave = computed(() => {
           if (selected.value.size === 0) return isDirty.value
-          return props.single ? !closesOnPick.value && picked.value !== pickedOnOpen.value : true
+          return props.multiple ? true : !closesOnPick.value && picked.value !== pickedOnOpen.value
         })
 
         function pick(value: T['value']) {
           if (isSaving.value) return
           toggle(value)
-          if (props.single && props.onChange && draft.value) {
+          if (!props.multiple && props.onChange && draft.value) {
             const at = Date.now()
             const isDouble = lastPick?.value === value && (isEnterPick || at - lastPick.at < 500)
             lastPick = isDouble ? undefined : { value, at }
@@ -406,7 +407,7 @@ export default defineSetupComponent(
             await props.onChange?.(value)
           } catch (err) {
             // multiple: keep picks for retry
-            if (props.single && draft.value)
+            if (!props.multiple && draft.value)
               draft.value = new Set(pickedOnOpen.value === undefined ? [] : [pickedOnOpen.value])
             // click handler not awaited; rethrow = unhandled rejection
             console.error(err)
@@ -454,7 +455,7 @@ export default defineSetupComponent(
           const pinnedHeader =
             pinned.length === 0 || !label
               ? undefined
-              : props.single || isFlat
+              : !props.multiple || isFlat
                 ? { type: 'label' as const, label, rowKey: '\0pinned' }
                 : {
                     type: 'group' as const,
@@ -506,7 +507,7 @@ export default defineSetupComponent(
                   ungrouped: index === labels.length,
                 },
                 // single: the header has no checkbox to indent under
-                ...(isCollapsed ? [] : items.map((item) => toRow(item, props.single ? 0 : 1))),
+                ...(isCollapsed ? [] : items.map((item) => toRow(item, props.multiple ? 1 : 0))),
               ]
             },
           )
@@ -603,7 +604,7 @@ export default defineSetupComponent(
                   .flatMap((row) => ('type' in row || row.pinned ? [] : row.value)),
               ),
             ]
-            if (props.single) {
+            if (!props.multiple) {
               if (matches.length === 1) pick(matches[0]!)
               return
             }
@@ -732,7 +733,7 @@ export default defineSetupComponent(
         const itemContent = (item: ItemRow<T> | GroupRow<T['value']>) =>
           'type' in item
             ? [
-                !props.single && (
+                props.multiple && (
                   <UCheckbox
                     size="md"
                     class="pointer-events-none shrink-0"
@@ -782,14 +783,14 @@ export default defineSetupComponent(
                 item.indent ? (
                   <div class="shrink-0" style={{ width: `${item.indent * 0.1}rem` }} />
                 ) : undefined,
-                props.single ? (
-                  radio(selected.value.has(item.value))
-                ) : (
+                props.multiple ? (
                   <UCheckbox
                     size="md"
                     class="pointer-events-none shrink-0"
                     modelValue={selected.value.has(item.value)}
                   />
+                ) : (
+                  radio(selected.value.has(item.value))
                 ),
                 ...(slots.prefix?.({ item }) ?? []),
                 <span class="flex min-w-0 flex-col">
@@ -817,8 +818,11 @@ export default defineSetupComponent(
               class="border-default even:bg-elevated/30 flex w-full items-center gap-1.5 border-b px-2.5 py-3.5 text-start text-sm last:border-b-0"
               onClick={() => {
                 if (!('type' in item)) pick(item.value)
-                else if (props.single) toggleCollapsed(item.label)
-                else toggleGroup(item.values)
+                else if (props.multiple) {
+                  toggleGroup(item.values)
+                } else {
+                  toggleCollapsed(item.label)
+                }
               }}
             >
               {itemContent(item)}
@@ -866,9 +870,9 @@ export default defineSetupComponent(
           props.submitLabel?.(selected.value.size) ??
           (selected.value.size === 0
             ? 'Keine auswählen'
-            : props.single
-              ? 'Auswählen'
-              : `${selected.value.size} auswählen`)
+            : props.multiple
+              ? `${selected.value.size} auswählen`
+              : 'Auswählen')
 
         // success closes (draft gone): keeps the clear button through the close animation
         function clearAll() {
@@ -880,7 +884,7 @@ export default defineSetupComponent(
           void save(toValue(new Set())).then(() => {
             if (!draft.value) return
             isClearing.value = false
-            if (!props.single) draft.value = picks
+            if (props.multiple) draft.value = picks
           })
         }
 
@@ -952,7 +956,7 @@ export default defineSetupComponent(
               place()
               // live picks start no draft to reset it: a clear button would stay
               isClearing.value = false
-              if (props.single || props.onChange) startDraft()
+              if (!props.multiple || props.onChange) startDraft()
             }}
             items={grouped.value}
             valueKey="rowKey"
@@ -1041,17 +1045,17 @@ export default defineSetupComponent(
                   (row): row is GroupRow<T['value']> =>
                     'type' in row && row.type === 'group' && keys.includes(row.rowKey),
                 )
-              if (header && props.single) toggleCollapsed(header.label)
+              if (header && !props.multiple) toggleCollapsed(header.label)
               else if (header) toggleGroup(header.values)
-              else if (props.single) {
+              else if (props.multiple) {
+                update(new Set(keys.map((key) => fromKey(key) as T['value'])))
+              } else {
                 // changed row: newly picked or unpicked
                 const selectedKeys = [...selected.value].map(toKey)
                 const changed =
                   keys.find((key) => !selectedKeys.includes(key)) ??
                   selectedKeys.find((key) => !keys.includes(key))
                 if (changed !== undefined) pick(fromKey(changed))
-              } else {
-                update(new Set(keys.map((key) => fromKey(key) as T['value'])))
               }
             }}
             v-slots={{

@@ -205,11 +205,11 @@ export default defineSetupComponent((_: object) =>
       // plus without search, with/without groups, with only 3 items, with a custom trigger, and
       // with pinned items with/without groups, and starting on a value no item holds
       const sections = [
-        { title: 'Single', single: true },
-        { title: 'Multiple', single: false },
-      ].map(({ title, single }) => ({
+        { title: 'Single', multiple: false },
+        { title: 'Multiple', multiple: true },
+      ].map(({ title, multiple }) => ({
         title,
-        single,
+        multiple,
         groups: [
           { title: undefined, onChange: undefined },
           { title: 'onChange', onChange: () => wait(1000) },
@@ -259,12 +259,12 @@ export default defineSetupComponent((_: object) =>
             ...variant,
             value: ref<string | string[] | undefined>(
               'stale' in variant
-                ? single
-                  ? 'nobody'
-                  : ['tom', 'nobody']
-                : single
-                  ? undefined
-                  : [],
+                ? multiple
+                  ? ['tom', 'nobody']
+                  : 'nobody'
+                : multiple
+                  ? []
+                  : undefined,
             ),
           })),
         })),
@@ -274,7 +274,7 @@ export default defineSetupComponent((_: object) =>
 
       return () => (
         <div class="flex flex-col gap-6">
-          {sections.map(({ title, single, groups }) => (
+          {sections.map(({ title, multiple, groups }) => (
             <UCard
               v-slots={vSlots(UCard, {
                 header: () => [<h2 class="text-highlighted font-semibold">{title}</h2>],
@@ -312,7 +312,7 @@ export default defineSetupComponent((_: object) =>
                                     .join(' · ')}
                                 </span>
                                 <UTreeSelectMenu
-                                  single={single}
+                                  multiple={multiple}
                                   onChange={onChange}
                                   clear={withClear}
                                   hideSearch={hideSearch}
@@ -373,13 +373,17 @@ export default defineSetupComponent((_: object) =>
               default: () => [
                 <div class="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4">
                   <div class="flex flex-col gap-1">
-                    <UTreeSelectMenu single items={primitives} v-model={primitiveSingle.value} />
+                    <UTreeSelectMenu items={primitives} v-model={primitiveSingle.value} />
                     <code class="text-muted text-xs">
                       {JSON.stringify(primitiveSingle.value) ?? 'undefined'}
                     </code>
                   </div>
                   <div class="flex flex-col gap-1">
-                    <UTreeSelectMenu items={primitives} v-model={primitiveMultiple.value} />
+                    <UTreeSelectMenu
+                      multiple
+                      items={primitives}
+                      v-model={primitiveMultiple.value}
+                    />
                     <code class="text-muted text-xs">
                       {JSON.stringify(primitiveMultiple.value)}
                     </code>
