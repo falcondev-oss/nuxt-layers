@@ -283,7 +283,8 @@ export default defineSetupComponent(
         const isLoaded = computed(() => !props.loading && items.value.length > 0)
         const known = computed(() => new Set(items.value.map((item) => item.value)))
         // only values an item holds: a stale one looks unpicked (clear x, footer) even while a
-        // one-way binding keeps it in the model. mid-load all: a pick would drop one not listed yet
+        // one-way binding keeps it in the model. mid-load all: a draft opened then would drop one
+        // not listed yet
         const committed = computed(() =>
           isLoaded.value ? known.value.intersection(model.value) : model.value,
         )
@@ -302,10 +303,11 @@ export default defineSetupComponent(
         }
 
         const isSaving = ref(false)
+        // no writes: mid-load, a pick or save would go out against a partial list
         const isBusy = computed(() => props.loading || isSaving.value)
 
         function update(next: Set<T['value']>) {
-          if (isSaving.value) return
+          if (isBusy.value) return
           if (draft.value) draft.value = next
           else emit('update:modelValue', toValue(next))
         }
@@ -415,7 +417,7 @@ export default defineSetupComponent(
         })
 
         function pick(value: T['value']) {
-          if (isSaving.value) return
+          if (isBusy.value) return
           toggle(value)
           if (!props.multiple && props.onChange && draft.value) {
             const at = Date.now()
@@ -431,6 +433,7 @@ export default defineSetupComponent(
         }
 
         async function save(value: Value) {
+          if (isBusy.value) return
           isSaving.value = true
           try {
             await props.onChange?.(value)
@@ -919,7 +922,7 @@ export default defineSetupComponent(
 
         // success closes (draft gone): keeps the clear button through the close animation
         function clearAll() {
-          if (isSaving.value) return
+          if (isBusy.value) return
           const picks = draft.value
           if (picks) draft.value = new Set()
           isClearing.value = true
@@ -940,6 +943,7 @@ export default defineSetupComponent(
               icon="lucide:x"
               label={props.deselectLabel ?? 'Auswahl aufheben'}
               loading={isSaving.value}
+              disabled={props.loading}
               // closing after a clear: a second tap would save again
               onClick={() => !isClearing.value && clearAll()}
             />
@@ -949,6 +953,7 @@ export default defineSetupComponent(
                 class="flex-1 justify-center"
                 label={saveLabel()}
                 loading={isSaving.value}
+                disabled={props.loading}
                 // live picks (multiple, no `onChange`) already emitted; re-emit harmless
                 onClick={() => void save(toValue(selected.value))}
               />
