@@ -274,11 +274,19 @@ export default defineSetupComponent(
 
         type Value = Multiple extends true ? T['value'][] : T['value'] | undefined
 
-        const committed = computed(() => {
-          const model = props.modelValue as T['value'] | (T['value'] | null)[] | null | undefined
-          const values = Array.isArray(model) ? model : [model]
+        const model = computed(() => {
+          const value = props.modelValue as T['value'] | (T['value'] | null)[] | null | undefined
+          const values = Array.isArray(value) ? value : [value]
           return new Set(values.filter((value): value is T['value'] => value !== undefined))
         })
+        // not mid-load: an empty or stale list would drop picks for good
+        const isLoaded = computed(() => !props.loading && items.value.length > 0)
+        const known = computed(() => new Set(items.value.map((item) => item.value)))
+        // only values an item holds: a stale one looks unpicked (clear x, footer) even while a
+        // one-way binding keeps it in the model. mid-load all: a pick would drop one not listed yet
+        const committed = computed(() =>
+          isLoaded.value ? known.value.intersection(model.value) : model.value,
+        )
         const selected = computed(() => draft.value ?? committed.value)
         // saved picks with an item, in item order: mid-load, a value no item holds yet is missing
         const pickedItems = computed(() =>
@@ -344,17 +352,16 @@ export default defineSetupComponent(
         }
 
         // drop values no item holds, from the model and an open draft (also once a failed save
-        // restores it). not mid-load: an empty or stale list would drop picks for good
+        // restores it)
         watch(
-          () => [items.value, props.loading, committed.value, draft.value] as const,
-          ([items, loading, model]) => {
-            if (loading || items.length === 0) return
-            const known = new Set(items.map((item) => item.value))
+          () => [isLoaded.value, known.value, model.value, draft.value] as const,
+          ([isLoaded, known, model]) => {
+            if (!isLoaded) return
             // receiver must be raw: `draft` is a reactive proxy
             if (draft.value && !known.isSupersetOf(draft.value))
               draft.value = known.intersection(draft.value)
-            if (!model.isSubsetOf(known))
-              emit('update:modelValue', toValue(known.intersection(model)))
+            if (committed.value.size < model.size)
+              emit('update:modelValue', toValue(committed.value))
           },
           { immediate: true },
         )
@@ -1139,6 +1146,15 @@ export default defineSetupComponent(
                   ]
                 const picks = pickedItems.value
                 const [item] = picks
+                // loaded, a saved value no item holds: say so, its clear x has a reason.
+                // without `loading` an empty list may still be on its way
+                if (!item && props.loading === false && model.value.size > 0)
+                  return [
+                    <span class={[ui.value(), 'text-muted flex items-center gap-1.5']}>
+                      <UIcon name="lucide:circle-alert" class="size-4 shrink-0" />
+                      <span class="truncate">Nicht verfügbar</span>
+                    </span>,
+                  ]
                 if (!item)
                   return [<span class={ui.placeholder()}>{attrs.placeholder ?? '\u{A0}'}</span>]
                 if (picks.length > 1)
