@@ -3,7 +3,7 @@ import type { FunctionalComponent, VNode } from 'vue'
 import { useResizeObserver } from '@vueuse/core'
 import { Slot } from 'reka-ui'
 import { chunk, isNonNull, isNonNullish } from 'remeda'
-import { h, Teleport } from 'vue'
+import { Comment, Fragment, h, isVNode, Teleport } from 'vue'
 import { UButton, UCheckbox, UIcon, UInput, UModal, USelectMenu, UTabs } from '#components'
 
 type Primitive = string | number | boolean | null
@@ -27,6 +27,19 @@ export type UniversalSelectMenuFilter = { label: string; value: string }
 // `rowKey`: `USelectMenu`'s value for the row, one string space for item and group rows.
 // wraps the item: its own keys (e.g. a `type`) would reach `USelectMenu` and mistype the row
 type ItemRow<T> = { type: 'item'; rowKey: string; item: T }
+
+// a slot's output, or `undefined` if it rendered nothing, for a `??` default: Vue wraps every
+// slot, so one whose `v-if` didn't take still returns a comment, not `null`
+function slotContent(nodes: VNode[] | undefined) {
+  return nodes?.some(isContent) ? nodes : undefined
+}
+function isContent(node: unknown): boolean {
+  if (Array.isArray(node)) return node.some(isContent)
+  if (!isVNode(node)) return node != null && typeof node !== 'boolean' && node !== ''
+  if (node.type === Comment) return false
+  if (node.type === Fragment && Array.isArray(node.children)) return node.children.some(isContent)
+  return true
+}
 
 type GroupRow<V> = {
   type: 'group'
@@ -987,6 +1000,7 @@ export default defineSetupComponent(
               ),
             ]
           const { item } = row
+          const description = slotContent(slots.description?.({ item })) ?? item.description
           return [
             props.multiple ? (
               item.value === null ? (
@@ -1009,13 +1023,11 @@ export default defineSetupComponent(
                 <span class="truncate">{item.label}</span>
                 {slots.suffix?.({ item })}
               </span>
-              {(slots.description || item.description) && (
-                <span class="text-muted truncate text-xs">
-                  {slots.description?.({ item }) ?? item.description}
-                </span>
-              )}
+              {description && <span class="text-muted truncate text-xs">{description}</span>}
             </span>,
-            <span class="text-muted ms-auto text-xs">{slots.hint?.({ item }) ?? item.hint}</span>,
+            <span class="text-muted ms-auto text-xs">
+              {slotContent(slots.hint?.({ item })) ?? item.hint}
+            </span>,
           ]
         }
 
@@ -1349,7 +1361,7 @@ export default defineSetupComponent(
                 if (picks.length > 1)
                   return [
                     <span class={ui.value()}>
-                      {slots.summary?.({ picks }) ?? `${picks.length} ausgewählt`}
+                      {slotContent(slots.summary?.({ picks })) ?? `${picks.length} ausgewählt`}
                     </span>,
                   ]
 
