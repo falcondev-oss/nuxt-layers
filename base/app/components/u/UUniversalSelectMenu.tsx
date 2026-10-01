@@ -362,14 +362,13 @@ export default defineSetupComponent(
         // picks a pending `onChange` saves: the trigger shows them till it settles
         const savingPicks = ref<Set<T['value']>>()
         // saved (or saving) picks with an item, in item order: mid-load, a value no item holds yet
-        // is missing. multiple, nothing saved: the `null` item stands for it; no model yet: the
-        // placeholder
+        // is missing. a clear saving, or multiple with nothing saved: the `null` item stands for it;
+        // no model yet: the placeholder; only stale values: none, so the trigger says unavailable
         const pickedItems = computed(() => {
           const picks = savingPicks.value ?? committed.value
-          const savesNothing =
-            props.multiple &&
-            (!!savingPicks.value || props.modelValue !== undefined) &&
-            picks.size === 0
+          const savesNothing = savingPicks.value
+            ? savingPicks.value.size === 0
+            : props.multiple && props.modelValue !== undefined && model.value.size === 0
           if (savesNothing && nullItem.value) return [nullItem.value]
           return items.value.filter((item) => picks.has(item.value))
         })
@@ -1310,9 +1309,9 @@ export default defineSetupComponent(
                   ]
                 const picks = pickedItems.value
                 const [item] = picks
-                // loaded, a saved value no item holds: say so, its clear x has a reason.
-                // without `loading` an empty list may still be on its way
-                if (!item && props.loading === false && !savingPicks.value && model.value.size > 0)
+                // loaded, only values no item holds saved (a one-way binding keeps them): say so.
+                // an empty list may still be on its way
+                if (!item && isLoaded.value && !savingPicks.value && model.value.size > 0)
                   return [
                     <span class={[ui.value(), 'text-muted flex items-center gap-1.5']}>
                       <UIcon name="lucide:circle-alert" class="size-4 shrink-0" />
