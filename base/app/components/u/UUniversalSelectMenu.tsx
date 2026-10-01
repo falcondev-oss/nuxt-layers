@@ -483,7 +483,7 @@ export default defineSetupComponent(
 
         function close() {
           endDraft()
-          // prop close skips `USelectMenu`'s blur
+          // prop close skips `USelectMenu`'s blur, and its search reset: the next open keeps the search
           isOpen.value = false
           attrs.onBlur?.()
         }
