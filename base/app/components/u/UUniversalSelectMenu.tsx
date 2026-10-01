@@ -495,9 +495,9 @@ export default defineSetupComponent(
                 ? (!!props.onChange || isMobile.value) && selected.value.size > 0 && !isDirty.value
                 : picked.value !== undefined && picked.value === pickedOnOpen.value)),
         )
-        // nothing picked: "Keine auswählen" only for a changed draft
+        // nothing picked: "Keine auswählen" only for a changed draft, or while a clear saves
         const showsSave = computed(() => {
-          if (selected.value.size === 0) return isDirty.value
+          if (selected.value.size === 0) return isDirty.value || isSaving.value
           return props.multiple ? true : !closesOnPick.value && picked.value !== pickedOnOpen.value
         })
 
@@ -506,8 +506,8 @@ export default defineSetupComponent(
           // single: the saved row changes nothing, so it closes without a save or emit
           if (!props.multiple && draft.value && value === pickedOnOpen.value) return close()
           toggle(value)
-          // sheet, multiple: the `null` row with nothing saved changes nothing, so it closes
-          if (props.multiple && value === null && draft.value && !isDirty.value) return close()
+          // sheet, multiple: the `null` row with nothing picked is the clear
+          if (props.multiple && value === null && draft.value && !isDirty.value) return clearAll()
           if (!props.multiple && props.onChange && draft.value) {
             const at = Date.now()
             const isDouble = lastPick?.value === value && (isEnterPick || at - lastPick.at < 500)
@@ -1092,8 +1092,8 @@ export default defineSetupComponent(
         // success closes (draft gone): keeps the clear button through the close animation
         function clearAll() {
           if (isBusy.value) return
-          // nothing saved: clearing changes nothing, so it only closes
-          if (committed.value.size === 0) return close()
+          // `null` saved: clearing changes nothing, so it only closes. no model yet: saves the `null`
+          if (committed.value.size === 0 && props.modelValue !== undefined) return close()
           const picks = draft.value
           if (picks) draft.value = new Set()
           isClearing.value = true
@@ -1233,6 +1233,8 @@ export default defineSetupComponent(
                 'items-center py-2 rounded-none border-b border-default last:border-b-0 even:bg-elevated/30',
                 // ring follows the corners; list view: square beside the search or footer
                 'first:rounded-t-md last:rounded-b-md in-[.is-list]:px-2.5',
+                // list view: groups run on as one list, so only its outer ends round
+                '[.is-list>:not(:first-child)>&]:rounded-t-none [.is-list>:not(:last-child)>&]:rounded-b-none',
                 (!props.hideSearch || hasFilterBar.value) && 'in-[.is-list]:first:rounded-t-none',
                 (footer.value.clear || footer.value.save) && 'in-[.is-list]:last:rounded-b-none',
                 // a header row, marked by its label, gets no hover fill, nor `USelectMenu`'s own
