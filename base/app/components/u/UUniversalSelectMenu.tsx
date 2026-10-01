@@ -430,8 +430,9 @@ export default defineSetupComponent(
           update(next)
         }
 
-        // group labels. a search or filter collapses its own, from all expanded, so its matches
-        // show; a new search term or filter expands them again
+        // group labels, `\0` for the ungrouped box, whose label a real group may share. a search or
+        // filter collapses its own, from all expanded, so its matches show; a new search term or
+        // filter expands them again
         const collapsed = ref(new Set<string>())
         const narrowedCollapsed = ref(new Set<string>())
         const isNarrowed = computed(
@@ -439,17 +440,23 @@ export default defineSetupComponent(
         )
         watch([searchTerm, filterValues], () => (narrowedCollapsed.value = new Set()))
 
-        function toggleCollapsed(label: string) {
+        const collapseKey = ({
+          label,
+          ungrouped,
+        }: Pick<GroupRow<unknown>, 'label' | 'ungrouped'>) => (ungrouped ? '\0' : label)
+
+        function toggleCollapsed(row: GroupRow<T['value']>) {
           const set = isNarrowed.value ? narrowedCollapsed : collapsed
           const next = new Set(set.value)
-          if (!next.delete(label)) next.add(label)
+          const key = collapseKey(row)
+          if (!next.delete(key)) next.add(key)
           set.value = next
         }
 
         // a header click toggles its group (single: collapses it)
         function activate(row: GroupRow<T['value']> | AllRow<T['value']>) {
           if (row.type === 'all' || props.multiple) toggleMany(row.shown)
-          else toggleCollapsed(row.label)
+          else toggleCollapsed(row)
         }
 
         // drop values no item holds, from the model and an open draft (also once a failed save
@@ -648,7 +655,11 @@ export default defineSetupComponent(
               (item) => passesFilter(item) && (matches(label) || matchesSearch(item)),
             )
             if (items.length === 0) return []
-            const isCollapsed = (isNarrowed.value ? narrowedCollapsed : collapsed).value.has(label)
+            // the ungrouped entry is only ever pushed after the labelled groups
+            const ungrouped = index === labels.length
+            const isCollapsed = (isNarrowed.value ? narrowedCollapsed : collapsed).value.has(
+              collapseKey({ label, ungrouped }),
+            )
             return {
               header: {
                 type: 'group',
@@ -657,8 +668,7 @@ export default defineSetupComponent(
                 values: groupItems.map((item) => item.value),
                 shown: items.map((item) => item.value),
                 collapsed: isCollapsed,
-                // the ungrouped entry is only ever pushed after the labelled groups
-                ungrouped: index === labels.length,
+                ungrouped,
               },
               rows: isCollapsed ? [] : items.map(toRow),
             }
@@ -965,7 +975,7 @@ export default defineSetupComponent(
                       onClick={(event) => {
                         // else row click toggles group (single: collapses)
                         event.stopPropagation()
-                        toggleCollapsed(item.label)
+                        toggleCollapsed(item)
                       }}
                     >
                       <UIcon
