@@ -24,8 +24,9 @@ export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
 }
 export type UniversalSelectMenuFilter = { label: string; value: string }
 
-// `rowKey`: `USelectMenu`'s value for the row, one string space for item and group rows
-type ItemRow<T> = T & { rowKey: string }
+// `rowKey`: `USelectMenu`'s value for the row, one string space for item and group rows.
+// wraps the item: its own keys (e.g. a `type`) would reach `USelectMenu` and mistype the row
+type ItemRow<T> = { type: 'item'; rowKey: string; item: T }
 
 type GroupRow<V> = {
   type: 'group'
@@ -40,7 +41,6 @@ type GroupRow<V> = {
   ungrouped?: boolean
   // the pinned items' header; never collapses
   pinned?: boolean
-  hint?: never
 }
 
 // collapsed: no `rows`, while `header.shown` still holds its matches
@@ -62,7 +62,6 @@ type AllRow<V> = {
   shown: V[]
   // what the checkbox reflects: all items, ignoring search and filter
   checked: boolean | 'indeterminate'
-  hint?: never
 }
 
 // `USelectMenu` draws it as a line between the pinned rows and the rest; `rowKey` only for its types
@@ -580,7 +579,7 @@ export default defineSetupComponent(
         })
 
         // `list` holds the rows without a header: the list view's, or the ungrouped ones
-        const toRow = (item: T): ItemRow<T> => ({ ...item, rowKey: toKey(item.value) })
+        const toRow = (item: T): ItemRow<T> => ({ type: 'item', rowKey: toKey(item.value), item })
 
         const isList = computed(() => view.value === 'list' || !hasGroups.value)
 
@@ -626,7 +625,7 @@ export default defineSetupComponent(
                     label,
                     rowKey: '\0pinned',
                     values: listed.filter((item) => item.pinned).map((item) => item.value),
-                    shown: pinned.map((item) => item.value),
+                    shown: pinned.map((row) => row.item.value),
                     collapsed: false,
                     pinned: true,
                   }
@@ -692,7 +691,9 @@ export default defineSetupComponent(
           // a value under several groups counts once; a collapsed group's are left out, as on Enter
           const shown = [
             ...new Set(
-              [...pinned, ...groups.flatMap(({ rows }) => rows), ...list].map((item) => item.value),
+              [...pinned, ...groups.flatMap(({ rows }) => rows), ...list].map(
+                (row) => row.item.value,
+              ),
             ),
           ]
           if (shown.length === 0) return []
@@ -805,7 +806,11 @@ export default defineSetupComponent(
             if (!searchTerm.value.trim()) return
             // a value under several groups counts once; a collapsed group's are left out
             const matches = [
-              ...new Set(grouped.value.flat().flatMap((row) => ('type' in row ? [] : row.value))),
+              ...new Set(
+                grouped.value
+                  .flat()
+                  .flatMap((row) => (row.type === 'item' ? [row.item.value] : [])),
+              ),
             ]
             if (!props.multiple) {
               if (matches.length === 1) pick(matches[0]!)
@@ -935,98 +940,94 @@ export default defineSetupComponent(
           )
         }
 
-        const itemContent = (item: ItemRow<T> | GroupRow<T['value']> | AllRow<T['value']>) =>
-          'type' in item && item.type === 'all'
-            ? [
+        const itemContent = (row: ItemRow<T> | GroupRow<T['value']> | AllRow<T['value']>) => {
+          if (row.type === 'all')
+            return [
+              <UCheckbox size="md" class="pointer-events-none shrink-0" modelValue={row.checked} />,
+              <span class="truncate font-medium">{row.label}</span>,
+            ]
+          if (row.type === 'group')
+            return [
+              props.multiple && (
                 <UCheckbox
                   size="md"
                   class="pointer-events-none shrink-0"
-                  modelValue={item.checked}
-                />,
-                <span class="truncate font-medium">{item.label}</span>,
-              ]
-            : 'type' in item
-              ? [
-                  props.multiple && (
-                    <UCheckbox
-                      size="md"
-                      class="pointer-events-none shrink-0"
-                      modelValue={checkState(item.values, selected.value)}
-                    />
-                  ),
-                  <span
-                    data-group-header
-                    class={
-                      item.ungrouped
-                        ? 'text-muted truncate text-sm'
-                        : 'text-highlighted truncate text-sm font-semibold'
-                    }
-                  >
-                    {item.label}
-                  </span>,
-                  !item.pinned && (
-                    <button
-                      type="button"
-                      class="text-muted hover:text-highlighted hover:bg-accented -my-1 ms-auto flex rounded-md p-1"
-                      aria-label={item.collapsed ? 'Aufklappen' : 'Zuklappen'}
-                      aria-expanded={!item.collapsed}
-                      // keeps focus in the search input, whose blur would close the menu
-                      onMousedown={(event) => event.preventDefault()}
-                      onClick={(event) => {
-                        // else row click toggles group (single: collapses)
-                        event.stopPropagation()
-                        toggleCollapsed(item)
-                      }}
-                    >
-                      <UIcon
-                        name={item.collapsed ? 'lucide:chevron-right' : 'lucide:chevron-down'}
-                        class="size-5"
-                      />
-                    </button>
-                  ),
-                ]
-              : [
-                  props.multiple ? (
-                    item.value === null ? (
-                      // clears, no pick to check; keeps the labels aligned
-                      <span class="size-4 shrink-0" />
-                    ) : (
-                      <UCheckbox
-                        size="md"
-                        class="pointer-events-none shrink-0"
-                        modelValue={selected.value.has(item.value)}
-                      />
-                    )
-                  ) : (
-                    radio(selected.value.has(item.value))
-                  ),
-                  ...(slots.prefix?.({ item }) ?? []),
-                  <span class="flex min-w-0 flex-col">
-                    {/* suffix beside the label: a longer description would push it aside */}
-                    <span class="flex min-w-0 items-center gap-1.5">
-                      <span class="truncate">{item.label}</span>
-                      {slots.suffix?.({ item })}
-                    </span>
-                    {(slots.description || item.description) && (
-                      <span class="text-muted truncate text-xs">
-                        {slots.description?.({ item }) ?? item.description}
-                      </span>
-                    )}
-                  </span>,
-                  <span class="text-muted ms-auto text-xs">
-                    {slots.hint?.({ item }) ?? item.hint}
-                  </span>,
-                ]
+                  modelValue={checkState(row.values, selected.value)}
+                />
+              ),
+              <span
+                data-group-header
+                class={
+                  row.ungrouped
+                    ? 'text-muted truncate text-sm'
+                    : 'text-highlighted truncate text-sm font-semibold'
+                }
+              >
+                {row.label}
+              </span>,
+              !row.pinned && (
+                <button
+                  type="button"
+                  class="text-muted hover:text-highlighted hover:bg-accented -my-1 ms-auto flex rounded-md p-1"
+                  aria-label={row.collapsed ? 'Aufklappen' : 'Zuklappen'}
+                  aria-expanded={!row.collapsed}
+                  // keeps focus in the search input, whose blur would close the menu
+                  onMousedown={(event) => event.preventDefault()}
+                  onClick={(event) => {
+                    // else row click toggles group (single: collapses)
+                    event.stopPropagation()
+                    toggleCollapsed(row)
+                  }}
+                >
+                  <UIcon
+                    name={row.collapsed ? 'lucide:chevron-right' : 'lucide:chevron-down'}
+                    class="size-5"
+                  />
+                </button>
+              ),
+            ]
+          const { item } = row
+          return [
+            props.multiple ? (
+              item.value === null ? (
+                // clears, no pick to check; keeps the labels aligned
+                <span class="size-4 shrink-0" />
+              ) : (
+                <UCheckbox
+                  size="md"
+                  class="pointer-events-none shrink-0"
+                  modelValue={selected.value.has(item.value)}
+                />
+              )
+            ) : (
+              radio(selected.value.has(item.value))
+            ),
+            ...(slots.prefix?.({ item }) ?? []),
+            <span class="flex min-w-0 flex-col">
+              {/* suffix beside the label: a longer description would push it aside */}
+              <span class="flex min-w-0 items-center gap-1.5">
+                <span class="truncate">{item.label}</span>
+                {slots.suffix?.({ item })}
+              </span>
+              {(slots.description || item.description) && (
+                <span class="text-muted truncate text-xs">
+                  {slots.description?.({ item }) ?? item.description}
+                </span>
+              )}
+            </span>,
+            <span class="text-muted ms-auto text-xs">{slots.hint?.({ item }) ?? item.hint}</span>,
+          ]
+        }
 
         const sheetRows = (rows: (ItemRow<T> | GroupRow<T['value']> | AllRow<T['value']>)[]) =>
-          rows.map((item) => (
+          rows.map((row) => (
             // not a <button>: a group row holds the collapse button
             <div
               role="button"
               class="border-default even:bg-elevated/30 flex w-full items-center gap-1.5 border-b px-2.5 py-3.5 text-start text-sm last:border-b-0"
-              onClick={() => ('type' in item ? activate(item) : pick(item.value))}
+              onClick={() => (row.type === 'item' ? pick(row.item.value) : activate(row))}
             >
-              {itemContent(item)}
+              {itemContent(row)}
             </div>
           ))
 
@@ -1274,9 +1275,7 @@ export default defineSetupComponent(
                 .flat()
                 .find(
                   (row): row is GroupRow<T['value']> | AllRow<T['value']> =>
-                    'type' in row &&
-                    (row.type === 'group' || row.type === 'all') &&
-                    keys.includes(row.rowKey),
+                    (row.type === 'group' || row.type === 'all') && keys.includes(row.rowKey),
                 )
               if (header) activate(header)
               // the `null` row is never selected: it only shows up as a click, which saves the clear
