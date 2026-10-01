@@ -1289,6 +1289,14 @@ export default defineSetupComponent(
               close={false}
               open={!!draft.value}
               onUpdate:open={(open) => !open && !isSaving.value && close()}
+              // reka focuses the first tabbable, the search: the keyboard would cover the rows.
+              // the dialog takes focus instead, so the trap holds
+              content={{
+                onOpenAutoFocus: (event: Event) => {
+                  event.preventDefault()
+                  ;(event.currentTarget as HTMLElement | null)?.focus()
+                },
+              }}
               ui={{
                 // sideways there's little height, so everything shares one row
                 header: 'min-h-0 gap-2 p-4',
