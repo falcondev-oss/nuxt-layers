@@ -770,7 +770,9 @@ export default defineSetupComponent(
               searchTerm.value = ''
               return
             }
-            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') isArrowing.value = true
+            // the sheet has no highlight to arrow to
+            if (!isMobile.value && (event.key === 'ArrowUp' || event.key === 'ArrowDown'))
+              isArrowing.value = true
             if (event.key !== 'Enter') return
             // Enter passed on to reka: its keydown clicks the highlighted row after this listener;
             // reset once all have run
