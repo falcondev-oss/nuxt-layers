@@ -790,7 +790,10 @@ export default defineSetupComponent(
               return
             }
             // the `null` item clears, it's no pick
-            toggleMany(matches.filter(isNonNull))
+            const picks = matches.filter(isNonNull)
+            // nothing toggled: Backspace stays a Backspace
+            if (picks.length === 0) return
+            toggleMany(picks)
             clearsOnBackspace = true
           },
           { capture: true },
