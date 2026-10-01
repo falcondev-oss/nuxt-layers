@@ -153,10 +153,10 @@ const pinnedUsers = teamedUsers.map((user) => ({
 
 // values JSON tells apart but a string key wouldn't: `null`, `1`, `'1'`, `true`
 const primitives = [
-  { label: 'Keine', value: null, hint: 'null', pinned: true },
+  { label: 'Keine', value: null, hint: 'null' },
   { label: 'Eins (Zahl)', value: 1, hint: '1' },
   { label: 'Eins (Text)', value: '1', hint: "'1'" },
-  { label: 'Ja', value: true, hint: 'true' },
+  { label: 'Ja', value: true, hint: 'true', pinned: true },
 ]
 
 function filterUser(user: (typeof users)[number], filters: { value: string }[]) {
@@ -331,11 +331,7 @@ export default defineSetupComponent((_: object) =>
                                   v-slots={{
                                     ...userSlots,
                                     ...(customTrigger && {
-                                      default: ({
-                                        items: picks,
-                                      }: {
-                                        items: { label: string }[]
-                                      }) => [
+                                      default: ({ picks }: { picks: { label: string }[] }) => [
                                         <UButton
                                           class="mt-auto self-start"
                                           icon="lucide:users"
@@ -367,7 +363,14 @@ export default defineSetupComponent((_: object) =>
               default: () => [
                 <div class="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4">
                   <div class="flex flex-col gap-1">
-                    <UUniversalSelectMenu items={primitives} v-model={primitiveSingle.value} />
+                    <UUniversalSelectMenu
+                      items={primitives}
+                      v-model={primitiveSingle.value}
+                      placeholder="Auswählen..."
+                      pinnedLabel="Favoriten"
+                      onChange={() => wait(1000)}
+                      clear
+                    />
                     {shown(primitiveSingle.value)}
                   </div>
                   <div class="flex flex-col gap-1">
@@ -375,6 +378,10 @@ export default defineSetupComponent((_: object) =>
                       multiple
                       items={primitives}
                       v-model={primitiveMultiple.value}
+                      placeholder="Auswählen..."
+                      pinnedLabel="Favoriten"
+                      clear
+                      onChange={() => wait(1000)}
                     />
                     {shown(primitiveMultiple.value)}
                   </div>

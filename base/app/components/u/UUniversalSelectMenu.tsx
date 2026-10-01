@@ -46,6 +46,26 @@ type GroupRow<V> = {
 const separator = { type: 'separator' as const, rowKey: '\0' }
 type LabelRow = { type: 'label'; label: string; rowKey: string }
 
+// `USelectMenu` props with no effect here: set by the wrapper, bypassed by its rendering, or
+// working on `rowKey`s instead of values
+type IneffectiveSelectMenuProps =
+  | 'ui'
+  | 'content'
+  | 'arrow'
+  | 'searchInput'
+  | 'open'
+  | 'defaultOpen'
+  | 'ignoreFilter'
+  | 'resetSearchTermOnSelect'
+  | 'resetModelValueOnClear'
+  | 'selectedIcon'
+  | 'filterFields'
+  | 'by'
+  | 'modelModifiers'
+  | 'name'
+  | 'createItem'
+  | 'virtualize'
+
 const groupBox = 'p-0 rounded-md border border-default overflow-hidden'
 
 // reka's `ComboboxItem` throws on a `''` value (its "cleared" value, even in multiple mode), which
@@ -110,6 +130,7 @@ export default defineSetupComponent(
       | 'loading'
       | 'clear'
       | 'multiple'
+      | IneffectiveSelectMenuProps
     > & {
       items: T[]
       // `false`: a flat list with no view toggle, whatever `item.groups` say
@@ -146,16 +167,16 @@ export default defineSetupComponent(
       hideSearch?: boolean
     }
     slots: {
-      // custom trigger, e.g. a button; no clear x or spinner. `items`: the saved picks; multiple,
+      // custom trigger, e.g. a button; no clear x or spinner. `picks`: the saved picks; multiple,
       // none saved: the `null` item (`undefined` model: none)
-      'default': (props: { open: boolean; items: T[] }) => VNode[]
+      'default': (props: { open: boolean; picks: T[] }) => VNode[]
       'prefix': (props: { item: T }) => VNode[]
       'description': (props: { item: T }) => VNode[]
       'suffix': (props: { item: T }) => VNode[]
       'hint': (props: { item: T }) => VNode[]
       'filter-item': (props: { item: F }) => VNode[]
       // trigger with more than one pick; default "N ausgewählt"
-      'selected': (props: { items: T[] }) => VNode[]
+      'summary': (props: { picks: T[] }) => VNode[]
       // replaces the filter select; spread the props onto the replacement to bind the selection
       'filter': (props: {
         'filters': readonly F[]
@@ -964,7 +985,7 @@ export default defineSetupComponent(
                   v-model={searchTerm.value}
                   type="search"
                   icon="lucide:search"
-                  placeholder={attrs.placeholder ?? 'Suchen…'}
+                  placeholder="Suchen…"
                   id={searchId}
                   ui={toggles ? { base: 'pe-24', trailing: 'pe-1' } : undefined}
                   {...inputProps}
@@ -1225,7 +1246,7 @@ export default defineSetupComponent(
                       {() =>
                         slots.default!({
                           open: isOpen.value || !!draft.value,
-                          items: pickedItems.value,
+                          picks: pickedItems.value,
                         })
                       }
                     </CustomTrigger>,
@@ -1246,7 +1267,7 @@ export default defineSetupComponent(
                 if (picks.length > 1)
                   return [
                     <span class={ui.value()}>
-                      {slots.selected?.({ items: picks }) ?? `${picks.length} ausgewählt`}
+                      {slots.summary?.({ picks }) ?? `${picks.length} ausgewählt`}
                     </span>,
                   ]
 
