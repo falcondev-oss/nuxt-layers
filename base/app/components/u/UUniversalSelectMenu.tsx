@@ -18,7 +18,8 @@ export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
   // labels of the groups it's listed under, in the order they first appear across `items`;
   // no item with one: a flat list with no view toggle
   groups?: string[]
-  // listed first, above a divider; tree view: in its boxes as well (the ungrouped one too), only there during a search
+  // listed first, above a divider; tree view: in its boxes as well (the ungrouped one too), only
+  // there during a search. a filter keeps it up top too
   pinned?: boolean
 }
 export type UniversalSelectMenuFilter = { label: string; value: string }
@@ -588,7 +589,8 @@ export default defineSetupComponent(
           const none = nullItem.value && isMatch(nullItem.value) ? [toRow(nullItem.value)] : []
           const listed = items.value.filter((item) => isNonNull(item.value))
 
-          // tree view, searching: a match in a box (the ungrouped one too) shows there only
+          // tree view, searching: a match in a box (the ungrouped one too) shows there only.
+          // filtering doesn't: a pinned match stays up top as well
           const inBox = (item: T) => !!item.groups?.length || !props.listUngrouped
           const pinned = listed
             .filter(
