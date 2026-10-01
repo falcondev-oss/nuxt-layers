@@ -437,14 +437,14 @@ export default defineSetupComponent(
           () => hasNullItem.value && [...selected.value].every((value) => value === null),
         )
         // `clear`: Clear while the picks are unchanged, Save once changed.
-        // multiple without `onChange` picks live, so it keeps Save
+        // multiple without `onChange` picks live in the menu, so it keeps Save; the sheet drafts
         const showsClear = computed(
           () =>
             !!props.clear &&
             !hasNullItem.value &&
             (isClearing.value ||
               (props.multiple
-                ? !!props.onChange && selected.value.size > 0 && !isDirty.value
+                ? (!!props.onChange || isMobile.value) && selected.value.size > 0 && !isDirty.value
                 : picked.value !== undefined && picked.value === pickedOnOpen.value)),
         )
         // nothing picked: "Keine auswählen" only for a changed draft
@@ -998,6 +998,8 @@ export default defineSetupComponent(
         // success closes (draft gone): keeps the clear button through the close animation
         function clearAll() {
           if (isBusy.value) return
+          // nothing saved: clearing changes nothing, so it only closes
+          if (committed.value.size === 0) return close()
           const picks = draft.value
           if (picks) draft.value = new Set()
           isClearing.value = true
@@ -1057,8 +1059,9 @@ export default defineSetupComponent(
             // closed-menu clear saves with no other spinner
             loading={isBusy.value}
             // spinner alone while loading
-            // `null` item picked: the x would clear to it
-            clear={props.clear && !isBusy.value && !isNone.value}
+            // `null` item picked: the x would clear to it.
+            // the menu shows the x for the draft: nothing saved, nothing to clear
+            clear={props.clear && !isBusy.value && !isNone.value && committed.value.size > 0}
             // nothing beside the custom trigger
             {...(slots.default && {
               asChild: true,
