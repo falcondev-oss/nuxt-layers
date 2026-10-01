@@ -261,20 +261,14 @@ export default defineSetupComponent((_: object) =>
             withPinned: false,
             stale: false,
             ...variant,
-            value: ref<string | string[] | undefined>(
-              'stale' in variant
-                ? multiple
-                  ? ['tom', 'nobody']
-                  : 'nobody'
-                : multiple
-                  ? []
-                  : undefined,
+            value: ref<string | string[] | null>(
+              'stale' in variant ? (multiple ? ['tom', 'nobody'] : 'nobody') : null,
             ),
           })),
         })),
       }))
-      const primitiveSingle = ref<(typeof primitives)[number]['value'] | undefined>(null)
-      const primitiveMultiple = ref<(typeof primitives)[number]['value'][]>([1])
+      const primitiveSingle = ref<(typeof primitives)[number]['value'] | null>()
+      const primitiveMultiple = ref<(typeof primitives)[number]['value'][] | null>()
 
       return () => (
         <div class="flex flex-col gap-6">
