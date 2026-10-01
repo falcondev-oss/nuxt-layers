@@ -296,6 +296,16 @@ export default defineSetupComponent(
         )
 
         const filterValues = ref<string[]>([])
+        // a pick whose option is gone would filter nothing, yet still count as narrowing
+        watch(
+          () => props.filter?.options,
+          (options) => {
+            const kept = filterValues.value.filter((value) =>
+              options?.some((option) => option.value === value),
+            )
+            if (kept.length < filterValues.value.length) filterValues.value = kept
+          },
+        )
 
         // sheet on phone widths and short landscape touch screens; opens a modal
         const isMobile = useMediaQuery(
