@@ -296,15 +296,21 @@ export default defineSetupComponent(
           isLoaded.value ? known.value.intersection(model.value) : model.value,
         )
         const selected = computed(() => draft.value ?? committed.value)
-        // saved picks with an item, in item order: mid-load, a value no item holds yet is missing.
-        // multiple, nothing saved: the `null` item stands for it; no model yet: the placeholder
+        // picks a pending `onChange` saves: the trigger shows them till it settles
+        const savingPicks = ref<Set<T['value']>>()
+        // saved (or saving) picks with an item, in item order: mid-load, a value no item holds yet
+        // is missing. multiple, nothing saved: the `null` item stands for it; no model yet: the
+        // placeholder
         const pickedItems = computed(() => {
+          const picks = savingPicks.value ?? committed.value
           const noneItem =
-            props.multiple && props.modelValue !== undefined && model.value.size === 0
+            props.multiple &&
+            (savingPicks.value || props.modelValue !== undefined) &&
+            picks.size === 0
               ? items.value.find((item) => item.value === null)
               : undefined
           if (noneItem) return [noneItem]
-          return items.value.filter((item) => committed.value.has(item.value))
+          return items.value.filter((item) => picks.has(item.value))
         })
 
         const order = computed(() => new Map(items.value.map((item, index) => [item.value, index])))
@@ -459,16 +465,18 @@ export default defineSetupComponent(
             const isDouble = lastPick?.value === value && (isEnterPick || at - lastPick.at < 500)
             lastPick = isDouble ? undefined : { value, at }
             if (!isDouble) return
-            return void save(toValue(draft.value))
+            return void save(draft.value)
           }
           if (!closesOnPick.value) return
           if (draft.value) emit('update:modelValue', toValue(draft.value))
           close()
         }
 
-        async function save(value: Value) {
+        async function save(picks: Set<T['value']>) {
           if (isBusy.value) return
+          const value = toValue(picks)
           isSaving.value = true
+          savingPicks.value = picks
           try {
             await props.onChange?.(value)
           } catch (err) {
@@ -480,6 +488,7 @@ export default defineSetupComponent(
             return
           } finally {
             isSaving.value = false
+            savingPicks.value = undefined
           }
           emit('update:modelValue', value)
           close()
@@ -993,7 +1002,7 @@ export default defineSetupComponent(
           if (picks) draft.value = new Set()
           isClearing.value = true
           // failed (draft still open): multiple gets its picks back for retry
-          void save(toValue(new Set())).then(() => {
+          void save(new Set()).then(() => {
             if (!draft.value) return
             isClearing.value = false
             if (props.multiple) draft.value = picks
@@ -1021,7 +1030,7 @@ export default defineSetupComponent(
                 loading={isSaving.value}
                 disabled={props.loading}
                 // live picks (multiple, no `onChange`) already emitted; re-emit harmless
-                onClick={() => void save(toValue(selected.value))}
+                onClick={() => void save(selected.value)}
               />
             )
           )
@@ -1222,7 +1231,7 @@ export default defineSetupComponent(
                 const [item] = picks
                 // loaded, a saved value no item holds: say so, its clear x has a reason.
                 // without `loading` an empty list may still be on its way
-                if (!item && props.loading === false && model.value.size > 0)
+                if (!item && props.loading === false && !savingPicks.value && model.value.size > 0)
                   return [
                     <span class={[ui.value(), 'text-muted flex items-center gap-1.5']}>
                       <UIcon name="lucide:circle-alert" class="size-4 shrink-0" />
