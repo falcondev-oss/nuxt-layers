@@ -52,7 +52,7 @@ function checkState<V>(values: V[], picked: Set<V>) {
   return values.some((value) => picked.has(value)) ? ('indeterminate' as const) : false
 }
 
-// multiple, unless `hideToggleAll` or a `null` item: picks or unpicks all shown items, as its label says
+// multiple, unless `hideToggleAll` or a `null` item: toggles all shown items as a group header does
 type AllRow<V> = {
   type: 'all'
   label: string
@@ -61,8 +61,6 @@ type AllRow<V> = {
   shown: V[]
   // what the checkbox reflects: all items, ignoring search and filter
   checked: boolean | 'indeterminate'
-  // label and click unpick the shown ones
-  someShownSelected: boolean
   hint?: never
 }
 
@@ -422,15 +420,6 @@ export default defineSetupComponent(
           update(next)
         }
 
-        function toggleAll({ shown, someShownSelected }: AllRow<T['value']>) {
-          const next = new Set(selected.value)
-          for (const value of shown) {
-            if (someShownSelected) next.delete(value)
-            else next.add(value)
-          }
-          update(next)
-        }
-
         // group labels. a search or filter collapses its own, from all expanded, so its matches
         // show; a new search term or filter expands them again
         const collapsed = ref(new Set<string>())
@@ -449,8 +438,7 @@ export default defineSetupComponent(
 
         // a header click toggles its group (single: collapses it)
         function activate(row: GroupRow<T['value']> | AllRow<T['value']>) {
-          if (row.type === 'all') toggleAll(row)
-          else if (props.multiple) toggleMany(row.shown)
+          if (row.type === 'all' || props.multiple) toggleMany(row.shown)
           else toggleCollapsed(row.label)
         }
 
@@ -680,27 +668,24 @@ export default defineSetupComponent(
         const specialRows = computed<(ItemRow<T> | AllRow<T['value']>)[]>(() => {
           const { none, pinned, groups, list } = tree.value
           if (!props.multiple || props.hideToggleAll || nullItem.value) return none
-          // a value under several groups counts once; a collapsed group's count too
+          // a value under several groups counts once; a collapsed group's are left out, as on Enter
           const shown = [
-            ...new Set([
-              ...pinned.map((item) => item.value),
-              ...groups.flatMap(({ header }) => header.shown),
-              ...list.map((item) => item.value),
-            ]),
+            ...new Set(
+              [...pinned, ...groups.flatMap(({ rows }) => rows), ...list].map((item) => item.value),
+            ),
           ]
           if (shown.length === 0) return []
-          const someShownSelected = shown.some((value) => selected.value.has(value))
+          const allShownSelected = shown.every((value) => selected.value.has(value))
           return [
             {
               type: 'all',
-              label: someShownSelected ? 'Alle abwählen' : 'Alle auswählen',
+              label: allShownSelected ? 'Alle abwählen' : 'Alle auswählen',
               rowKey: '\0all',
               shown,
               checked: checkState(
                 items.value.map((item) => item.value).filter(isNonNull),
                 selected.value,
               ),
-              someShownSelected,
             },
           ]
         })
