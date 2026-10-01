@@ -2,7 +2,7 @@ import type { InputProps, SelectMenuProps } from '@nuxt/ui'
 import type { FunctionalComponent, VNode } from 'vue'
 import { useResizeObserver } from '@vueuse/core'
 import { Slot } from 'reka-ui'
-import { chunk, isNonNull, isNonNullish, uniqueBy } from 'remeda'
+import { chunk, isNonNull, isNonNullish } from 'remeda'
 import { h, Teleport } from 'vue'
 import { UButton, UCheckbox, UIcon, UInput, UModal, USelectMenu, UTabs } from '#components'
 
@@ -256,8 +256,31 @@ export default defineSetupComponent(
         // `USelectMenu`'s own filter would drop the group headers, so we filter ourselves.
         const searchTerm = ref('')
 
-        // a repeated value would list its row twice
-        const items = computed(() => uniqueBy(props.items, (item) => item.value))
+        // a repeated value would list its row twice: the first copy stays, with every copy's groups.
+        // an `undefined` value is no value: dropped
+        const items = computed(() => {
+          const byValue = new Map<T['value'], T>()
+          // only repeated values with groups get one; merged into their row once, at the end
+          const groupsOf = new Map<T['value'], Set<string>>()
+          for (const item of props.items) {
+            if (item.value === undefined) {
+              console.warn('UUniversalSelectMenu: dropped an item with value `undefined`', item)
+              continue
+            }
+            const first = byValue.get(item.value)
+            if (!first) byValue.set(item.value, item)
+            else if (item.groups?.length) {
+              let groups = groupsOf.get(item.value)
+              if (!groups) groupsOf.set(item.value, (groups = new Set(first.groups)))
+              for (const group of item.groups) groups.add(group)
+            }
+          }
+          if (groupsOf.size === 0) return [...byValue.values()]
+          return Array.from(byValue.values(), (item) => {
+            const groups = groupsOf.get(item.value)
+            return groups ? { ...item, groups: [...groups] } : item
+          })
+        })
 
         const view = ref<'tree' | 'list'>('tree')
         const hasGroups = computed(
