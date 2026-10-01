@@ -207,7 +207,8 @@ export default defineSetupComponent((_: object) =>
 
       // single/multiple × no `onChange`/succeeds/fails × without/with filters × with/without groups × without/with clear,
       // plus without search, with/without groups, with only 3 items, with a custom trigger, and
-      // with pinned items with/without groups, and starting on a value no item holds
+      // with pinned items with/without groups, starting on a value no item holds, and (multiple)
+      // without the toggle-all row
       const sections = [
         { title: 'Single', multiple: false },
         { title: 'Multiple', multiple: true },
@@ -254,12 +255,16 @@ export default defineSetupComponent((_: object) =>
               withPinned: true,
             })),
             { withFilters: false, withGroups: true, withClear: false, stale: true },
+            ...(multiple
+              ? [{ withFilters: false, withGroups: true, withClear: false, hideToggleAll: true }]
+              : []),
           ].map((variant) => ({
             hideSearch: false,
             few: false,
             customTrigger: false,
             withPinned: false,
             stale: false,
+            hideToggleAll: false,
             ...variant,
             value: ref<string | string[] | null>(
               'stale' in variant ? (multiple ? ['tom', 'nobody'] : 'nobody') : null,
@@ -292,6 +297,7 @@ export default defineSetupComponent((_: object) =>
                               customTrigger,
                               withPinned,
                               stale,
+                              hideToggleAll,
                               value,
                             }) => (
                               <div class="flex flex-col gap-1">
@@ -305,6 +311,7 @@ export default defineSetupComponent((_: object) =>
                                     customTrigger && 'Eigener Trigger',
                                     withPinned && 'Angeheftet',
                                     stale && 'Unbekannter Wert',
+                                    hideToggleAll && 'Ohne Alle auswählen',
                                   ]
                                     .filter(Boolean)
                                     .join(' · ')}
@@ -314,6 +321,7 @@ export default defineSetupComponent((_: object) =>
                                   onChange={onChange}
                                   clear={withClear}
                                   hideSearch={hideSearch}
+                                  hideToggleAll={hideToggleAll}
                                   class="mt-auto w-full"
                                   items={
                                     withPinned

@@ -42,6 +42,20 @@ type GroupRow<V> = {
   hint?: never
 }
 
+// multiple, unless `hideToggleAll` or a `null` item: picks or unpicks all shown items, as its label says
+type AllRow<V> = {
+  type: 'all'
+  label: string
+  rowKey: string
+  // what the click toggles: the shown ones, so a search or filter picks only its matches
+  shown: V[]
+  // what the checkbox reflects: all items, ignoring search and filter
+  checked: boolean | 'indeterminate'
+  // label and click unpick the shown ones
+  someShownSelected: boolean
+  hint?: never
+}
+
 // `USelectMenu` draws it as a line between the pinned rows and the rest; `rowKey` only for its types
 const separator = { type: 'separator' as const, rowKey: '\0' }
 type LabelRow = { type: 'label'; label: string; rowKey: string }
@@ -116,7 +130,7 @@ export default defineSetupComponent(
   >(_: {
     props: Omit<
       SelectMenuProps<
-        (ItemRow<T> | GroupRow<T['value']> | LabelRow | typeof separator)[][],
+        (ItemRow<T> | GroupRow<T['value']> | AllRow<T['value']> | LabelRow | typeof separator)[][],
         'rowKey',
         true
       >,
@@ -165,6 +179,8 @@ export default defineSetupComponent(
       clear?: boolean
       // no search input, in the dropdown and the sheet
       hideSearch?: boolean
+      // multiple: no row up top that picks or unpicks all shown items; a `null` item hides it too
+      hideToggleAll?: boolean
     }
     slots: {
       // custom trigger, e.g. a button; no clear x or spinner. `picks`: the saved picks; multiple,
@@ -202,6 +218,7 @@ export default defineSetupComponent(
       | 'deselectLabel'
       | 'clear'
       | 'hideSearch'
+      | 'hideToggleAll'
     emits: {
       'update:modelValue': (
         value: (Multiple extends true ? NonNullable<T['value']>[] : T['value']) | null,
@@ -227,6 +244,7 @@ export default defineSetupComponent(
         'deselectLabel',
         'clear',
         'hideSearch',
+        'hideToggleAll',
       ],
       emits: ['update:modelValue'],
       // two roots (the menu and its mobile sheet), so the attributes are placed by hand
@@ -375,6 +393,15 @@ export default defineSetupComponent(
           const isFullySelected = values.every((value) => next.has(value))
           for (const value of values) {
             if (isFullySelected) next.delete(value)
+            else next.add(value)
+          }
+          update(next)
+        }
+
+        function toggleAll({ shown, someShownSelected }: AllRow<T['value']>) {
+          const next = new Set(selected.value)
+          for (const value of shown) {
+            if (someShownSelected) next.delete(value)
             else next.add(value)
           }
           update(next)
@@ -535,16 +562,16 @@ export default defineSetupComponent(
         }>(() => {
           const search = searchTerm.value.trim().toLowerCase()
           const matches = (label: string) => label.toLowerCase().includes(search)
-          const matchesItem = (item: T) =>
+          const matchesSearch = (item: T) =>
             matches(item.label) || (item.search !== undefined && matches(item.search))
 
           const active = props.filters?.filter(({ value }) => filterValues.value.includes(value))
-          const passes = (item: T) =>
+          const passesFilter = (item: T) =>
             !active?.length || !props.filterFn || props.filterFn(item, active)
 
           // the `null` item is the clear, so it sits apart, above the pinned ones
           const none = items.value
-            .filter((item) => item.value === null && passes(item) && matchesItem(item))
+            .filter((item) => item.value === null && passesFilter(item) && matchesSearch(item))
             .map(toRow)
           const listed = items.value.filter((item) => item.value !== null)
 
@@ -554,8 +581,8 @@ export default defineSetupComponent(
             .filter(
               (item) =>
                 item.pinned &&
-                passes(item) &&
-                matchesItem(item) &&
+                passesFilter(item) &&
+                matchesSearch(item) &&
                 (isList.value || !search || !inBox(item)),
             )
             .map(toRow)
@@ -577,7 +604,9 @@ export default defineSetupComponent(
                   }
 
           if (isList.value) {
-            const rows = listed.filter((item) => !item.pinned && passes(item) && matchesItem(item))
+            const rows = listed.filter(
+              (item) => !item.pinned && passesFilter(item) && matchesSearch(item),
+            )
             return { none, pinned, pinnedHeader, groups: [], list: rows.map(toRow) }
           }
 
@@ -599,7 +628,7 @@ export default defineSetupComponent(
               const values = groupItems.map((item) => item.value)
               // matching group label keeps the whole group
               const items = groupItems.filter(
-                (item) => passes(item) && (matches(label) || matchesItem(item)),
+                (item) => passesFilter(item) && (matches(label) || matchesSearch(item)),
               )
               if (items.length === 0) return []
               const isCollapsed = (isNarrowed.value ? narrowedCollapsed : collapsed).value.has(
@@ -629,19 +658,52 @@ export default defineSetupComponent(
             groups: boxes.filter((rows) => rows.length > 0),
             list: props.listUngrouped
               ? ungrouped
-                  .filter((item) => !item.pinned && passes(item) && matchesItem(item))
+                  .filter((item) => !item.pinned && passesFilter(item) && matchesSearch(item))
                   .map(toRow)
               : [],
           }
         })
 
+        // above the pinned ones: the `null` item, or else the toggle-all row, as unpicking all clears
+        const specialRows = computed<(ItemRow<T> | AllRow<T['value']>)[]>(() => {
+          const { none, pinned, groups, list } = tree.value
+          if (!props.multiple || props.hideToggleAll || hasNullItem.value) return none
+          // a value under several groups counts once; a collapsed group's count too
+          const shown = [
+            ...new Set([
+              ...pinned.map((item) => item.value),
+              ...groups.flatMap((rows) => (rows[0] as GroupRow<T['value']>).shown),
+              ...list.map((item) => item.value),
+            ]),
+          ]
+          if (shown.length === 0) return []
+          const values = items.value.filter((item) => item.value !== null).map((item) => item.value)
+          const checked = values.every((value) => selected.value.has(value))
+            ? true
+            : values.some((value) => selected.value.has(value))
+              ? 'indeterminate'
+              : false
+          const someShownSelected = shown.some((value) => selected.value.has(value))
+          return [
+            {
+              type: 'all',
+              label: someShownSelected ? 'Alle abwählen' : 'Alle auswählen',
+              rowKey: '\0all',
+              shown,
+              checked,
+              someShownSelected,
+            },
+          ]
+        })
+
         // an empty group would still draw its box
         const grouped = computed(() => {
-          const { none, pinned, pinnedHeader, groups, list } = tree.value
+          const { pinned, pinnedHeader, groups, list } = tree.value
           const rest = list.length > 0 ? [...groups, list] : groups
-          const tops = [none, pinnedHeader ? [pinnedHeader, ...pinned] : pinned].filter(
-            (rows) => rows.length > 0,
-          )
+          const tops = [
+            specialRows.value,
+            pinnedHeader ? [pinnedHeader, ...pinned] : pinned,
+          ].filter((rows) => rows.length > 0)
           const sections = [...tops.flatMap((box) => [box, [separator]]), ...rest]
           return rest.length > 0 ? sections : sections.slice(0, -1)
         })
@@ -857,88 +919,97 @@ export default defineSetupComponent(
           )
         }
 
-        const itemContent = (item: ItemRow<T> | GroupRow<T['value']>) =>
-          'type' in item
+        const itemContent = (item: ItemRow<T> | GroupRow<T['value']> | AllRow<T['value']>) =>
+          'type' in item && item.type === 'all'
             ? [
-                props.multiple && (
-                  <UCheckbox
-                    size="md"
-                    class="pointer-events-none shrink-0"
-                    modelValue={
-                      item.values.length > 0 &&
-                      item.values.every((value) => selected.value.has(value))
-                        ? true
-                        : item.values.some((value) => selected.value.has(value))
-                          ? 'indeterminate'
-                          : false
-                    }
-                  />
-                ),
-                <span
-                  data-group-header
-                  class={
-                    item.ungrouped
-                      ? 'text-muted truncate text-sm'
-                      : 'text-highlighted truncate text-sm font-semibold'
-                  }
-                >
-                  {item.label}
-                </span>,
-                !item.pinned && (
-                  <button
-                    type="button"
-                    class="text-muted hover:text-highlighted hover:bg-accented -my-1 ms-auto flex rounded-md p-1"
-                    aria-label={item.collapsed ? 'Aufklappen' : 'Zuklappen'}
-                    aria-expanded={!item.collapsed}
-                    // keeps focus in the search input, whose blur would close the menu
-                    onMousedown={(event) => event.preventDefault()}
-                    onClick={(event) => {
-                      // else row click toggles group (single: collapses)
-                      event.stopPropagation()
-                      toggleCollapsed(item.label)
-                    }}
-                  >
-                    <UIcon
-                      name={item.collapsed ? 'lucide:chevron-right' : 'lucide:chevron-down'}
-                      class="size-5"
-                    />
-                  </button>
-                ),
+                <UCheckbox
+                  size="md"
+                  class="pointer-events-none shrink-0"
+                  modelValue={item.checked}
+                />,
+                <span class="truncate font-medium">{item.label}</span>,
               ]
-            : [
-                props.multiple ? (
-                  item.value === null ? (
-                    // clears, no pick to check; keeps the labels aligned
-                    <span class="size-4 shrink-0" />
-                  ) : (
+            : 'type' in item
+              ? [
+                  props.multiple && (
                     <UCheckbox
                       size="md"
                       class="pointer-events-none shrink-0"
-                      modelValue={selected.value.has(item.value)}
+                      modelValue={
+                        item.values.length > 0 &&
+                        item.values.every((value) => selected.value.has(value))
+                          ? true
+                          : item.values.some((value) => selected.value.has(value))
+                            ? 'indeterminate'
+                            : false
+                      }
                     />
-                  )
-                ) : (
-                  radio(selected.value.has(item.value))
-                ),
-                ...(slots.prefix?.({ item }) ?? []),
-                <span class="flex min-w-0 flex-col">
-                  {/* suffix beside the label: a longer description would push it aside */}
-                  <span class="flex min-w-0 items-center gap-1.5">
-                    <span class="truncate">{item.label}</span>
-                    {slots.suffix?.({ item })}
-                  </span>
-                  {(slots.description || item.description) && (
-                    <span class="text-muted truncate text-xs">
-                      {slots.description?.({ item }) ?? item.description}
+                  ),
+                  <span
+                    data-group-header
+                    class={
+                      item.ungrouped
+                        ? 'text-muted truncate text-sm'
+                        : 'text-highlighted truncate text-sm font-semibold'
+                    }
+                  >
+                    {item.label}
+                  </span>,
+                  !item.pinned && (
+                    <button
+                      type="button"
+                      class="text-muted hover:text-highlighted hover:bg-accented -my-1 ms-auto flex rounded-md p-1"
+                      aria-label={item.collapsed ? 'Aufklappen' : 'Zuklappen'}
+                      aria-expanded={!item.collapsed}
+                      // keeps focus in the search input, whose blur would close the menu
+                      onMousedown={(event) => event.preventDefault()}
+                      onClick={(event) => {
+                        // else row click toggles group (single: collapses)
+                        event.stopPropagation()
+                        toggleCollapsed(item.label)
+                      }}
+                    >
+                      <UIcon
+                        name={item.collapsed ? 'lucide:chevron-right' : 'lucide:chevron-down'}
+                        class="size-5"
+                      />
+                    </button>
+                  ),
+                ]
+              : [
+                  props.multiple ? (
+                    item.value === null ? (
+                      // clears, no pick to check; keeps the labels aligned
+                      <span class="size-4 shrink-0" />
+                    ) : (
+                      <UCheckbox
+                        size="md"
+                        class="pointer-events-none shrink-0"
+                        modelValue={selected.value.has(item.value)}
+                      />
+                    )
+                  ) : (
+                    radio(selected.value.has(item.value))
+                  ),
+                  ...(slots.prefix?.({ item }) ?? []),
+                  <span class="flex min-w-0 flex-col">
+                    {/* suffix beside the label: a longer description would push it aside */}
+                    <span class="flex min-w-0 items-center gap-1.5">
+                      <span class="truncate">{item.label}</span>
+                      {slots.suffix?.({ item })}
                     </span>
-                  )}
-                </span>,
-                <span class="text-muted ms-auto text-xs">
-                  {slots.hint?.({ item }) ?? item.hint}
-                </span>,
-              ]
+                    {(slots.description || item.description) && (
+                      <span class="text-muted truncate text-xs">
+                        {slots.description?.({ item }) ?? item.description}
+                      </span>
+                    )}
+                  </span>,
+                  <span class="text-muted ms-auto text-xs">
+                    {slots.hint?.({ item }) ?? item.hint}
+                  </span>,
+                ]
 
-        const sheetRows = (rows: (ItemRow<T> | GroupRow<T['value']>)[]) =>
+        const sheetRows = (rows: (ItemRow<T> | GroupRow<T['value']> | AllRow<T['value']>)[]) =>
           rows.map((item) => (
             // not a <button>: a group row holds the collapse button
             <div
@@ -946,6 +1017,7 @@ export default defineSetupComponent(
               class="border-default even:bg-elevated/30 flex w-full items-center gap-1.5 border-b px-2.5 py-3.5 text-start text-sm last:border-b-0"
               onClick={() => {
                 if (!('type' in item)) pick(item.value)
+                else if (item.type === 'all') toggleAll(item)
                 else if (props.multiple) toggleGroup(item.shown)
                 else toggleCollapsed(item.label)
               }}
@@ -955,9 +1027,10 @@ export default defineSetupComponent(
           ))
 
         const sheetPinned = () => {
-          const { none, pinned, pinnedHeader, groups, list } = tree.value
+          const { pinned, pinnedHeader, groups, list } = tree.value
+          const special = specialRows.value
           const boxes = [
-            ...(none.length > 0 ? [<div class={groupBox}>{sheetRows(none)}</div>] : []),
+            ...(special.length > 0 ? [<div class={groupBox}>{sheetRows(special)}</div>] : []),
             ...(pinned.length > 0
               ? [
                   <div class={groupBox}>
@@ -1188,6 +1261,10 @@ export default defineSetupComponent(
             // headers select like rows (reka keeps scroll); header toggles group (single: collapses)
             onUpdate:modelValue={(value) => {
               const keys = value as string[]
+              const all = specialRows.value.find(
+                (row): row is AllRow<T['value']> => 'type' in row && keys.includes(row.rowKey),
+              )
+              if (all) return toggleAll(all)
               const header = grouped.value
                 .flat()
                 .find(
@@ -1279,7 +1356,11 @@ export default defineSetupComponent(
                   </span>,
                 ]
               },
-              'item': ({ item }: { item: ItemRow<T> | GroupRow<T['value']> }) => itemContent(item),
+              'item': ({
+                item,
+              }: {
+                item: ItemRow<T> | GroupRow<T['value']> | AllRow<T['value']>
+              }) => itemContent(item),
               'empty': props.loading ? loadingNote : emptyNote,
             }}
           />,
