@@ -361,8 +361,11 @@ export default defineSetupComponent(
           isBeside.value = isShort.value || top >= Math.min(window.innerHeight / 2, boxMiddle)
         }
 
-        // not mid-load: an empty or stale list would drop picks for good
-        const isLoaded = computed(() => !props.loading && items.value.length > 0)
+        // mid-load: an empty or stale list would drop picks for good. the `null` item can be
+        // preset before the query settles, so a list of only it is still loading
+        const isLoading = computed(
+          () => props.loading || items.value.every((item) => item.value === null),
+        )
         const known = computed(() => new Set(items.value.map((item) => item.value)))
         // a `null` item is the clear: single picks it by the clear's `null`, multiple clears by it.
         // `items` is deduped, so one at most
@@ -379,7 +382,7 @@ export default defineSetupComponent(
         // one-way binding keeps it in the model. mid-load all: a draft opened then would drop one
         // not listed yet
         const committed = computed(() =>
-          isLoaded.value ? known.value.intersection(model.value) : model.value,
+          isLoading.value ? model.value : known.value.intersection(model.value),
         )
         const selected = computed(() => draft.value ?? committed.value)
         // picks a pending `onChange` saves: the trigger shows them till it settles
@@ -474,9 +477,9 @@ export default defineSetupComponent(
         // drop values no item holds, from the model and an open draft (also once a failed save
         // restores it)
         watch(
-          () => [isLoaded.value, known.value, model.value, draft.value] as const,
-          ([isLoaded, known, model]) => {
-            if (!isLoaded) return
+          () => [isLoading.value, known.value, model.value, draft.value] as const,
+          ([isLoading, known, model]) => {
+            if (isLoading) return
             // receiver must be raw: `draft` is a reactive proxy
             if (draft.value && !known.isSupersetOf(draft.value))
               draft.value = known.intersection(draft.value)
@@ -1349,7 +1352,7 @@ export default defineSetupComponent(
                 const [item] = picks
                 // loaded, only values no item holds saved (a one-way binding keeps them): say so.
                 // an empty list may still be on its way
-                if (!item && isLoaded.value && !savingPicks.value && model.value.size > 0)
+                if (!item && !isLoading.value && !savingPicks.value && model.value.size > 0)
                   return [
                     <span class={[ui.value(), 'text-muted flex items-center gap-1.5']}>
                       <UIcon name="lucide:circle-alert" class="size-4 shrink-0" />
