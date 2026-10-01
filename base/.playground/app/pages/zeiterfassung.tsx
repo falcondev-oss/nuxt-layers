@@ -332,8 +332,9 @@ export default defineSetupComponent((_: object) =>
                                   }
                                   group={withGroups}
                                   pinnedLabel={withPinned ? 'Favoriten' : undefined}
-                                  filters={withFilters ? tags : undefined}
-                                  filterFn={withFilters ? filterUser : undefined}
+                                  filter={
+                                    withFilters ? { options: tags, fn: filterUser } : undefined
+                                  }
                                   v-model={value.value}
                                   placeholder="Mitarbeiter wählen"
                                   v-slots={{

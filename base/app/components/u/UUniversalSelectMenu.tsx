@@ -2,7 +2,7 @@ import type { InputProps, SelectMenuProps } from '@nuxt/ui'
 import type { FunctionalComponent, VNode } from 'vue'
 import { useResizeObserver } from '@vueuse/core'
 import { Slot } from 'reka-ui'
-import { chunk, uniqueBy } from 'remeda'
+import { chunk, isNonNull, isNonNullish, uniqueBy } from 'remeda'
 import { h, Teleport } from 'vue'
 import { UButton, UCheckbox, UIcon, UInput, UModal, USelectMenu, UTabs } from '#components'
 
@@ -40,6 +40,16 @@ type GroupRow<V> = {
   // the pinned items' header; never collapses
   pinned?: boolean
   hint?: never
+}
+
+// collapsed: no `rows`, while `header.shown` still holds its matches
+type Group<T extends UniversalSelectMenuItem> = { header: GroupRow<T['value']>; rows: ItemRow<T>[] }
+
+type ModelValue<V, Multiple extends boolean> = (Multiple extends true ? NonNullable<V>[] : V) | null
+
+function checkState<V>(values: V[], picked: Set<V>) {
+  if (values.length > 0 && values.every((value) => picked.has(value))) return true
+  return values.some((value) => picked.has(value)) ? ('indeterminate' as const) : false
 }
 
 // multiple, unless `hideToggleAll` or a `null` item: picks or unpicks all shown items, as its label says
@@ -155,18 +165,15 @@ export default defineSetupComponent(
       ungroupedLabel?: string
       // header over the pinned items; without, they're listed bare
       pinnedLabel?: string
-      filters?: readonly F[]
-      // only called while at least one filter is selected
-      filterFn?: (item: T, filters: F[]) => boolean
+      // `fn` is only called while at least one option is selected
+      filter?: { options: readonly F[]; fn: (item: T, filters: F[]) => boolean }
       multiple?: Multiple
       // `null`: no pick; single: also picks an item with value `null`. multiple: an item with value
       // `null` is no pick but clears, to `null`. a value no item holds is dropped once `items` are in
-      modelValue?: (Multiple extends true ? NonNullable<T['value']>[] : T['value']) | null
+      modelValue?: ModelValue<T['value'], Multiple>
       // awaited before emit, spinner meanwhile. throws: no emit, stays open; single restores
       // pick, multiple keeps picks
-      onChange?: (
-        value: (Multiple extends true ? NonNullable<T['value']>[] : T['value']) | null,
-      ) => Promise<void> | void
+      onChange?: (value: ModelValue<T['value'], Multiple>) => Promise<void> | void
       onBlur?: () => void
       disabled?: boolean
       // items/groups loading: trigger spinner, loading note instead of no matches
@@ -207,8 +214,7 @@ export default defineSetupComponent(
       | 'listUngrouped'
       | 'ungroupedLabel'
       | 'pinnedLabel'
-      | 'filters'
-      | 'filterFn'
+      | 'filter'
       | 'multiple'
       | 'modelValue'
       | 'onChange'
@@ -220,9 +226,7 @@ export default defineSetupComponent(
       | 'hideSearch'
       | 'hideToggleAll'
     emits: {
-      'update:modelValue': (
-        value: (Multiple extends true ? NonNullable<T['value']>[] : T['value']) | null,
-      ) => void
+      'update:modelValue': (value: ModelValue<T['value'], Multiple>) => void
     }
   }) =>
     options(_, {
@@ -233,8 +237,7 @@ export default defineSetupComponent(
         'listUngrouped',
         'ungroupedLabel',
         'pinnedLabel',
-        'filters',
-        'filterFn',
+        'filter',
         'multiple',
         'modelValue',
         'onChange',
@@ -264,10 +267,10 @@ export default defineSetupComponent(
         watch(hasGroups, (has) => {
           if (!has) view.value = 'tree'
         })
-        const hasFilterBar = computed(() => !!props.filters || hasGroups.value)
+        const hasFilterBar = computed(() => !!props.filter || hasGroups.value)
         // spares the dropdown the row beneath the search
         const togglesInSearch = computed(
-          () => hasGroups.value && !props.filters && !props.hideSearch,
+          () => hasGroups.value && !props.filter && !props.hideSearch,
         )
 
         const filterValues = ref<string[]>([])
@@ -286,6 +289,8 @@ export default defineSetupComponent(
         const menu = ref<{ triggerRef?: Element | CharacterData }>()
         const isBeside = ref(false)
         const isOpen = ref(false)
+        // the menu open, or the sheet
+        const isShown = computed(() => isOpen.value || !!draft.value)
 
         // one that scrolls vertically: `overflow-x-auto` computes `overflow-y: auto` too
         function scrollParent(el: Element) {
@@ -312,19 +317,17 @@ export default defineSetupComponent(
           isBeside.value = isShort.value || top >= Math.min(window.innerHeight / 2, boxMiddle)
         }
 
-        type Value = (Multiple extends true ? NonNullable<T['value']>[] : T['value']) | null
-
         // not mid-load: an empty or stale list would drop picks for good
         const isLoaded = computed(() => !props.loading && items.value.length > 0)
         const known = computed(() => new Set(items.value.map((item) => item.value)))
+        // a `null` item is the clear: single picks it by the clear's `null`, multiple clears by it.
+        // `items` is deduped, so one at most
+        const nullItem = computed(() => items.value.find((item) => item.value === null))
         // `null` is no pick, not a stale one; single: the `null` item's pick once listed
         const model = computed(() => {
           const value = props.modelValue as T['value'] | (T['value'] | null)[] | null | undefined
-          if (Array.isArray(value))
-            return new Set(
-              value.filter((value): value is T['value'] => value !== undefined && value !== null),
-            )
-          if (value === undefined || (value === null && (props.multiple || !known.value.has(null))))
+          if (Array.isArray(value)) return new Set(value.filter(isNonNullish))
+          if (value === undefined || (value === null && (props.multiple || !nullItem.value)))
             return new Set<T['value']>()
           return new Set([value])
         })
@@ -342,13 +345,11 @@ export default defineSetupComponent(
         // placeholder
         const pickedItems = computed(() => {
           const picks = savingPicks.value ?? committed.value
-          const noneItem =
+          const savesNothing =
             props.multiple &&
-            (savingPicks.value || props.modelValue !== undefined) &&
+            (!!savingPicks.value || props.modelValue !== undefined) &&
             picks.size === 0
-              ? items.value.find((item) => item.value === null)
-              : undefined
-          if (noneItem) return [noneItem]
+          if (savesNothing && nullItem.value) return [nullItem.value]
           return items.value.filter((item) => picks.has(item.value))
         })
 
@@ -359,7 +360,7 @@ export default defineSetupComponent(
           const sorted = [...values].toSorted((a, b) => rank(a) - rank(b))
           // no pick: `null`, never `[]`
           if (sorted.length === 0) return null
-          return (props.multiple ? sorted : sorted[0]) as Value
+          return (props.multiple ? sorted : sorted[0]) as ModelValue<T['value'], Multiple>
         }
 
         const isSaving = ref(false)
@@ -388,7 +389,7 @@ export default defineSetupComponent(
         // clear empties pick before `onChange` settles; keep button till closed
         const isClearing = ref(false)
 
-        function toggleGroup(values: T['value'][]) {
+        function toggleMany(values: T['value'][]) {
           const next = new Set(selected.value)
           const isFullySelected = values.every((value) => next.has(value))
           for (const value of values) {
@@ -421,6 +422,13 @@ export default defineSetupComponent(
           const next = new Set(set.value)
           if (!next.delete(label)) next.add(label)
           set.value = next
+        }
+
+        // a header click toggles its group (single: collapses it)
+        function activate(row: GroupRow<T['value']> | AllRow<T['value']>) {
+          if (row.type === 'all') toggleAll(row)
+          else if (props.multiple) toggleMany(row.shown)
+          else toggleCollapsed(row.label)
         }
 
         // drop values no item holds, from the model and an open draft (also once a failed save
@@ -460,10 +468,7 @@ export default defineSetupComponent(
         // footer as it was at close, held through the close animation: the saved picks would
         // turn Save into Clear, an empty save would drop it. next open unfreezes
         const frozenFooter = ref<{ clear: boolean; save: boolean; label: string }>()
-        watch(
-          () => isOpen.value || !!draft.value,
-          (open) => open && (frozenFooter.value = undefined),
-        )
+        watch(isShown, (open) => open && (frozenFooter.value = undefined))
 
         function close() {
           endDraft()
@@ -478,18 +483,16 @@ export default defineSetupComponent(
           // receiver must be raw: `draft` is a reactive proxy
           () => !!draft.value && committed.value.symmetricDifference(draft.value).size > 0,
         )
-        // a `null` item is the clear: single picks it by the clear's `null`, multiple clears by it
-        const hasNullItem = computed(() => known.value.has(null))
         // the `null` item is picked (multiple: nothing is)
         const isNone = computed(
-          () => hasNullItem.value && [...selected.value].every((value) => value === null),
+          () => !!nullItem.value && [...selected.value].every((value) => value === null),
         )
         // `clear`: Clear while the picks are unchanged, Save once changed.
         // multiple without `onChange` picks live in the menu, so it keeps Save; the sheet drafts
         const showsClear = computed(
           () =>
             !!props.clear &&
-            !hasNullItem.value &&
+            !nullItem.value &&
             (isClearing.value ||
               (props.multiple
                 ? (!!props.onChange || isMobile.value) && selected.value.size > 0 && !isDirty.value
@@ -557,7 +560,7 @@ export default defineSetupComponent(
           none: ItemRow<T>[]
           pinned: ItemRow<T>[]
           pinnedHeader?: LabelRow | GroupRow<T['value']>
-          groups: (ItemRow<T> | GroupRow<T['value']>)[][]
+          groups: Group<T>[]
           list: ItemRow<T>[]
         }>(() => {
           const search = searchTerm.value.trim().toLowerCase()
@@ -565,25 +568,21 @@ export default defineSetupComponent(
           const matchesSearch = (item: T) =>
             matches(item.label) || (item.search !== undefined && matches(item.search))
 
-          const active = props.filters?.filter(({ value }) => filterValues.value.includes(value))
-          const passesFilter = (item: T) =>
-            !active?.length || !props.filterFn || props.filterFn(item, active)
+          const active = props.filter?.options.filter(({ value }) =>
+            filterValues.value.includes(value),
+          )
+          const passesFilter = (item: T) => !active?.length || props.filter!.fn(item, active)
+          const isMatch = (item: T) => passesFilter(item) && matchesSearch(item)
 
           // the `null` item is the clear, so it sits apart, above the pinned ones
-          const none = items.value
-            .filter((item) => item.value === null && passesFilter(item) && matchesSearch(item))
-            .map(toRow)
-          const listed = items.value.filter((item) => item.value !== null)
+          const none = nullItem.value && isMatch(nullItem.value) ? [toRow(nullItem.value)] : []
+          const listed = items.value.filter((item) => isNonNull(item.value))
 
           // tree view, searching: a match in a box (the ungrouped one too) shows there only
           const inBox = (item: T) => !!item.groups?.length || !props.listUngrouped
           const pinned = listed
             .filter(
-              (item) =>
-                item.pinned &&
-                passesFilter(item) &&
-                matchesSearch(item) &&
-                (isList.value || !search || !inBox(item)),
+              (item) => item.pinned && isMatch(item) && (isList.value || !search || !inBox(item)),
             )
             .map(toRow)
           const label = props.pinnedLabel
@@ -604,9 +603,7 @@ export default defineSetupComponent(
                   }
 
           if (isList.value) {
-            const rows = listed.filter(
-              (item) => !item.pinned && passesFilter(item) && matchesSearch(item),
-            )
+            const rows = listed.filter((item) => !item.pinned && isMatch(item))
             return { none, pinned, pinnedHeader, groups: [], list: rows.map(toRow) }
           }
 
@@ -623,43 +620,35 @@ export default defineSetupComponent(
             entries.push({ label: props.ungroupedLabel ?? 'Ohne Gruppe', items: ungrouped })
 
           // one menu group each, so each renders as its own box
-          const boxes = entries.map<(ItemRow<T> | GroupRow<T['value']>)[]>(
-            ({ label, items: groupItems }, index) => {
-              const values = groupItems.map((item) => item.value)
-              // matching group label keeps the whole group
-              const items = groupItems.filter(
-                (item) => passesFilter(item) && (matches(label) || matchesSearch(item)),
-              )
-              if (items.length === 0) return []
-              const isCollapsed = (isNarrowed.value ? narrowedCollapsed : collapsed).value.has(
+          const groups = entries.flatMap<Group<T>>(({ label, items: groupItems }, index) => {
+            // matching group label keeps the whole group
+            const items = groupItems.filter(
+              (item) => passesFilter(item) && (matches(label) || matchesSearch(item)),
+            )
+            if (items.length === 0) return []
+            const isCollapsed = (isNarrowed.value ? narrowedCollapsed : collapsed).value.has(label)
+            return {
+              header: {
+                type: 'group',
                 label,
-              )
-
-              return [
-                {
-                  type: 'group' as const,
-                  label,
-                  rowKey: groupKey(index),
-                  values,
-                  shown: items.map((item) => item.value),
-                  collapsed: isCollapsed,
-                  // the ungrouped entry is only ever pushed after the labelled groups
-                  ungrouped: index === labels.length,
-                },
-                ...(isCollapsed ? [] : items.map(toRow)),
-              ]
-            },
-          )
+                rowKey: groupKey(index),
+                values: groupItems.map((item) => item.value),
+                shown: items.map((item) => item.value),
+                collapsed: isCollapsed,
+                // the ungrouped entry is only ever pushed after the labelled groups
+                ungrouped: index === labels.length,
+              },
+              rows: isCollapsed ? [] : items.map(toRow),
+            }
+          })
 
           return {
             none,
             pinned,
             pinnedHeader,
-            groups: boxes.filter((rows) => rows.length > 0),
+            groups,
             list: props.listUngrouped
-              ? ungrouped
-                  .filter((item) => !item.pinned && passesFilter(item) && matchesSearch(item))
-                  .map(toRow)
+              ? ungrouped.filter((item) => !item.pinned && isMatch(item)).map(toRow)
               : [],
           }
         })
@@ -667,22 +656,16 @@ export default defineSetupComponent(
         // above the pinned ones: the `null` item, or else the toggle-all row, as unpicking all clears
         const specialRows = computed<(ItemRow<T> | AllRow<T['value']>)[]>(() => {
           const { none, pinned, groups, list } = tree.value
-          if (!props.multiple || props.hideToggleAll || hasNullItem.value) return none
+          if (!props.multiple || props.hideToggleAll || nullItem.value) return none
           // a value under several groups counts once; a collapsed group's count too
           const shown = [
             ...new Set([
               ...pinned.map((item) => item.value),
-              ...groups.flatMap((rows) => (rows[0] as GroupRow<T['value']>).shown),
+              ...groups.flatMap(({ header }) => header.shown),
               ...list.map((item) => item.value),
             ]),
           ]
           if (shown.length === 0) return []
-          const values = items.value.filter((item) => item.value !== null).map((item) => item.value)
-          const checked = values.every((value) => selected.value.has(value))
-            ? true
-            : values.some((value) => selected.value.has(value))
-              ? 'indeterminate'
-              : false
           const someShownSelected = shown.some((value) => selected.value.has(value))
           return [
             {
@@ -690,7 +673,10 @@ export default defineSetupComponent(
               label: someShownSelected ? 'Alle abwählen' : 'Alle auswählen',
               rowKey: '\0all',
               shown,
-              checked,
+              checked: checkState(
+                items.value.map((item) => item.value).filter(isNonNull),
+                selected.value,
+              ),
               someShownSelected,
             },
           ]
@@ -699,7 +685,8 @@ export default defineSetupComponent(
         // an empty group would still draw its box
         const grouped = computed(() => {
           const { pinned, pinnedHeader, groups, list } = tree.value
-          const rest = list.length > 0 ? [...groups, list] : groups
+          const boxes = groups.map(({ header, rows }) => [header, ...rows])
+          const rest = list.length > 0 ? [...boxes, list] : boxes
           const tops = [
             specialRows.value,
             pinnedHeader ? [pinnedHeader, ...pinned] : pinned,
@@ -746,13 +733,10 @@ export default defineSetupComponent(
         // typing moves the highlight to the first match, so it ends arrowing
         const isArrowing = ref(false)
         watch(searchTerm, () => (isArrowing.value = false))
-        watch(
-          () => isOpen.value || !!draft.value,
-          () => {
-            clearsOnBackspace = false
-            isArrowing.value = false
-          },
-        )
+        watch(isShown, () => {
+          clearsOnBackspace = false
+          isArrowing.value = false
+        })
         // the mouse takes over the highlight. movement only: keyboard scrolling under a
         // resting cursor fires synthetic moves without it
         useEventListener(document, 'pointermove', (event) => {
@@ -797,7 +781,7 @@ export default defineSetupComponent(
               return
             }
             // the `null` item clears, it's no pick
-            toggleGroup(matches.filter((value) => value !== null))
+            toggleMany(matches.filter(isNonNull))
             clearsOnBackspace = true
           },
           { capture: true },
@@ -806,18 +790,16 @@ export default defineSetupComponent(
         // wide enough for two columns of boxes in the sheet (a phone held sideways)
         const isLandscapeColumns = useMediaQuery('(min-width: 768px)')
 
-        // each group joins the shorter column, measured expanded so collapsing never reshuffles;
-        // a collapsed header's `shown` = its rows
+        // each group joins the shorter column, measured expanded so collapsing never reshuffles
         const groupColumns = computed(() => {
-          const columns: { height: number; groups: (ItemRow<T> | GroupRow<T['value']>)[][] }[] = [
+          const columns: { height: number; groups: Group<T>[] }[] = [
             { height: 0, groups: [] },
             { height: 0, groups: [] },
           ]
-          for (const rows of tree.value.groups) {
-            const header = rows[0] as GroupRow<T['value']>
+          for (const group of tree.value.groups) {
             const column = columns[0]!.height <= columns[1]!.height ? columns[0]! : columns[1]!
-            column.height += header.collapsed ? 1 + header.shown.length : rows.length
-            column.groups.push(rows)
+            column.height += 1 + group.header.shown.length
+            column.groups.push(group)
           }
           return columns.map((column) => column.groups)
         })
@@ -859,13 +841,13 @@ export default defineSetupComponent(
           return (
             hasFilterBar.value && (
               <div class="border-default relative z-10 order-1 flex items-center justify-between gap-2 border-b px-2.5 py-1.5">
-                {props.filters && slots.filter ? (
+                {props.filter && slots.filter ? (
                   slots.filter({
-                    'filters': props.filters,
+                    'filters': props.filter.options,
                     'modelValue': filterValues.value,
                     'onUpdate:modelValue': (value) => (filterValues.value = value),
                   })
-                ) : props.filters ? (
+                ) : props.filter ? (
                   <USelectMenu
                     size={inHeader ? 'md' : 'xs'}
                     class={compact ? 'w-auto' : 'w-40'}
@@ -881,7 +863,7 @@ export default defineSetupComponent(
                     // portaled: focus moving there would blur the search and close the menu
                     portal={false}
                     // only read, but `USelectMenu` types `items` as mutable
-                    items={props.filters as F[]}
+                    items={props.filter.options as F[]}
                     v-model={filterValues.value}
                     v-slots={{
                       // just the count, as the labels don't fit
@@ -935,14 +917,7 @@ export default defineSetupComponent(
                     <UCheckbox
                       size="md"
                       class="pointer-events-none shrink-0"
-                      modelValue={
-                        item.values.length > 0 &&
-                        item.values.every((value) => selected.value.has(value))
-                          ? true
-                          : item.values.some((value) => selected.value.has(value))
-                            ? 'indeterminate'
-                            : false
-                      }
+                      modelValue={checkState(item.values, selected.value)}
                     />
                   ),
                   <span
@@ -1015,12 +990,7 @@ export default defineSetupComponent(
             <div
               role="button"
               class="border-default even:bg-elevated/30 flex w-full items-center gap-1.5 border-b px-2.5 py-3.5 text-start text-sm last:border-b-0"
-              onClick={() => {
-                if (!('type' in item)) pick(item.value)
-                else if (item.type === 'all') toggleAll(item)
-                else if (props.multiple) toggleGroup(item.shown)
-                else toggleCollapsed(item.label)
-              }}
+              onClick={() => ('type' in item ? activate(item) : pick(item.value))}
             >
               {itemContent(item)}
             </div>
@@ -1083,6 +1053,8 @@ export default defineSetupComponent(
               label: saveLabel(),
             },
         )
+
+        const hasFooter = computed(() => footer.value.clear || footer.value.save)
 
         function endDraft() {
           if (draft.value) frozenFooter.value = { ...footer.value }
@@ -1154,7 +1126,8 @@ export default defineSetupComponent(
             loading={isBusy.value}
             // spinner alone while loading
             // `null` item picked: the x would clear to it.
-            // the menu shows the x for the draft: nothing saved, nothing to clear
+            // the menu shows the x for the draft: nothing saved (a value no item holds counts as
+            // nothing), nothing to clear
             clear={props.clear && !isBusy.value && !isNone.value && committed.value.size > 0}
             // nothing beside the custom trigger
             {...(slots.default && {
@@ -1236,7 +1209,7 @@ export default defineSetupComponent(
                 // list view: groups run on as one list, so only its outer ends round
                 '[.is-list>:not(:first-child)>&]:rounded-t-none [.is-list>:not(:last-child)>&]:rounded-b-none',
                 (!props.hideSearch || hasFilterBar.value) && 'in-[.is-list]:first:rounded-t-none',
-                (footer.value.clear || footer.value.save) && 'in-[.is-list]:last:rounded-b-none',
+                hasFooter.value && 'in-[.is-list]:last:rounded-b-none',
                 // a header row, marked by its label, gets no hover fill, nor `USelectMenu`'s own
                 'has-data-group-header:before:hidden',
                 isArrowing.value
@@ -1249,7 +1222,7 @@ export default defineSetupComponent(
               // till it ends
               content: [
                 'overflow-visible max-h-(--reka-combobox-content-available-height) w-max min-w-(--reka-combobox-trigger-width) max-w-(--reka-combobox-content-available-width)',
-                (footer.value.clear || footer.value.save) && 'rounded-b-none',
+                hasFooter.value && 'rounded-b-none',
               ]
                 .filter(Boolean)
                 .join(' '),
@@ -1263,18 +1236,15 @@ export default defineSetupComponent(
             // headers select like rows (reka keeps scroll); header toggles group (single: collapses)
             onUpdate:modelValue={(value) => {
               const keys = value as string[]
-              const all = specialRows.value.find(
-                (row): row is AllRow<T['value']> => 'type' in row && keys.includes(row.rowKey),
-              )
-              if (all) return toggleAll(all)
               const header = grouped.value
                 .flat()
                 .find(
-                  (row): row is GroupRow<T['value']> =>
-                    'type' in row && row.type === 'group' && keys.includes(row.rowKey),
+                  (row): row is GroupRow<T['value']> | AllRow<T['value']> =>
+                    'type' in row &&
+                    (row.type === 'group' || row.type === 'all') &&
+                    keys.includes(row.rowKey),
                 )
-              if (header && !props.multiple) toggleCollapsed(header.label)
-              else if (header) toggleGroup(header.shown)
+              if (header) activate(header)
               // the `null` row is never selected: it only shows up as a click, which saves the clear
               else if (props.multiple && keys.includes(toKey(null))) clearAll()
               else if (props.multiple)
@@ -1303,7 +1273,7 @@ export default defineSetupComponent(
                 ),
               ],
               'content-bottom': () => [
-                (footer.value.clear || footer.value.save) && [
+                hasFooter.value && [
                   // flat and invisible: widens the box to the hanging button's label
                   <div aria-hidden="true" class="invisible flex h-0 overflow-hidden px-2">
                     {footerButton()}
@@ -1324,7 +1294,7 @@ export default defineSetupComponent(
                     <CustomTrigger>
                       {() =>
                         slots.default!({
-                          open: isOpen.value || !!draft.value,
+                          open: isShown.value,
                           picks: pickedItems.value,
                         })
                       }
@@ -1420,16 +1390,16 @@ export default defineSetupComponent(
                             <div class="grid grid-cols-2 items-start gap-3">
                               {groupColumns.value.map((groups) => (
                                 <div class="space-y-3">
-                                  {groups.map((rows) => (
-                                    <div class={groupBox}>{sheetRows(rows)}</div>
+                                  {groups.map(({ header, rows }) => (
+                                    <div class={groupBox}>{sheetRows([header, ...rows])}</div>
                                   ))}
                                 </div>
                               ))}
                             </div>
                           ) : (
                             <div class="space-y-3">
-                              {tree.value.groups.map((rows) => (
-                                <div class={groupBox}>{sheetRows(rows)}</div>
+                              {tree.value.groups.map(({ header, rows }) => (
+                                <div class={groupBox}>{sheetRows([header, ...rows])}</div>
                               ))}
                             </div>
                           ))}
