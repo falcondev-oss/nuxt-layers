@@ -39,6 +39,13 @@ export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
    */
   pinned?: boolean
   /**
+   * Shows the item greyed out and unclickable. Toggle-all, a group header and Enter skip it, so a
+   * pick it already has stays. Their checkboxes still count it, as its row shows it.
+   *
+   * On the `null` item, it disables clearing: the trigger's x hides.
+   */
+  disabled?: boolean
+  /**
    * Makes the item an action instead of a pick. It has no checkbox or radio, and clicking it
    * closes the menu and calls this. Actions are listed last, below a divider, or first, above the
    * toggle-all or `null` row, when `pinned`. The search hides them, a filter doesn't. `value` and
@@ -50,8 +57,9 @@ export type UniversalSelectMenuFilter = { label: string; value: Primitive }
 
 // `rowKey`: `USelectMenu`'s value for the row, one string space for item and group rows.
 // wraps the item: its own keys (e.g. a `type`) would reach `USelectMenu` and mistype the row
-type ItemRow<T> = { type: 'item'; rowKey: string; item: T }
-type ActionRow<T> = { type: 'action'; rowKey: string; item: T }
+// `disabled`: the item's, where `USelectMenu` reads it
+type ItemRow<T> = { type: 'item'; rowKey: string; item: T; disabled?: boolean }
+type ActionRow<T> = { type: 'action'; rowKey: string; item: T; disabled?: boolean }
 
 // a slot's output, or `undefined` if it rendered nothing, for a `??` default: Vue wraps every
 // slot, so one whose `v-if` didn't take still returns a comment, not `null`
@@ -285,7 +293,7 @@ export default defineSetupComponent(
        * Adds a clear button (x) to the trigger. In the open menu, the footer shows a clear button
        * while the picks are unchanged (multiple select: only with `onChange` or on mobile). With a
        * `null` item, which is the clear, there's no footer button, and the x hides while it's
-       * picked.
+       * picked or disabled.
        */
       clear?: boolean
       /** Hides the search input, in the dropdown and in the mobile sheet. */
@@ -521,6 +529,13 @@ export default defineSetupComponent(
           return (props.multiple ? sorted : sorted[0]) as ModelValue<T['value'], Multiple>
         }
 
+        // left out of every pick the user didn't make row by row
+        const disabledValues = computed(
+          () => new Set(items.value.filter((item) => item.disabled).map((item) => item.value)),
+        )
+        const pickable = (values: T['value'][]) =>
+          values.filter((value) => !disabledValues.value.has(value))
+
         const isSaving = ref(false)
         // no writes: mid-load, a pick or save would go out against a partial list
         const isBusy = computed(() => isLoading.value || isSaving.value)
@@ -547,7 +562,10 @@ export default defineSetupComponent(
         // clear empties pick before `onChange` settles; keep button till closed
         const isClearing = ref(false)
 
-        function toggleMany(values: T['value'][]) {
+        function toggleMany(all: T['value'][]) {
+          const values = pickable(all)
+          // nothing to toggle: no emit of the same picks
+          if (values.length === 0) return
           const next = new Set(selected.value)
           const isFullySelected = values.every((value) => next.has(value))
           for (const value of values) {
@@ -661,7 +679,7 @@ export default defineSetupComponent(
         })
 
         function pick(value: T['value']) {
-          if (isBusy.value) return
+          if (isBusy.value || disabledValues.value.has(value)) return
           // single: the saved row changes nothing, so it closes without a save or emit
           if (!props.multiple && draft.value && value === pickedOnOpen.value) return close()
           toggle(value)
@@ -708,7 +726,12 @@ export default defineSetupComponent(
         })
 
         // `list` holds the rows without a header: the list view's, or the ungrouped ones
-        const toRow = (item: T): ItemRow<T> => ({ type: 'item', rowKey: toKey(item.value), item })
+        const toRow = (item: T): ItemRow<T> => ({
+          type: 'item',
+          rowKey: toKey(item.value),
+          item,
+          disabled: item.disabled,
+        })
 
         const isList = computed(() => view.value === 'list' || !hasGroups.value)
 
@@ -767,7 +790,14 @@ export default defineSetupComponent(
           // a filter narrows the items, not what the menu can do
           const allActions = (props.items ?? []).flatMap((item, index) =>
             item.onClick && matchesSearch(item)
-              ? [{ type: 'action' as const, rowKey: `\0action${index}`, item }]
+              ? [
+                  {
+                    type: 'action' as const,
+                    rowKey: `\0action${index}`,
+                    item,
+                    disabled: item.disabled,
+                  },
+                ]
               : [],
           )
           const topActions = allActions.filter((row) => row.item.pinned)
@@ -842,13 +872,13 @@ export default defineSetupComponent(
           const { none, pinned, groups, list } = tree.value
           if (!props.multiple || props.hideToggleAll || nullItem.value) return none
           // a value under several groups counts once; a collapsed group's are left out, as on Enter
-          const shown = [
+          const shown = pickable([
             ...new Set(
               [...pinned, ...groups.flatMap(({ rows }) => rows), ...list].map(
                 (row) => row.item.value,
               ),
             ),
-          ]
+          ])
           if (shown.length === 0) return []
           const allShownSelected = shown.every((value) => selected.value.has(value))
           return [
@@ -983,13 +1013,13 @@ export default defineSetupComponent(
             event.stopPropagation()
             if (!searchTerm.value.trim()) return
             // a value under several groups counts once; a collapsed group's are left out
-            const matches = [
+            const matches = pickable([
               ...new Set(
                 grouped.value
                   .flat()
                   .flatMap((row) => (row.type === 'item' ? [row.item.value] : [])),
               ),
-            ]
+            ])
             if (!props.multiple) {
               if (matches.length === 1) pick(matches[0]!)
               return
@@ -1232,13 +1262,17 @@ export default defineSetupComponent(
             // not a <button>: a group row holds the collapse button
             <div
               role="button"
-              class="border-default even:bg-elevated/30 flex w-full items-center gap-1.5 border-b px-2.5 py-3.5 text-start text-sm last:border-b-0"
+              aria-disabled={'disabled' in row && row.disabled ? 'true' : undefined}
+              // dimmed as `USelectMenu` dims a disabled row
+              class="border-default even:bg-elevated/30 flex w-full items-center gap-1.5 border-b px-2.5 py-3.5 text-start text-sm last:border-b-0 aria-disabled:cursor-not-allowed aria-disabled:opacity-75"
               onClick={() =>
-                row.type === 'item'
-                  ? pick(row.item.value)
-                  : row.type === 'action'
-                    ? runAction(row)
-                    : activate(row)
+                'disabled' in row && row.disabled
+                  ? undefined
+                  : row.type === 'item'
+                    ? pick(row.item.value)
+                    : row.type === 'action'
+                      ? runAction(row)
+                      : activate(row)
               }
             >
               {itemContent(row)}
@@ -1324,7 +1358,8 @@ export default defineSetupComponent(
 
         // success closes (draft gone): keeps the clear button through the close animation
         function clearAll() {
-          if (isBusy.value) return
+          // a disabled `null` item: the clear is disabled
+          if (isBusy.value || nullItem.value?.disabled) return
           // `null` saved: clearing changes nothing, so it only closes. no model yet: saves the `null`
           if (committed.value.size === 0 && props.modelValue !== undefined) return close()
           const picks = draft.value
@@ -1386,10 +1421,16 @@ export default defineSetupComponent(
             // closed-menu clear saves with no other spinner
             loading={isBusy.value}
             // spinner alone while loading
-            // `null` item picked: the x would clear to it.
+            // `null` item picked: the x would clear to it; disabled: no clear.
             // the menu shows the x for the draft: nothing saved (a value no item holds counts as
             // nothing), nothing to clear
-            clear={props.clear && !isBusy.value && !isNone.value && committed.value.size > 0}
+            clear={
+              props.clear &&
+              !isBusy.value &&
+              !isNone.value &&
+              !nullItem.value?.disabled &&
+              committed.value.size > 0
+            }
             // nothing beside the custom trigger
             {...(slots.default && {
               asChild: true,
