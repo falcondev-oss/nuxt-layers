@@ -9,22 +9,41 @@ import { UButton, UCheckbox, UIcon, UInput, UModal, USelectMenu, UTabs } from '#
 type Primitive = string | number | boolean | null
 
 export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
+  /** Text shown for the item, in the list and in the trigger. The search matches it. */
   label: string
+  /**
+   * What picking the item sets in the model. Values must be unique: a repeated value is listed
+   * once, with the groups of every copy. `undefined` is dropped with a warning.
+   *
+   * `null` makes the item the clear: single select picks it with a `null` model, multiple select
+   * clears all picks when it's clicked.
+   */
   value: V
+  /** Muted text at the end of the row. */
   hint?: string
+  /** Second line below the label. */
   description?: string
-  // extra text the search matches, besides the label; `null`: matches every search, so it shows
-  // even when nothing else does
+  /**
+   * More text the search matches, besides the label. `null` matches every search, so the item
+   * always shows, even when nothing else matches.
+   */
   search?: string | null
-  // labels of the groups it's listed under, in the order they first appear across `items`;
-  // no item with one: a flat list with no view toggle
+  /**
+   * Labels of the groups the item is listed under. Groups appear in the order they're first used
+   * across `items`. When no item has groups, the menu is a flat list without a view toggle.
+   */
   groups?: string[]
-  // listed first, above a divider; tree view: in its boxes as well (the ungrouped one too), only
-  // there during a search. a filter keeps it up top too
+  /**
+   * Lists the item first, above a divider, and keeps it there while a filter is on. In the tree
+   * view it's also listed in its groups, and during a search only there.
+   */
   pinned?: boolean
-  // an action, never picked: no checkbox or radio, a click closes the menu and calls it. listed
-  // last, below a divider; `pinned`: first, above the toggle-all or `null` row. matched by the
-  // search only; `value` and `groups` ignored
+  /**
+   * Makes the item an action instead of a pick. It has no checkbox or radio, and clicking it
+   * closes the menu and calls this. Actions are listed last, below a divider, or first, above the
+   * toggle-all or `null` row, when `pinned`. The search hides them, a filter doesn't. `value` and
+   * `groups` are ignored.
+   */
   onClick?: () => void
 }
 export type UniversalSelectMenuFilter = { label: string; value: Primitive }
@@ -194,54 +213,113 @@ export default defineSetupComponent(
       | 'multiple'
       | IneffectiveSelectMenuProps
     > & {
+      /** The items to pick from, and any actions (items with `onClick`). */
       items: T[]
-      // `false`: a flat list with no view toggle, whatever `item.groups` say
+      /**
+       * `false` shows a flat list without the tree/list toggle, whatever the items' `groups` say.
+       * By default the items are grouped as soon as one has `groups`.
+       */
       group?: boolean
-      // list ungrouped items flat below
+      /** Lists items without `groups` flat below the groups, instead of in a group of their own. */
       listUngrouped?: boolean
-      // label for the group of ungrouped items
+      /** Header of the group that holds the items without `groups`. Default: "Ohne Gruppe". */
       ungroupedLabel?: string
-      // header over the pinned items; without, they're listed bare
+      /**
+       * Header above the pinned items. In the tree view of a multiple select, it toggles them like
+       * a group header. Without it, the pinned items have no header.
+       */
       pinnedLabel?: string
-      // `fn` is only called while at least one option is selected
+      /**
+       * Adds a filter dropdown with `options`. `fn` decides whether an item passes the selected
+       * options. It's only called while at least one option is selected. Actions are never
+       * filtered.
+       */
       filter?: { options: readonly F[]; fn: (item: T, filters: F[]) => boolean }
+      /** Picks several values instead of one. */
       multiple?: Multiple
-      // `null`: no pick; single: also picks an item with value `null`. multiple: an item with value
-      // `null` is no pick but clears, to `null`. a value no item holds is dropped on open, once
-      // `items` are in
+      /**
+       * The picked value, or an array of them when `multiple`. `null` means nothing is picked; a
+       * multiple select emits `null` instead of `[]`.
+       *
+       * Values no item holds are removed when the menu opens, once the items have loaded (see
+       * `loading`). Until then the trigger shows "Nicht verfügbar".
+       */
       modelValue?: ModelValue<T['value'], Multiple>
-      // awaited before emit, spinner meanwhile. throws: no emit, stays open; single restores
-      // pick, multiple keeps picks
+      /**
+       * Saves a pick before `update:modelValue` is emitted. Picks then collect in the menu until
+       * they're saved with the footer button, or, in a single select, by double-clicking a row.
+       * The menu shows a spinner while the promise is pending. If it rejects, nothing is emitted
+       * and the menu stays open: a single select restores the previous pick, a multiple select
+       * keeps the picks for a retry.
+       */
       onChange?: (value: ModelValue<T['value'], Multiple>) => Promise<void> | void
+      /** Called when the menu closes. */
       onBlur?: () => void
+      /** Disables the trigger. */
       disabled?: boolean
-      // items/groups loading: trigger spinner, loading note instead of no matches. `false`: loaded,
-      // even empty; left out: an empty list counts as loading, so stale values stay. a query's
-      // `isPending`, not `isFetching`: that's `false` before the first fetch, which drops values
+      /**
+       * The items are still loading: shows a spinner in the trigger and a loading note instead of
+       * "Keine Treffer". Nothing can be picked or saved meanwhile.
+       *
+       * `false` means loaded, even when the list is empty. Left out, the menu guesses: an empty
+       * list (or one with only the `null` item or actions) counts as loading, so values no item
+       * holds are kept, and any item counts as loaded, so a first page of results drops the
+       * values of items still to come.
+       *
+       * For a query, pass `isPending`, not `isFetching`: that one is `false` before the first
+       * fetch starts, which drops the values.
+       */
       loading?: boolean
-      // save button label by pick count; `none`: the `null` item is picked (multiple: nothing is)
+      /**
+       * Label of the save button, from the number of picks. `none` is `true` when the `null` item
+       * is picked (multiple select: when nothing is). Default: "N auswählen", "Auswählen", or
+       * "Keine auswählen".
+       */
       submitLabel?: (count: number, none: boolean) => string
-      // single: clear button label
+      /** Label of the footer's clear button. Default: "Auswahl aufheben". */
       deselectLabel?: string
-      // clear x in the trigger; single: also the clear button
+      /**
+       * Adds a clear button (x) to the trigger. In the open menu, the footer shows a clear button
+       * while the picks are unchanged (multiple select: only with `onChange` or on mobile). With a
+       * `null` item, which is the clear, there's no footer button, and the x hides while it's
+       * picked.
+       */
       clear?: boolean
-      // no search input, in the dropdown and the sheet
+      /** Hides the search input, in the dropdown and in the mobile sheet. */
       hideSearch?: boolean
-      // multiple: no row up top that picks or unpicks all shown items; a `null` item hides it too
+      /**
+       * Multiple select: hides the row at the top that picks or unpicks all shown items. A `null`
+       * item hides it too.
+       */
       hideToggleAll?: boolean
     }
     slots: {
-      // custom trigger, e.g. a button; no clear x or spinner. `picks`: the saved picks; multiple,
-      // none saved: the `null` item (`undefined` model: none)
+      /**
+       * Replaces the trigger, e.g. with a button. It gets no clear x and no spinner. `open` is
+       * whether the menu or the mobile sheet is shown. `picks` are the saved picks, and the ones
+       * being saved while `onChange` is pending; a multiple select with nothing saved passes the
+       * `null` item, if there is one, and nothing while the model is `undefined`.
+       */
       'default': (props: { open: boolean; picks: T[] }) => VNode[]
+      /** Before the label, in the rows (actions too) and in the trigger with one pick. */
       'prefix': (props: { item: T }) => VNode[]
+      /** Replaces the item's `description`. Rendering nothing falls back to it. */
       'description': (props: { item: T }) => VNode[]
+      /** Beside the label in the rows, e.g. a badge. */
       'suffix': (props: { item: T }) => VNode[]
+      /** Replaces the item's `hint` at the end of the row. Rendering nothing falls back to it. */
       'hint': (props: { item: T }) => VNode[]
+      /** Label of a filter option in the filter dropdown. */
       'filter-item': (props: { item: F }) => VNode[]
-      // trigger with more than one pick; default "N ausgewählt"
+      /**
+       * The trigger's text when more than one value is picked. Default: "N ausgewählt". Rendering
+       * nothing falls back to it.
+       */
       'summary': (props: { picks: T[] }) => VNode[]
-      // replaces the filter select; spread the props onto the replacement to bind the selection
+      /**
+       * Replaces the filter dropdown. Spread the props onto the replacement to bind the selected
+       * options.
+       */
       'filter': (props: {
         'filters': readonly F[]
         'modelValue': F['value'][]
