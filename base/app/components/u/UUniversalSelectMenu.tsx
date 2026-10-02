@@ -13,20 +13,26 @@ export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
   value: V
   hint?: string
   description?: string
-  // extra text the search matches, besides the label
-  search?: string
+  // extra text the search matches, besides the label; `null`: matches every search, so it shows
+  // even when nothing else does
+  search?: string | null
   // labels of the groups it's listed under, in the order they first appear across `items`;
   // no item with one: a flat list with no view toggle
   groups?: string[]
   // listed first, above a divider; tree view: in its boxes as well (the ungrouped one too), only
   // there during a search. a filter keeps it up top too
   pinned?: boolean
+  // an action, never picked: no checkbox or radio, a click closes the menu and calls it. listed
+  // last, below a divider; `pinned`: first, above the toggle-all or `null` row. matched by the
+  // search only; `value` and `groups` ignored
+  onClick?: () => void
 }
 export type UniversalSelectMenuFilter = { label: string; value: Primitive }
 
 // `rowKey`: `USelectMenu`'s value for the row, one string space for item and group rows.
 // wraps the item: its own keys (e.g. a `type`) would reach `USelectMenu` and mistype the row
 type ItemRow<T> = { type: 'item'; rowKey: string; item: T }
+type ActionRow<T> = { type: 'action'; rowKey: string; item: T }
 
 // a slot's output, or `undefined` if it rendered nothing, for a `??` default: Vue wraps every
 // slot, so one whose `v-if` didn't take still returns a comment, not `null`
@@ -80,6 +86,14 @@ type AllRow<V> = {
 // `USelectMenu` draws it as a line between the pinned rows and the rest; `rowKey` only for its types
 const separator = { type: 'separator' as const, rowKey: '\0' }
 type LabelRow = { type: 'label'; label: string; rowKey: string }
+// the empty note, as a row so it can sit between actions. disabled: no pick, no highlight; the
+// class undoes the theme's dimming
+const emptyRow = {
+  type: 'empty' as const,
+  rowKey: '\0empty',
+  disabled: true,
+  class: 'data-disabled:opacity-100 data-disabled:cursor-default',
+}
 
 // `USelectMenu` props with no effect here: set by the wrapper, bypassed by its rendering, or
 // working on `rowKey`s instead of values
@@ -125,6 +139,11 @@ const CustomTrigger: FunctionalComponent = (_, { attrs: { class: __, ...attrs },
   h(Slot, attrs, slots)
 CustomTrigger.inheritAttrs = false
 
+// the sheet's take on the dropdown's band, across the body's padding
+function sheetBand() {
+  return <div class="bg-accented -mx-4 h-0.75" />
+}
+
 function loadingNote() {
   return (
     <span class="inline-flex items-center gap-1.5">
@@ -151,7 +170,15 @@ export default defineSetupComponent(
   >(_: {
     props: Omit<
       SelectMenuProps<
-        (ItemRow<T> | GroupRow<T['value']> | AllRow<T['value']> | LabelRow | typeof separator)[][],
+        (
+          | ItemRow<T>
+          | ActionRow<T>
+          | typeof emptyRow
+          | GroupRow<T['value']>
+          | AllRow<T['value']>
+          | LabelRow
+          | typeof separator
+        )[][],
         'rowKey',
         true
       >,
@@ -268,12 +295,13 @@ export default defineSetupComponent(
         const searchTerm = ref('')
 
         // a repeated value would list its row twice: the first copy stays, with every copy's groups.
-        // an `undefined` value is no value: dropped
+        // an `undefined` value is no value: dropped. actions aren't picks: kept apart
         const items = computed(() => {
           const byValue = new Map<T['value'], T>()
           // only repeated values with groups get one; merged into their row once, at the end
           const groupsOf = new Map<T['value'], Set<string>>()
           for (const item of props.items) {
+            if (item.onClick) continue
             if (item.value === undefined) {
               console.warn('UUniversalSelectMenu: dropped an item with value `undefined`', item)
               continue
@@ -605,11 +633,16 @@ export default defineSetupComponent(
           pinnedHeader?: LabelRow | GroupRow<T['value']>
           groups: Group<T>[]
           list: ItemRow<T>[]
+          // pinned ones: up top, with the special rows
+          topActions: ActionRow<T>[]
+          actions: ActionRow<T>[]
         }>(() => {
           const search = searchTerm.value.trim().toLowerCase()
           const matches = (label: string) => label.toLowerCase().includes(search)
           const matchesSearch = (item: T) =>
-            matches(item.label) || (item.search !== undefined && matches(item.search))
+            item.search === null ||
+            matches(item.label) ||
+            (item.search !== undefined && matches(item.search))
 
           const active = props.filter?.options.filter(({ value }) =>
             filterValues.value.includes(value),
@@ -646,9 +679,26 @@ export default defineSetupComponent(
                     pinned: true,
                   }
 
+          // a filter narrows the items, not what the menu can do
+          const allActions = props.items.flatMap((item, index) =>
+            item.onClick && matchesSearch(item)
+              ? [{ type: 'action' as const, rowKey: `\0action${index}`, item }]
+              : [],
+          )
+          const topActions = allActions.filter((row) => row.item.pinned)
+          const actions = allActions.filter((row) => !row.item.pinned)
+
           if (isList.value) {
             const rows = listed.filter((item) => !item.pinned && isMatch(item))
-            return { none, pinned, pinnedHeader, groups: [], list: rows.map(toRow) }
+            return {
+              none,
+              pinned,
+              pinnedHeader,
+              groups: [],
+              list: rows.map(toRow),
+              topActions,
+              actions,
+            }
           }
 
           // an item may sit in several groups; listed under each, pinned ones too
@@ -697,11 +747,13 @@ export default defineSetupComponent(
             list: props.listUngrouped
               ? ungrouped.filter((item) => !item.pinned && isMatch(item)).map(toRow)
               : [],
+            topActions,
+            actions,
           }
         })
 
         // above the pinned ones: the `null` item, or else the toggle-all row, as unpicking all clears
-        const specialRows = computed<(ItemRow<T> | AllRow<T['value']>)[]>(() => {
+        const headRows = computed<(ItemRow<T> | AllRow<T['value']>)[]>(() => {
           const { none, pinned, groups, list } = tree.value
           if (!props.multiple || props.hideToggleAll || nullItem.value) return none
           // a value under several groups counts once; a collapsed group's are left out, as on Enter
@@ -727,19 +779,44 @@ export default defineSetupComponent(
             },
           ]
         })
+        // pinned actions above them, in the same section
+        const specialRows = computed(() => [...tree.value.topActions, ...headRows.value])
 
         // an empty group would still draw its box
-        const grouped = computed(() => {
-          const { pinned, pinnedHeader, groups, list } = tree.value
-          const boxes = groups.map(({ header, rows }) => [header, ...rows])
-          const rest = list.length > 0 ? [...boxes, list] : boxes
-          const tops = [
-            specialRows.value,
-            pinnedHeader ? [pinnedHeader, ...pinned] : pinned,
-          ].filter((rows) => rows.length > 0)
-          const sections = [...tops.flatMap((box) => [box, [separator]]), ...rest]
-          return rest.length > 0 ? sections : sections.slice(0, -1)
+        // nothing to pick shown, only actions: the empty note between the pinned ones and the rest
+        const onlyActions = computed(() => {
+          const { pinned, groups, list, topActions, actions } = tree.value
+          return (
+            headRows.value.length === 0 &&
+            pinned.length === 0 &&
+            groups.length === 0 &&
+            list.length === 0 &&
+            topActions.length + actions.length > 0
+          )
         })
+
+        const grouped = computed(() => {
+          const { pinned, pinnedHeader, groups, list, actions } = tree.value
+          const boxes = groups.map(({ header, rows }) => [header, ...rows])
+          // each a section of boxes, a divider between. tree view: a box per special row, as
+          // they're no group
+          return [
+            isList.value ? [specialRows.value] : specialRows.value.map((row) => [row]),
+            [pinnedHeader ? [pinnedHeader, ...pinned] : pinned],
+            onlyActions.value ? [[emptyRow]] : list.length > 0 ? [...boxes, list] : boxes,
+            [actions],
+          ]
+            .map((section) => section.filter((rows) => rows.length > 0))
+            .filter((section) => section.length > 0)
+            .flatMap((section, index) => (index === 0 ? section : [[separator], ...section]))
+        })
+
+        // closes first: the action may open something of its own, e.g. a modal
+        function runAction(row: ActionRow<T>) {
+          if (isSaving.value) return
+          close()
+          row.item.onClick?.()
+        }
 
         // Enter toggles all shown matches (single: a sole match); captured ahead of reka.
         // after an arrow key, Enter is reka's again: picks the highlighted row, ringed meanwhile.
@@ -823,9 +900,10 @@ export default defineSetupComponent(
             // a value under several groups counts once; a collapsed group's are left out
             const matches = [
               ...new Set(
-                grouped.value
-                  .flat()
-                  .flatMap((row) => (row.type === 'item' ? [row.item.value] : [])),
+                grouped.value.flat().flatMap((row) =>
+                  // one shown for every search matched none of it
+                  row.type === 'item' && row.item.search !== null ? [row.item.value] : [],
+                ),
               ),
             ]
             if (!props.multiple) {
@@ -967,11 +1045,22 @@ export default defineSetupComponent(
           )
         }
 
-        const itemContent = (row: ItemRow<T> | GroupRow<T['value']> | AllRow<T['value']>) => {
+        const itemContent = (
+          row:
+            ItemRow<T> | ActionRow<T> | GroupRow<T['value']> | AllRow<T['value']> | typeof emptyRow,
+        ) => {
+          if (row.type === 'empty')
+            return (
+              <span data-empty-note class="text-muted flex w-full justify-center py-2 text-sm">
+                {props.loading ? loadingNote() : emptyNote()}
+              </span>
+            )
           if (row.type === 'all')
             return [
               <UCheckbox size="md" class="pointer-events-none shrink-0" modelValue={row.checked} />,
-              <span class="truncate font-medium">{row.label}</span>,
+              <span data-special-row class="truncate font-medium">
+                {row.label}
+              </span>,
             ]
           if (row.type === 'group')
             return [
@@ -1016,7 +1105,8 @@ export default defineSetupComponent(
           const { item } = row
           const description = slotContent(slots.description?.({ item })) ?? item.description
           return [
-            props.multiple ? (
+            // an action picks nothing, so has no box to check
+            row.type === 'action' ? null : props.multiple ? (
               item.value === null ? (
                 // clears, no pick to check; keeps the labels aligned
                 <span class="size-4 shrink-0" />
@@ -1031,7 +1121,13 @@ export default defineSetupComponent(
               radio(selected.value.has(item.value))
             ),
             ...(slots.prefix?.({ item }) ?? []),
-            <span class="flex min-w-0 flex-col">
+            // marks a special row: the `null` item or a pinned action, listed with the toggle-all
+            <span
+              data-special-row={
+                item.value === null || (row.type === 'action' && item.pinned) ? '' : undefined
+              }
+              class="flex min-w-0 flex-col"
+            >
               {/* suffix beside the label: a longer description would push it aside */}
               <span class="flex min-w-0 items-center gap-1.5">
                 <span class="truncate">{item.label}</span>
@@ -1045,13 +1141,21 @@ export default defineSetupComponent(
           ]
         }
 
-        const sheetRows = (rows: (ItemRow<T> | GroupRow<T['value']> | AllRow<T['value']>)[]) =>
+        const sheetRows = (
+          rows: (ItemRow<T> | ActionRow<T> | GroupRow<T['value']> | AllRow<T['value']>)[],
+        ) =>
           rows.map((row) => (
             // not a <button>: a group row holds the collapse button
             <div
               role="button"
               class="border-default even:bg-elevated/30 flex w-full items-center gap-1.5 border-b px-2.5 py-3.5 text-start text-sm last:border-b-0"
-              onClick={() => (row.type === 'item' ? pick(row.item.value) : activate(row))}
+              onClick={() =>
+                row.type === 'item'
+                  ? pick(row.item.value)
+                  : row.type === 'action'
+                    ? runAction(row)
+                    : activate(row)
+              }
             >
               {itemContent(row)}
             </div>
@@ -1061,7 +1165,20 @@ export default defineSetupComponent(
           const { pinned, pinnedHeader, groups, list } = tree.value
           const special = specialRows.value
           const boxes = [
-            ...(special.length > 0 ? [<div class={groupBox}>{sheetRows(special)}</div>] : []),
+            ...(special.length > 0
+              ? [
+                  // tree view: a box each, as they're no group; closer together than the groups' boxes
+                  isList.value ? (
+                    <div class={groupBox}>{sheetRows(special)}</div>
+                  ) : (
+                    <div class="space-y-1">
+                      {special.map((row) => (
+                        <div class={groupBox}>{sheetRows([row])}</div>
+                      ))}
+                    </div>
+                  ),
+                ]
+              : []),
             ...(pinned.length > 0
               ? [
                   <div class={groupBox}>
@@ -1075,8 +1192,7 @@ export default defineSetupComponent(
                 ]
               : []),
           ]
-          // the dropdown's band, across the body's padding
-          const sections = boxes.flatMap((box) => [box, <div class="bg-accented -mx-4 h-0.75" />])
+          const sections = boxes.flatMap((box) => [box, sheetBand()])
           return groups.length > 0 || list.length > 0 ? sections : sections.slice(0, -1)
         }
 
@@ -1251,6 +1367,10 @@ export default defineSetupComponent(
               group: [
                 isList.value ? 'p-0' : groupBox,
                 'has-data-[slot=separator]:border-0 has-data-[slot=separator]:overflow-visible',
+                // nor does the empty note's
+                'has-data-empty-note:border-0',
+                // tree view: a box per special row, closer together than the groups' boxes
+                'has-data-special-row:has-[+*_[data-special-row]]:mb-1',
               ].join(' '),
               // rows, the band and the caption keep their classes across a view switch, as
               // `USelectMenu` reuses rendered rows: the view reaches them as `is-list` on the viewport.
@@ -1260,9 +1380,10 @@ export default defineSetupComponent(
               // list view: a light caption, as no group header sets the tone there
               label:
                 'border-b border-default py-2 text-sm in-[.is-list]:px-2.5 in-[.is-list]:py-1 in-[.is-list]:text-xs in-[.is-list]:font-medium',
-              // striped from the header on; stripe hides the default `before` highlight,
-              // so the row highlights itself: hover fill for the mouse, ring while arrowing,
-              // as Enter picks it
+              // striped from the header on; the row highlights itself: hover fill for the mouse,
+              // only a ring while arrowing, as Enter picks it. not by `data-highlighted` otherwise
+              // (nor the theme's text colour for it): reka highlights the first row on a search,
+              // which Enter doesn't pick
               item: [
                 'items-center py-2 rounded-none border-b border-default last:border-b-0 even:bg-elevated/30',
                 // ring follows the corners; list view: square beside the search or footer
@@ -1271,11 +1392,13 @@ export default defineSetupComponent(
                 '[.is-list>:not(:first-child)>&]:rounded-t-none [.is-list>:not(:last-child)>&]:rounded-b-none',
                 (!props.hideSearch || hasFilterBar.value) && 'in-[.is-list]:first:rounded-t-none',
                 hasFooter.value && 'in-[.is-list]:last:rounded-b-none',
-                // a header row, marked by its label, gets no hover fill, nor `USelectMenu`'s own
-                'has-data-group-header:before:hidden',
+                // no row gets `USelectMenu`'s own highlight, which would show reka's
+                'before:hidden',
                 isArrowing.value
-                  ? 'data-highlighted:not-data-disabled:ring-2 data-highlighted:not-data-disabled:ring-inset data-highlighted:not-data-disabled:ring-primary'
-                  : 'data-highlighted:not-data-disabled:not-has-data-group-header:bg-elevated',
+                  ? 'data-highlighted:not-data-disabled:ring-2 data-highlighted:not-data-disabled:ring-inset data-highlighted:not-data-disabled:ring-primary data-highlighted:not-data-disabled:text-default'
+                  : // the theme's highlighted text only while hovered; its extra `:not()` outweighs
+                    // the theme's class
+                    'hover:not-data-disabled:not-has-data-group-header:bg-elevated data-highlighted:not-data-disabled:not-hover:text-default',
               ]
                 .filter(Boolean)
                 .join(' '),
@@ -1297,6 +1420,12 @@ export default defineSetupComponent(
             // headers select like rows (reka keeps scroll); header toggles group (single: collapses)
             onUpdate:modelValue={(value) => {
               const keys = value as string[]
+              const action = grouped.value
+                .flat()
+                .find(
+                  (row): row is ActionRow<T> => row.type === 'action' && keys.includes(row.rowKey),
+                )
+              if (action) return runAction(action)
               const header = grouped.value
                 .flat()
                 .find(
@@ -1390,7 +1519,12 @@ export default defineSetupComponent(
               'item': ({
                 item,
               }: {
-                item: ItemRow<T> | GroupRow<T['value']> | AllRow<T['value']>
+                item:
+                  | ItemRow<T>
+                  | ActionRow<T>
+                  | GroupRow<T['value']>
+                  | AllRow<T['value']>
+                  | typeof emptyRow
               }) => itemContent(item),
               'empty': props.loading ? loadingNote : emptyNote,
             }}
@@ -1437,11 +1571,12 @@ export default defineSetupComponent(
                     : []),
                   // `mt-auto`, not `justify-end`, which clips the top on overflow
                   <div class={isThumbReach.value && 'mt-auto'}>
-                    {grouped.value.length === 0 ? (
+                    {grouped.value.length === 0 && (
                       <p class="text-muted p-4 text-center text-sm">
                         {props.loading ? loadingNote() : emptyNote()}
                       </p>
-                    ) : (
+                    )}
+                    {grouped.value.length > 0 && (
                       <div class="space-y-3">
                         {sheetPinned()}
                         {tree.value.groups.length > 0 &&
@@ -1475,6 +1610,18 @@ export default defineSetupComponent(
                           ) : (
                             <div class={groupBox}>{sheetRows(tree.value.list)}</div>
                           ))}
+                        {/* below the pinned actions, as in the dropdown */}
+                        {onlyActions.value && [
+                          tree.value.topActions.length > 0 && sheetBand(),
+                          <p class="text-muted p-4 text-center text-sm">
+                            {props.loading ? loadingNote() : emptyNote()}
+                          </p>,
+                        ]}
+                        {tree.value.actions.length > 0 && [
+                          // the band only below picks: the actions may be all there is
+                          grouped.value.length > 1 && sheetBand(),
+                          <div class={groupBox}>{sheetRows(tree.value.actions)}</div>,
+                        ]}
                       </div>
                     )}
                   </div>,

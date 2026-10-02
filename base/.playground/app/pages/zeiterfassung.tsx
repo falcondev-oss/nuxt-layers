@@ -167,7 +167,7 @@ const activities = [
   { label: 'Pause', value: 'break', icon: 'lucide:coffee' },
 ]
 
-function filterUser(user: (typeof users)[number], filters: { value: string }[]) {
+function filterUser(user: { value: string; tag?: string }, filters: { value: string }[]) {
   return filters.some((filter) => filter.value === user.tag)
 }
 
@@ -177,20 +177,27 @@ const userSlots = {
       {item.label}
     </UBadge>,
   ],
-  'prefix': ({ item }: { item: { label: string; value: string } }) => [
-    <UAvatar
-      size="2xs"
-      alt={item.label}
-      color={userColors.get(item.value)}
-      class="shrink-0"
-      ui={{ fallback: 'overflow-visible text-clip' }}
-    />,
+  'prefix': ({ item }: { item: { label: string; value: string; onClick?: () => void } }) => [
+    item.onClick ? (
+      <UIcon name="lucide:user-plus" class="text-muted size-4 shrink-0" />
+    ) : (
+      <UAvatar
+        size="2xs"
+        alt={item.label}
+        color={userColors.get(item.value)}
+        class="shrink-0"
+        ui={{ fallback: 'overflow-visible text-clip' }}
+      />
+    ),
   ],
-  'suffix': ({ item }: { item: { value: string } }) => [
-    <UBadge size="sm" color="neutral" variant="subtle">
-      {userTags.get(item.value)}
-    </UBadge>,
-  ],
+  'suffix': ({ item }: { item: { value: string } }) =>
+    userTags.has(item.value)
+      ? [
+          <UBadge size="sm" color="neutral" variant="subtle">
+            {userTags.get(item.value)}
+          </UBadge>,
+        ]
+      : [],
 }
 
 function shown(value: unknown) {
@@ -283,6 +290,26 @@ export default defineSetupComponent((_: object) =>
       const primitiveSingle = ref<(typeof primitives)[number]['value'] | null>()
       const primitiveMultiple = ref<(typeof primitives)[number]['value'][] | null>()
       const activity = ref<string | null>(null)
+      const toast = useToast()
+      // an action at the end, below the activities
+      // the grouped selects end in one, below the groups
+      const addUser = {
+        label: 'Mitarbeiter anlegen',
+        value: 'new',
+        onClick: () => toast.add({ title: 'Mitarbeiter anlegen' }),
+      }
+      const activityItems = [
+        ...activities,
+        {
+          label: 'Tätigkeit anlegen',
+          value: 'new',
+          pinned: true,
+          icon: 'lucide:plus',
+          // shows for every search, also one with no matches
+          search: null,
+          onClick: () => toast.add({ title: 'Tätigkeit anlegen' }),
+        },
+      ]
 
       return () => (
         <div class="flex flex-col gap-6">
@@ -332,13 +359,15 @@ export default defineSetupComponent((_: object) =>
                                   hideSearch={hideSearch}
                                   hideToggleAll={hideToggleAll}
                                   class="mt-auto w-full"
-                                  items={
-                                    withPinned
+                                  items={[
+                                    ...(withPinned
                                       ? pinnedUsers
                                       : few
                                         ? teamedUsers.slice(0, 3)
-                                        : teamedUsers
-                                  }
+                                        : teamedUsers),
+                                    // pinned variants: first, above the toggle-all row
+                                    ...(withGroups ? [{ ...addUser, pinned: withPinned }] : []),
+                                  ]}
                                   group={withGroups}
                                   pinnedLabel={withPinned ? 'Favoriten' : undefined}
                                   filter={
@@ -413,7 +442,7 @@ export default defineSetupComponent((_: object) =>
               default: () => [
                 <div class="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4">
                   <UUniversalSelectMenu
-                    items={activities}
+                    items={activityItems}
                     v-model={activity.value}
                     placeholder="Tätigkeit wählen"
                     v-slots={{
