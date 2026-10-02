@@ -207,14 +207,17 @@ export default defineSetupComponent(
       filter?: { options: readonly F[]; fn: (item: T, filters: F[]) => boolean }
       multiple?: Multiple
       // `null`: no pick; single: also picks an item with value `null`. multiple: an item with value
-      // `null` is no pick but clears, to `null`. a value no item holds is dropped once `items` are in
+      // `null` is no pick but clears, to `null`. a value no item holds is dropped on open, once
+      // `items` are in
       modelValue?: ModelValue<T['value'], Multiple>
       // awaited before emit, spinner meanwhile. throws: no emit, stays open; single restores
       // pick, multiple keeps picks
       onChange?: (value: ModelValue<T['value'], Multiple>) => Promise<void> | void
       onBlur?: () => void
       disabled?: boolean
-      // items/groups loading: trigger spinner, loading note instead of no matches
+      // items/groups loading: trigger spinner, loading note instead of no matches. `false`: loaded,
+      // even empty; left out: an empty list counts as loading, so stale values stay. a query's
+      // `isPending`, not `isFetching`: that's `false` before the first fetch, which drops values
       loading?: boolean
       // save button label by pick count; `none`: the `null` item is picked (multiple: nothing is)
       submitLabel?: (count: number, none: boolean) => string
@@ -389,10 +392,11 @@ export default defineSetupComponent(
           isBeside.value = isShort.value || top >= Math.min(window.innerHeight / 2, boxMiddle)
         }
 
-        // mid-load: an empty or stale list would drop picks for good. the `null` item can be
-        // preset before the query settles, so a list of only it is still loading
+        // mid-load: an empty or stale list would drop picks for good. `loading` passed: it says so.
+        // else a guess: the `null` item can be preset before the query settles, so a list of only
+        // it is still loading. one that loaded empty (maybe with only actions) needs `loading`
         const isLoading = computed(
-          () => props.loading || items.value.every((item) => item.value === null),
+          () => props.loading ?? items.value.every((item) => item.value === null),
         )
         const known = computed(() => new Set(items.value.map((item) => item.value)))
         // a `null` item is the clear: single picks it by the clear's `null`, multiple clears by it.
@@ -502,20 +506,21 @@ export default defineSetupComponent(
           else toggleCollapsed(row)
         }
 
-        // drop values no item holds, from the model and an open draft (also once a failed save
-        // restores it)
+        // drop values no item holds from an open draft (also once a failed save restores it)
         watch(
-          () => [isLoading.value, known.value, model.value, draft.value] as const,
-          ([isLoading, known, model]) => {
+          () => [isLoading.value, known.value, draft.value] as const,
+          ([isLoading, known]) => {
             if (isLoading) return
             // receiver must be raw: `draft` is a reactive proxy
             if (draft.value && !known.isSupersetOf(draft.value))
               draft.value = known.intersection(draft.value)
-            if (committed.value.size < model.size)
-              emit('update:modelValue', toValue(committed.value))
           },
-          { immediate: true },
         )
+        // and from the model, on open: a closed menu leaves a one-way binding's value be
+        watch(isShown, (open) => {
+          if (open && !isLoading.value && committed.value.size < model.value.size)
+            emit('update:modelValue', toValue(committed.value))
+        })
 
         // single + `onChange`: same row picked twice in a row saves. click/tap: within 500ms;
         // Enter: any time
@@ -900,10 +905,9 @@ export default defineSetupComponent(
             // a value under several groups counts once; a collapsed group's are left out
             const matches = [
               ...new Set(
-                grouped.value.flat().flatMap((row) =>
-                  // one shown for every search matched none of it
-                  row.type === 'item' && row.item.search !== null ? [row.item.value] : [],
-                ),
+                grouped.value
+                  .flat()
+                  .flatMap((row) => (row.type === 'item' ? [row.item.value] : [])),
               ),
             ]
             if (!props.multiple) {
