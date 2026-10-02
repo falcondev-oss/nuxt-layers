@@ -11,7 +11,7 @@ type Primitive = string | number | boolean | null
 export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
   label: string
   value: V
-  hint: string
+  hint?: string
   description?: string
   // extra text the search matches, besides the label
   search?: string
@@ -22,7 +22,7 @@ export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
   // there during a search. a filter keeps it up top too
   pinned?: boolean
 }
-export type UniversalSelectMenuFilter = { label: string; value: string }
+export type UniversalSelectMenuFilter = { label: string; value: Primitive }
 
 // `rowKey`: `USelectMenu`'s value for the row, one string space for item and group rows.
 // wraps the item: its own keys (e.g. a `type`) would reach `USelectMenu` and mistype the row
@@ -214,8 +214,8 @@ export default defineSetupComponent(
       // replaces the filter select; spread the props onto the replacement to bind the selection
       'filter': (props: {
         'filters': readonly F[]
-        'modelValue': string[]
-        'onUpdate:modelValue': (value: string[]) => void
+        'modelValue': F['value'][]
+        'onUpdate:modelValue': (value: F['value'][]) => void
       }) => VNode[]
     }
     // the rest reaches `USelectMenu` as inherited attributes
@@ -307,7 +307,7 @@ export default defineSetupComponent(
           () => hasGroups.value && !props.filter && !props.hideSearch,
         )
 
-        const filterValues = ref<string[]>([])
+        const filterValues = shallowRef<F['value'][]>([])
         // a pick whose option is gone would filter nothing, yet still count as narrowing
         watch(
           () => props.filter?.options,
@@ -917,9 +917,15 @@ export default defineSetupComponent(
                     searchInput={false}
                     // portaled: focus moving there would blur the search and close the menu
                     portal={false}
-                    // only read, but `USelectMenu` types `items` as mutable
-                    items={props.filter.options as F[]}
-                    v-model={filterValues.value}
+                    // keyed as the list's rows are: reka throws on `''` and takes `null` for cleared
+                    items={props.filter.options.map((option) => ({
+                      label: option.label,
+                      value: toKey(option.value),
+                    }))}
+                    modelValue={filterValues.value.map(toKey)}
+                    onUpdate:modelValue={(keys: string[]) =>
+                      (filterValues.value = keys.map(fromKey) as F['value'][])
+                    }
                     v-slots={{
                       // just the count, as the labels don't fit
                       ...(compact && {
@@ -929,7 +935,12 @@ export default defineSetupComponent(
                         ],
                       }),
                       'item-label': slots['filter-item']
-                        ? ({ item }: { item: F }) => slots['filter-item']!({ item })
+                        ? ({ item }: { item: { value: string } }) =>
+                            slots['filter-item']!({
+                              item: props.filter!.options.find(
+                                (option) => toKey(option.value) === item.value,
+                              )!,
+                            })
                         : undefined,
                     }}
                   />

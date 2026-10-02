@@ -1,4 +1,4 @@
-import { UAvatar, UBadge, UButton, UCard, UUniversalSelectMenu } from '#components'
+import { UAvatar, UBadge, UButton, UCard, UIcon, UUniversalSelectMenu } from '#components'
 
 const users = [
   {
@@ -159,6 +159,14 @@ const primitives = [
   { label: 'Ja', value: true, hint: 'true', pinned: true },
 ]
 
+const activities = [
+  { label: 'Entwicklung', value: 'dev', icon: 'lucide:code' },
+  { label: 'Meeting', value: 'meeting', icon: 'lucide:users' },
+  { label: 'Support', value: 'support', icon: 'lucide:headset' },
+  { label: 'Reise', value: 'travel', icon: 'lucide:plane' },
+  { label: 'Pause', value: 'break', icon: 'lucide:coffee' },
+]
+
 function filterUser(user: (typeof users)[number], filters: { value: string }[]) {
   return filters.some((filter) => filter.value === user.tag)
 }
@@ -274,6 +282,7 @@ export default defineSetupComponent((_: object) =>
       }))
       const primitiveSingle = ref<(typeof primitives)[number]['value'] | null>()
       const primitiveMultiple = ref<(typeof primitives)[number]['value'][] | null>()
+      const activity = ref<string | null>(null)
 
       return () => (
         <div class="flex flex-col gap-6">
@@ -394,6 +403,25 @@ export default defineSetupComponent((_: object) =>
                     />
                     {shown(primitiveMultiple.value)}
                   </div>
+                </div>,
+              ],
+            })}
+          />
+          <UCard
+            v-slots={vSlots(UCard, {
+              header: () => [<h2 class="text-highlighted font-semibold">Icons</h2>],
+              default: () => [
+                <div class="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4">
+                  <UUniversalSelectMenu
+                    items={activities}
+                    v-model={activity.value}
+                    placeholder="Tätigkeit wählen"
+                    v-slots={{
+                      prefix: ({ item }: { item: (typeof activities)[number] }) => [
+                        <UIcon name={item.icon} class="text-muted size-4 shrink-0" />,
+                      ],
+                    }}
+                  />
                 </div>,
               ],
             })}
