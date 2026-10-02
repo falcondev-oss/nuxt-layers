@@ -213,8 +213,15 @@ export default defineSetupComponent(
       | 'multiple'
       | IneffectiveSelectMenuProps
     > & {
-      /** The items to pick from, and any actions (items with `onClick`). */
-      items: T[]
+      /**
+       * The items to pick from, and any actions (items with `onClick`). `undefined` means they're
+       * still loading: the trigger shows a spinner, the menu doesn't open, and no picks are
+       * dropped. `[]` means they loaded empty.
+       *
+       * Build the list only once the data is in, fixed items included:
+       * `data && [nullItem, ...data.map(toItem)]`, not `data ?? []`.
+       */
+      items: T[] | undefined
       /**
        * `false` shows a flat list without the tree/list toggle, whatever the items' `groups` say.
        * By default the items are grouped as soon as one has `groups`.
@@ -241,8 +248,8 @@ export default defineSetupComponent(
        * The picked value, or an array of them when `multiple`. `null` means nothing is picked; a
        * multiple select emits `null` instead of `[]`.
        *
-       * Values no item holds are removed when the menu opens, once the items have loaded (see
-       * `loading`). Until then the trigger shows "Nicht verfügbar".
+       * Once `items` is an array, values no item holds are removed when the menu opens, and the
+       * trigger shows "Nicht verfügbar" until then. While `items` is `undefined`, they're kept.
        */
       modelValue?: ModelValue<T['value'], Multiple>
       /**
@@ -258,16 +265,12 @@ export default defineSetupComponent(
       /** Disables the trigger. */
       disabled?: boolean
       /**
-       * The items are still loading: shows a spinner in the trigger and a loading note instead of
-       * "Keine Treffer". Nothing can be picked or saved meanwhile.
+       * Loading that `items` can't express, e.g. a refetch of different items while the old ones
+       * are still shown. Acts like `items` being `undefined`: a spinner in the trigger, the menu
+       * doesn't open, no picks are dropped, and nothing can be picked or saved. An already open
+       * menu stays open and shows a loading note instead of "Keine Treffer".
        *
-       * `false` means loaded, even when the list is empty. Left out, the menu guesses: an empty
-       * list (or one with only the `null` item or actions) counts as loading, so values no item
-       * holds are kept, and any item counts as loaded, so a first page of results drops the
-       * values of items still to come.
-       *
-       * For a query, pass `isPending`, not `isFetching`: that one is `false` before the first
-       * fetch starts, which drops the values.
+       * Not needed for a first load: pass `undefined` as `items` until the data arrives.
        */
       loading?: boolean
       /**
@@ -296,11 +299,13 @@ export default defineSetupComponent(
     slots: {
       /**
        * Replaces the trigger, e.g. with a button. It gets no clear x and no spinner. `open` is
-       * whether the menu or the mobile sheet is shown. `picks` are the saved picks, and the ones
-       * being saved while `onChange` is pending; a multiple select with nothing saved passes the
-       * `null` item, if there is one, and nothing while the model is `undefined`.
+       * whether the menu or the mobile sheet is shown. `loading` is when the built-in trigger
+       * would spin: while the items load, when the menu won't open, or while a save is pending.
+       * `picks` are the saved picks, and the ones being saved while `onChange` is pending; a
+       * multiple select with nothing saved passes the `null` item, if there is one, and nothing
+       * while the model is `undefined`.
        */
-      'default': (props: { open: boolean; picks: T[] }) => VNode[]
+      'default': (props: { open: boolean; loading: boolean; picks: T[] }) => VNode[]
       /** Before the label, in the rows (actions too) and in the trigger with one pick. */
       'prefix': (props: { item: T }) => VNode[]
       /** Replaces the item's `description`. Rendering nothing falls back to it. */
@@ -378,6 +383,7 @@ export default defineSetupComponent(
         // a repeated value would list its row twice: the first copy stays, with every copy's groups.
         // an `undefined` value is no value: dropped. actions aren't picks: kept apart
         const items = computed(() => {
+          if (!props.items) return []
           const byValue = new Map<T['value'], T>()
           // only repeated values with groups get one; merged into their row once, at the end
           const groupsOf = new Map<T['value'], Set<string>>()
@@ -470,12 +476,8 @@ export default defineSetupComponent(
           isBeside.value = isShort.value || top >= Math.min(window.innerHeight / 2, boxMiddle)
         }
 
-        // mid-load: an empty or stale list would drop picks for good. `loading` passed: it says so.
-        // else a guess: the `null` item can be preset before the query settles, so a list of only
-        // it is still loading. one that loaded empty (maybe with only actions) needs `loading`
-        const isLoading = computed(
-          () => props.loading ?? items.value.every((item) => item.value === null),
-        )
+        // mid-load: a missing or stale list would drop picks for good. `[]` is loaded, empty
+        const isLoading = computed(() => !!props.loading || props.items === undefined)
         const known = computed(() => new Set(items.value.map((item) => item.value)))
         // a `null` item is the clear: single picks it by the clear's `null`, multiple clears by it.
         // `items` is deduped, so one at most
@@ -521,7 +523,7 @@ export default defineSetupComponent(
 
         const isSaving = ref(false)
         // no writes: mid-load, a pick or save would go out against a partial list
-        const isBusy = computed(() => props.loading || isSaving.value)
+        const isBusy = computed(() => isLoading.value || isSaving.value)
 
         function update(next: Set<T['value']>) {
           if (isBusy.value) return
@@ -763,7 +765,7 @@ export default defineSetupComponent(
                   }
 
           // a filter narrows the items, not what the menu can do
-          const allActions = props.items.flatMap((item, index) =>
+          const allActions = (props.items ?? []).flatMap((item, index) =>
             item.onClick && matchesSearch(item)
               ? [{ type: 'action' as const, rowKey: `\0action${index}`, item }]
               : [],
@@ -1134,7 +1136,7 @@ export default defineSetupComponent(
           if (row.type === 'empty')
             return (
               <span data-empty-note class="text-muted flex w-full justify-center py-2 text-sm">
-                {props.loading ? loadingNote() : emptyNote()}
+                {isLoading.value ? loadingNote() : emptyNote()}
               </span>
             )
           if (row.type === 'all')
@@ -1345,7 +1347,7 @@ export default defineSetupComponent(
               icon="lucide:x"
               label={props.deselectLabel ?? 'Auswahl aufheben'}
               loading={isSaving.value}
-              disabled={props.loading}
+              disabled={isLoading.value}
               // closing after a clear: a second tap would save again
               onClick={() => !isClearing.value && clearAll()}
             />
@@ -1355,7 +1357,7 @@ export default defineSetupComponent(
                 class="flex-1 justify-center"
                 label={footer.value.label}
                 loading={isSaving.value}
-                disabled={props.loading}
+                disabled={isLoading.value}
                 // live picks (multiple, no `onChange`) already emitted; re-emit harmless
                 onClick={() => void save(selected.value)}
               />
@@ -1403,6 +1405,8 @@ export default defineSetupComponent(
             onUpdate:open={(open: boolean) => {
               // save closes once `onChange` settles; a clear's save would close a fresh open
               if (isSaving.value) return
+              // nothing to pick yet; closing still goes through
+              if (open && isLoading.value) return
               if (isMobile.value) return open && openSheet()
               isOpen.value = open
               if (!open) return endDraft()
@@ -1565,6 +1569,7 @@ export default defineSetupComponent(
                       {() =>
                         slots.default!({
                           open: isShown.value,
+                          loading: isBusy.value,
                           picks: pickedItems.value,
                         })
                       }
@@ -1573,7 +1578,7 @@ export default defineSetupComponent(
                 const picks = pickedItems.value
                 const [item] = picks
                 // loaded, only values no item holds saved (a one-way binding keeps them): say so.
-                // an empty list may still be on its way
+                // `items` still `undefined`: they may be on their way
                 if (!item && !isLoading.value && !savingPicks.value && model.value.size > 0)
                   return [
                     <span class={[ui.value(), 'text-muted flex items-center gap-1.5']}>
@@ -1608,7 +1613,7 @@ export default defineSetupComponent(
                   | AllRow<T['value']>
                   | typeof emptyRow
               }) => itemContent(item),
-              'empty': props.loading ? loadingNote : emptyNote,
+              'empty': isLoading.value ? loadingNote : emptyNote,
             }}
           />,
           isMobile.value && (
@@ -1655,7 +1660,7 @@ export default defineSetupComponent(
                   <div class={isThumbReach.value && 'mt-auto'}>
                     {grouped.value.length === 0 && (
                       <p class="text-muted p-4 text-center text-sm">
-                        {props.loading ? loadingNote() : emptyNote()}
+                        {isLoading.value ? loadingNote() : emptyNote()}
                       </p>
                     )}
                     {grouped.value.length > 0 && (
@@ -1696,7 +1701,7 @@ export default defineSetupComponent(
                         {onlyActions.value && [
                           tree.value.topActions.length > 0 && sheetBand(),
                           <p class="text-muted p-4 text-center text-sm">
-                            {props.loading ? loadingNote() : emptyNote()}
+                            {isLoading.value ? loadingNote() : emptyNote()}
                           </p>,
                         ]}
                         {tree.value.actions.length > 0 && [
