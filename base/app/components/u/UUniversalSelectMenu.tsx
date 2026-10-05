@@ -1359,7 +1359,7 @@ export default defineSetupComponent(
         // success closes (draft gone): keeps the clear button through the close animation
         function clearAll() {
           // a disabled `null` item: the clear is disabled
-          if (isBusy.value || nullItem.value?.disabled) return
+          if (props.disabled || isBusy.value || nullItem.value?.disabled) return
           // `null` saved: clearing changes nothing, so it only closes. no model yet: saves the `null`
           if (committed.value.size === 0 && props.modelValue !== undefined) return close()
           const picks = draft.value
@@ -1421,11 +1421,13 @@ export default defineSetupComponent(
             // closed-menu clear saves with no other spinner
             loading={isBusy.value}
             // spinner alone while loading
-            // `null` item picked: the x would clear to it; disabled: no clear.
+            // `null` item picked: the x would clear to it; disabled `null` item: no clear. a disabled
+            // menu: USelectMenu would still let the x clear
             // the menu shows the x for the draft: nothing saved (a value no item holds counts as
             // nothing), nothing to clear
             clear={
               props.clear &&
+              !props.disabled &&
               !isBusy.value &&
               !isNone.value &&
               !nullItem.value?.disabled &&
