@@ -719,6 +719,16 @@ export default defineSetupComponent(
           close()
         }
 
+        // thumb reach: the sheet opens scrolled past the spacer, the list at the top; the spacer
+        // stays, to scroll the top rows down into reach. again whenever the rows change: once
+        // loaded, on search and filter
+        const sheetSpacer = ref<HTMLElement>()
+        watch(
+          [sheetSpacer, isLoading, searchTerm, filterValues],
+          ([spacer]) => spacer?.parentElement?.scrollTo({ top: spacer.offsetHeight }),
+          { flush: 'post' },
+        )
+
         // menu remounts on flip; sheet draft must not leak in
         watch(isMobile, () => {
           draft.value = undefined
@@ -1694,10 +1704,10 @@ export default defineSetupComponent(
                   ],
                 }),
                 body: () => [
-                  // search at the bottom: the list starts halfway down, in thumb reach, and
-                  // scrolls up into the space above
+                  // search at the bottom: space above the list, to scroll its top rows down
+                  // into thumb reach
                   ...(isThumbReach.value
-                    ? [<div aria-hidden="true" class="h-1/2 shrink-0" />]
+                    ? [<div ref={sheetSpacer} aria-hidden="true" class="h-1/2 shrink-0" />]
                     : []),
                   // `mt-auto`, not `justify-end`, which clips the top on overflow
                   <div class={isThumbReach.value && 'mt-auto'}>
