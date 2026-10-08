@@ -34,7 +34,7 @@ export default defineSetupComponent(
         'preventPageLeave',
       ],
       emits: [],
-      setup: (props, { slots }) => {
+      setup: (props, { slots, attrs }) => {
         const preventPageLeave = () => props.preventPageLeave ?? true
         const disableSubmitIfUnchanged = () => props.disableSubmitIfUnchanged ?? true
 
@@ -62,7 +62,13 @@ export default defineSetupComponent(
           { immediate: true },
         )
 
-        const actionsWithSubmit = computed(() => {
+        // `form` links the submit button to the form even when teleported out of it,
+        // so Enter submits forms with more than one field (implicit submission).
+        // A consumer `id` falls through to `<form>` and wins, so the button must use it too.
+        const generatedId = useId()
+        const formId = () => String(attrs.id ?? generatedId)
+        // read in render, as `attrs` is not reactive
+        const actionsWithSubmit = () => {
           const submit = {
             ...props.submitButtonProps,
             variant: 'solid',
@@ -71,16 +77,13 @@ export default defineSetupComponent(
               ? !props.form.isChanged || props.form.isLoading
               : props.form.isLoading,
             loading: props.form.isLoading,
-            // `loadingAuto` awaits the handler, which `ButtonProps` still types as `void`
-            // eslint-disable-next-line ts/no-misused-promises
-            onClick: async () => {
-              await props.form.submit()
-            },
+            type: 'submit',
+            form: formId(),
           } satisfies ButtonProps
           if (!props.actions) return [submit]
 
           return [...props.actions, submit]
-        })
+        }
 
         const rootErrors = computed(() =>
           props.form.errors?.filter((error) => error.path?.length === 0),
@@ -88,6 +91,9 @@ export default defineSetupComponent(
 
         return () => (
           <form
+            id={formId()}
+            // schema validation is the single source of truth, not native constraints
+            novalidate
             class="w-full"
             onSubmit={(event) => {
               event.preventDefault()
@@ -120,7 +126,7 @@ export default defineSetupComponent(
                 <Teleport defer disabled={!props.actionsTeleportTo} to={props.actionsTeleportTo}>
                   <UActions
                     defaults={{ variant: 'subtle' }}
-                    actions={actionsWithSubmit.value}
+                    actions={actionsWithSubmit()}
                     class="contents!"
                   />
                 </Teleport>
