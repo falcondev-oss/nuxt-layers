@@ -104,7 +104,8 @@ type AllRow<V> = {
   type: 'all'
   label: string
   rowKey: string
-  // what the click toggles: the shown ones, so a search or filter picks only its matches
+  // what the click picks: the shown ones, so a search or filter picks only its matches. once all
+  // of them are picked, the click unpicks every item, the hidden ones too
   shown: V[]
   // what the checkbox reflects: all items, ignoring search and filter
   checked: boolean | 'indeterminate'
@@ -598,9 +599,16 @@ export default defineSetupComponent(
           set.value = next
         }
 
+        // picks the shown ones; unpicks all, hidden too (bar disabled)
+        function toggleAll(shown: T['value'][]) {
+          if (shown.some((value) => !selected.value.has(value))) return toggleMany(shown)
+          update(new Set([...selected.value].filter((value) => disabledValues.value.has(value))))
+        }
+
         // a header click toggles its group (single: collapses it)
         function activate(row: GroupRow<T['value']> | AllRow<T['value']>) {
-          if (row.type === 'all' || props.multiple) toggleMany(row.shown)
+          if (row.type === 'all') toggleAll(row.shown)
+          else if (props.multiple) toggleMany(row.shown)
           else toggleCollapsed(row)
         }
 
