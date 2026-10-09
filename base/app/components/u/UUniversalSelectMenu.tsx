@@ -4,7 +4,7 @@ import { useResizeObserver } from '@vueuse/core'
 import { Slot } from 'reka-ui'
 import { chunk, isNonNull, isNonNullish } from 'remeda'
 import { Comment, Fragment, h, isVNode, Teleport } from 'vue'
-import { UButton, UCheckbox, UIcon, UInput, UModal, USelectMenu, UTabs } from '#components'
+import { UButton, UIcon, UInput, UModal, USelectMenu, UTabs } from '#components'
 
 type Primitive = string | number | boolean | null
 
@@ -157,6 +157,21 @@ function radio(checked: boolean) {
     <span class="ring-accented pointer-events-none size-4 shrink-0 overflow-hidden rounded-full ring ring-inset">
       {checked && (
         <span class="bg-primary after:bg-default flex size-full items-center justify-center after:size-1.5 after:rounded-full" />
+      )}
+    </span>
+  )
+}
+
+function checkbox(checked: boolean | 'indeterminate', icons: { check: string; minus: string }) {
+  return (
+    <span class="ring-accented pointer-events-none size-4 shrink-0 overflow-hidden rounded-sm ring ring-inset">
+      {checked && (
+        <span class="bg-primary text-inverted flex size-full items-center justify-center">
+          <UIcon
+            name={checked === 'indeterminate' ? icons.minus : icons.check}
+            class="size-3.5 shrink-0"
+          />
+        </span>
       )}
     </span>
   )
@@ -386,6 +401,7 @@ export default defineSetupComponent(
       // two roots (the menu and its mobile sheet), so the attributes are placed by hand
       inheritAttrs: false,
       setup: (props, { emit, attrs, slots }) => {
+        const appConfig = useAppConfig()
         // `USelectMenu`'s own filter would drop the group headers, so we filter ourselves.
         const searchTerm = ref('')
 
@@ -1189,20 +1205,15 @@ export default defineSetupComponent(
             )
           if (row.type === 'all')
             return [
-              <UCheckbox size="md" class="pointer-events-none shrink-0" modelValue={row.checked} />,
+              checkbox(row.checked, appConfig.ui.icons),
               <span data-special-row class="truncate font-medium">
                 {row.label}
               </span>,
             ]
           if (row.type === 'group')
             return [
-              props.multiple && (
-                <UCheckbox
-                  size="md"
-                  class="pointer-events-none shrink-0"
-                  modelValue={checkState(row.values, selected.value)}
-                />
-              ),
+              props.multiple &&
+                checkbox(checkState(row.values, selected.value), appConfig.ui.icons),
               <span
                 data-group-header
                 class={
@@ -1243,11 +1254,7 @@ export default defineSetupComponent(
                 // clears, no pick to check; keeps the labels aligned
                 <span class="size-4 shrink-0" />
               ) : (
-                <UCheckbox
-                  size="md"
-                  class="pointer-events-none shrink-0"
-                  modelValue={selected.value.has(item.value)}
-                />
+                checkbox(selected.value.has(item.value), appConfig.ui.icons)
               )
             ) : (
               radio(selected.value.has(item.value))
