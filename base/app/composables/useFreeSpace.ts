@@ -7,9 +7,24 @@ const px = (value: string) => Number.parseFloat(value)
 
 const FREE_ATTR = 'data-free-space'
 const ROOT_ATTR = 'data-free-space-root'
+const YIELDING_ATTR = 'data-free-space-yielding'
 
 const FREE = `[${FREE_ATTR}]`
 const ROOT = `[${ROOT_ATTR}]`
+const YIELDING = `[${YIELDING_ATTR}]`
+
+/** Where `el` would end at its narrowest: its min-content, but no narrower than `floor` unless
+ * its content needs less. Measured by briefly sizing it to its min- and max-content, which is
+ * read off before anything gets painted. */
+function narrowestRight(el: HTMLElement, floor: number) {
+  const width = el.style.width
+  el.style.width = 'max-content'
+  const widest = el.offsetWidth
+  el.style.width = 'min-content'
+  const narrowest = el.offsetWidth
+  el.style.width = width
+  return el.getBoundingClientRect().left + Math.max(narrowest, Math.min(widest, floor))
+}
 
 /** Counts as free: opted out of the measurement, or taking up no room in it anyway — hidden,
  * unrendered, or grown to nothing. */
@@ -108,8 +123,14 @@ export function useFreeSpace(target: MaybeComputedElementRef) {
     // the container's own gap is not room `target` may use — unless that side stands open
     const gap = px(style.columnGap) || 0
 
+    const contentWidth = box.width - px(style.paddingLeft) - px(style.paddingRight)
     const from = anchor.edge
-      ? anchor.edge.el.getBoundingClientRect()[anchor.edge.side] +
+      ? (anchor.edge.side === 'right' && anchor.edge.el.matches(YIELDING)
+          ? narrowestRight(
+              anchor.edge.el,
+              Number(anchor.edge.el.getAttribute(YIELDING_ATTR)) * contentWidth,
+            )
+          : anchor.edge.el.getBoundingClientRect()[anchor.edge.side]) +
         (anchor.edge.side === 'right' ? gap : 0)
       : box.left + px(style.paddingLeft)
     const to = anchor.blocker
@@ -133,3 +154,9 @@ useFreeSpace.root = { [ROOT_ATTR]: '' }
 /** Spread onto an element that only fills room the others left over — a divider centred in the
  * gap, say. It sits in the flow, but the width it covers still counts as free. */
 useFreeSpace.free = { [FREE_ATTR]: '' }
+
+/** Spread onto content that reflows to give way — a title that wraps, say. It is measured at its
+ * narrowest, so `target` may take what it would give up, and gets it back once `target` needs
+ * less: measured as it stands, it would keep whatever room `target` had just given up.
+ * `minShare` of the row's width it keeps regardless, as far as its content reaches. */
+useFreeSpace.yielding = (minShare = 0) => ({ [YIELDING_ATTR]: String(minShare) })

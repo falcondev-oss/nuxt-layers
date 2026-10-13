@@ -152,9 +152,10 @@ export default defineSetupComponent(
         const navbarTitleClass = computed(() =>
           mergeSlotClass(
             props.navbar?.ui?.title,
+            // a long title wraps onto further lines rather than crowding out the actions
             mergeSlotClass(
               appConfig.ui?.dashboardNavbar?.slots?.title,
-              'text-highlighted font-semibold whitespace-nowrap',
+              'text-highlighted font-semibold text-balance',
             )(''),
           )(''),
         )
@@ -162,19 +163,19 @@ export default defineSetupComponent(
         const navbarUi = computed<DashboardNavbarProps['ui']>(() => ({
           ...props.navbar?.ui,
           toggle: mergeSlotClass(props.navbar?.ui?.toggle, '-ml-1'),
-          // Exactly as wide as the title and breadcrumb need — neither truncates, and no room
-          // is held back from the actions.
+          // As wide as the title and breadcrumb need — neither truncates, and no room is held
+          // back from the actions.
           left: mergeSlotClass(
             props.navbar?.ui?.left,
-            // A breadcrumb wraps, so this column may give way once the row runs short — down to
-            // the widest line it still has to show whole. With nothing to reflow, `shrink-0`
-            // instead keeps that edge put: an action giving way would otherwise free space for
-            // the title to grow into and come straight back.
-            props.navbar?.breadcrumb ? 'min-w-0' : 'shrink-0',
+            // Title and breadcrumb wrap, so this column may give way once the row runs short —
+            // down to half the bar, or the widest word or crumb it still has to show whole; only
+            // past that do the actions overflow. A `navbar-left` of unknown content has nothing known to reflow,
+            // so `shrink-0` keeps that edge put instead: an action giving way would otherwise free
+            // space for it to grow into and come straight back.
+            slots['navbar-left'] ? 'shrink-0' : 'min-w-min shrink',
           ),
-          ...(props.navbar?.breadcrumb && {
-            root: mergeSlotClass(props.navbar.ui?.root, 'h-auto min-h-(--ui-header-height) py-2'),
-          }),
+          // grown past the header height by a wrapped title or breadcrumb
+          root: mergeSlotClass(props.navbar?.ui?.root, 'h-auto min-h-(--ui-header-height) py-2'),
         }))
 
         return () => (
@@ -199,7 +200,12 @@ export default defineSetupComponent(
                                 : []),
 
                               ...(slots['navbar-left']?.() ?? [
-                                <div class="flex min-w-0 flex-col items-start gap-0.5">
+                                <div
+                                  // keeps half the bar before the actions overflow, so a long
+                                  // title isn't squeezed into a narrow column
+                                  {...useFreeSpace.yielding(0.5)}
+                                  class="flex min-w-0 flex-col items-start gap-0.5"
+                                >
                                   {/* title and breadcrumb size the column between them, so
                                     neither is ever cut off */}
                                   <div class="flex items-center gap-1.5">
@@ -233,6 +239,9 @@ export default defineSetupComponent(
                                     />
                                   ) : null}
                                 </div>,
+                                // marks the end of `left`, so the room left to the actions is
+                                // measured off the title column above rather than `left` itself
+                                <span {...useFreeSpace.free} class="hidden" />,
                               ]),
                             ],
                             right: (slotProps) => [
