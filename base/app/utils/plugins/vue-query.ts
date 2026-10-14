@@ -27,13 +27,15 @@ interface VueQueryNuxtPluginOptions {
 export interface CustomMeta {
   queryMeta: {
     toast?: {
-      error?: ToastOpts
+      /** `false`: disable toast */
+      error?: ToastOpts | false
     }
   }
   mutationMeta: {
     toast?: {
       success?: ToastOpts
-      error?: ToastOpts
+      /** `false`: disable toast */
+      error?: ToastOpts | false
     }
   }
 }
@@ -64,6 +66,7 @@ export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
             queryCache: new QueryCache({
               onError(err, query) {
                 console.error(err)
+                if (query.meta?.toast?.error === false) return
 
                 toastRequestError(err, query.meta?.toast?.error)
               },
@@ -79,6 +82,7 @@ export function vueQueryPlugin(opts?: VueQueryNuxtPluginOptions) {
               },
               onError(err, _input, __onMutateRes, mutation) {
                 console.error(err)
+                if (mutation.meta?.toast?.error === false) return
 
                 toastRequestError(err, mutation.meta?.toast?.error)
               },
