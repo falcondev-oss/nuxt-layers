@@ -6,8 +6,11 @@ import type {
   DropdownMenuItem,
   NavigationMenuItem,
   NavigationMenuProps,
+  NavigationMenuSlots,
 } from '@nuxt/ui'
 import type { VNode } from 'vue'
+import type { AddPropertyPrefix } from '../../types/helpers'
+import { mapKeys, pickBy, pipe } from 'remeda'
 import {
   UButton,
   UDashboardGroup,
@@ -38,11 +41,14 @@ export default defineSetupComponent(
       itemsUi?: NavigationMenuProps['ui']
       bottomItemsUi?: NavigationMenuProps['ui']
     }
+    /** `items-*` and `bottom-items-*` are the slots of the navigation menus, e.g. `items-<item.slot>`
+     * for the content of an item with `slot` set */
     slots: {
       default: () => VNode[]
       logo?: () => VNode[]
       icon?: () => VNode[]
-    }
+    } & AddPropertyPrefix<NavigationMenuSlots, 'items'> &
+      AddPropertyPrefix<NavigationMenuSlots, 'bottom-items'>
   }) =>
     options(_, {
       name: 'LayoutSidebar',
@@ -59,6 +65,15 @@ export default defineSetupComponent(
       emits: [],
       setup: (props, { slots }) => {
         const config = useRuntimeConfig()
+
+        // picked on every render: `slots` is not reactive, so a `computed` would miss a slot that
+        // comes and goes with a `v-if`
+        const menuSlots = (prefix: string) =>
+          pipe(
+            slots,
+            pickBy((_slot, key) => key.startsWith(prefix)),
+            mapKeys((key) => key.slice(prefix.length)),
+          )
 
         return () => (
           <UDashboardGroup
@@ -118,6 +133,7 @@ export default defineSetupComponent(
                           items={props.items}
                           orientation="vertical"
                           ui={props.itemsUi}
+                          v-slots={menuSlots('items-')}
                         />,
                       ]
                     : []),
@@ -129,6 +145,7 @@ export default defineSetupComponent(
                           orientation="vertical"
                           class="mt-auto"
                           ui={props.bottomItemsUi}
+                          v-slots={menuSlots('bottom-items-')}
                         />,
                       ]
                     : []),
