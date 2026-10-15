@@ -14,5 +14,6 @@ export default eslintConfig({
     '.temp/',
     '.data/',
     'pnpm-lock.yaml',
+    'app/spa-loading-template.html',
   ],
 })
