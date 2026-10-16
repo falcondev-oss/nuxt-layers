@@ -20,7 +20,7 @@ export default defineSetupComponent(
 
         return () => (
           <UApp locale={de} {...forwarded.value.app} nonce={config.public.projectId}>
-            <NuxtLoadingIndicator color="var(--color-brand-secondary, var(--color-brand-primary))" />
+            <NuxtLoadingIndicator color="var(--color-brand-primary)" />
             <Suspense>
               <NuxtLayout>
                 <NuxtPage />
