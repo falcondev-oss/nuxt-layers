@@ -11,21 +11,21 @@
     gap: 1.75rem;
     align-items: center;
     justify-content: center;
-    background: #f9fafb;
+    background: #fff; /* white */
   }
   .spa-loader__bar {
     width: 8rem;
     height: 2px;
     overflow: hidden;
     border-radius: 999px;
-    background: #e5e7eb;
+    background: oklch(92.2% 0 none); /* neutral-200 */
   }
   .spa-loader__bar span {
     display: block;
     width: 40%;
     height: 100%;
     border-radius: inherit;
-    background: #6b7280;
+    background: oklch(55.6% 0 none); /* neutral-500 */
     animation: spa-loader-slide 1.2s ease-in-out infinite;
   }
   @keyframes spa-loader-slide {
