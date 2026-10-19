@@ -2,7 +2,7 @@ import { Teleport } from 'vue'
 import { z } from 'zod'
 import {
   UButton,
-  UConfigurationCards,
+  UConfigurationCard,
   UContainer,
   UField,
   UForm,
@@ -45,7 +45,7 @@ const MembersTable = defineSetupComponent((_: object) =>
 
 export default defineSetupComponent((_: object) =>
   options(_, {
-    name: 'ConfigurationCardsPage',
+    name: 'ConfigurationCardPage',
     props: [],
     emits: [],
     setup: () => {
@@ -70,55 +70,52 @@ export default defineSetupComponent((_: object) =>
       const showBeta = ref(false)
 
       return () => (
-        <UContainer class="max-w-3xl py-6">
-          <UConfigurationCards
-            items={[
-              { id: 'organisation', title: 'Organisation', icon: 'i-lucide-building-2' },
-              {
-                id: 'members',
-                title: 'Mitglieder',
-                icon: 'i-lucide-users',
-                type: 'table',
-                badge: { label: String(members.length) },
-              },
-              {
-                id: 'notifications',
-                title: 'Benachrichtigungen',
-                icon: 'i-lucide-bell',
-                actions: [
-                  { label: 'Beta anzeigen', onClick: () => (showBeta.value = !showBeta.value) },
-                ],
-              },
-              showBeta.value && {
-                id: 'beta',
-                title: 'Beta',
-                icon: 'i-lucide-flask-conical',
-                badge: { label: 'Neu', color: 'info' },
-                content: false,
-              },
+        <UContainer class="flex max-w-3xl flex-col gap-8 py-6">
+          <UConfigurationCard title="Organisation" icon="i-lucide-building-2">
+            <UForm form={form} submitLabel="Speichern">
+              <UField
+                field={form.fields.name.$use()}
+                v-slots={{ default: ({ bind }) => [<UInput class="w-full" {...bind} />] }}
+              />
+            </UForm>
+          </UConfigurationCard>
+
+          <UConfigurationCard
+            title="Mitglieder"
+            icon="i-lucide-users"
+            type="table"
+            badge={{ label: String(members.length) }}
+          >
+            <MembersTable />
+          </UConfigurationCard>
+
+          <UConfigurationCard
+            title="Benachrichtigungen"
+            icon="i-lucide-bell"
+            actions={[
+              { label: 'Beta anzeigen', onClick: () => (showBeta.value = !showBeta.value) },
             ]}
-            v-slots={{
-              'organisation': () => [
-                <UForm form={form} submitLabel="Speichern">
-                  <UField
-                    field={form.fields.name.$use()}
-                    v-slots={{ default: ({ bind }) => [<UInput class="w-full" {...bind} />] }}
-                  />
-                </UForm>,
+            v-slots={vSlots(UConfigurationCard, {
+              actions: () => [
+                <UButton icon="i-lucide-send" label="Test senden" size="sm" variant="soft" />,
               ],
-              'members': () => [<MembersTable />],
-              'notifications': () => [
+              default: () => [
                 <USwitch
                   label="E-Mail bei neuen Aufgaben"
                   modelValue={notifications.value}
                   onUpdate:modelValue={(value) => (notifications.value = value)}
                 />,
               ],
-              'notifications-actions': () => [
-                <UButton icon="i-lucide-send" label="Test senden" size="sm" variant="soft" />,
-              ],
-            }}
+            })}
           />
+
+          {showBeta.value ? (
+            <UConfigurationCard
+              title="Beta"
+              icon="i-lucide-flask-conical"
+              badge={{ label: 'Neu', color: 'info' }}
+            />
+          ) : null}
         </UContainer>
       )
     },

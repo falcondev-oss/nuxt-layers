@@ -121,12 +121,12 @@ export default defineSetupComponent(
               {
                 label: 'Konfiguration',
                 icon: 'i-lucide-sliders-horizontal',
-                to: '/configuration-cards',
+                to: '/configuration-card',
               },
               {
                 label: 'Konfiguration Sandbox',
                 icon: 'i-lucide-flask-conical',
-                to: '/configuration-cards-sandbox',
+                to: '/configuration-card-sandbox',
               },
               {
                 label: 'Einstellungen',
