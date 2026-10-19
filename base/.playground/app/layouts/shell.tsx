@@ -104,6 +104,11 @@ export default defineSetupComponent(
                 to: '/langer-titel',
               },
               {
+                label: 'Dialog',
+                icon: 'i-lucide-message-circle-question',
+                to: '/dialog',
+              },
+              {
                 label: 'Einstellungen',
                 icon: 'i-lucide-settings',
                 children: [
