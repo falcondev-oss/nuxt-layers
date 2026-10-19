@@ -1,7 +1,16 @@
 import type { ButtonProps } from '@nuxt/ui'
 import { Teleport } from 'vue'
 import { z } from 'zod'
-import { UButton, UConfigurationCard, UField, UForm, UInput, UTable } from '#components'
+import {
+  UAttribute,
+  UButton,
+  UField,
+  UForm,
+  UInput,
+  UPageSection,
+  USection,
+  UTable,
+} from '#components'
 
 const rows = [
   { name: 'Tom Weinhold', role: 'Admin' },
@@ -53,13 +62,13 @@ function SlotAction() {
 
 export default defineSetupComponent((_: object) =>
   options(_, {
-    name: 'ConfigurationCardSandboxPage',
+    name: 'PageSectionSandboxPage',
     props: [],
     emits: [],
     setup: () => {
       definePageMeta({
         layout: 'shell',
-        title: 'Konfiguration Sandbox',
+        title: 'Page Section Sandbox',
       })
 
       const values = ref({ name: 'Nordwind GmbH' })
@@ -73,106 +82,153 @@ export default defineSetupComponent((_: object) =>
       })
 
       const renderCards = () => [
-        <UConfigurationCard title="Nur Titel">
+        <UPageSection title="Nur Titel">
           <Placeholder />
-        </UConfigurationCard>,
-        <UConfigurationCard title="Mit Icon" icon="i-lucide-star">
+        </UPageSection>,
+        <UPageSection title="Mit Icon" icon="i-lucide-star">
           <Placeholder />
-        </UConfigurationCard>,
-        <UConfigurationCard title="Mit Badge" icon="i-lucide-tag" badge={{ label: 'Standard' }}>
+        </UPageSection>,
+        <UPageSection title="Mit Badge" icon="i-lucide-tag" badge={{ label: 'Standard' }}>
           <Placeholder />
-        </UConfigurationCard>,
-        <UConfigurationCard
+        </UPageSection>,
+        <UPageSection
           title="Badge eigene Farbe & Icon"
           icon="i-lucide-tag"
           badge={{ label: 'Neu', color: 'info', icon: 'i-lucide-sparkles' }}
         >
           <Placeholder />
-        </UConfigurationCard>,
-        <UConfigurationCard
+        </UPageSection>,
+        <UPageSection
           title="Eine Aktion"
           icon="i-lucide-mouse-pointer-click"
           actions={[{ label: 'Bearbeiten', icon: 'i-lucide-pencil' }]}
         >
           <Placeholder />
-        </UConfigurationCard>,
-        <UConfigurationCard
+        </UPageSection>,
+        <UPageSection
           title="Aktion mit eigener Variante & Größe"
           icon="i-lucide-mouse-pointer-click"
           actions={[{ label: 'Speichern', variant: 'solid', size: 'md' }]}
         >
           <Placeholder />
-        </UConfigurationCard>,
-        <UConfigurationCard
+        </UPageSection>,
+        <UPageSection
           title="Viele Aktionen (Overflow)"
           icon="i-lucide-ellipsis"
           badge={{ label: '4' }}
           actions={manyActions}
         >
           <Placeholder />
-        </UConfigurationCard>,
-        <UConfigurationCard
+        </UPageSection>,
+        <UPageSection
           title="Aktionen per Slot"
           icon="i-lucide-puzzle"
-          v-slots={vSlots(UConfigurationCard, {
+          v-slots={vSlots(UPageSection, {
             actions: () => [<SlotAction />],
             default: () => [<Placeholder />],
           })}
         />,
-        <UConfigurationCard
+        <UPageSection
           title="Slot + Aktionen"
           icon="i-lucide-puzzle"
           actions={[{ label: 'Prop-Aktion' }]}
-          v-slots={vSlots(UConfigurationCard, {
+          v-slots={vSlots(UPageSection, {
             actions: () => [<SlotAction />],
             default: () => [<Placeholder />],
           })}
         />,
-        <UConfigurationCard title="Teleport in Header" icon="i-lucide-arrow-up-right">
+        <UPageSection title="Teleport in Header" icon="i-lucide-arrow-up-right">
           <HeaderTeleport />
           <Placeholder />
-        </UConfigurationCard>,
-        <UConfigurationCard
+        </UPageSection>,
+        <UPageSection
           title="Teleport + Aktionen"
           icon="i-lucide-arrow-up-right"
           actions={[{ label: 'Prop-Aktion' }]}
         >
           <HeaderTeleport />
           <Placeholder />
-        </UConfigurationCard>,
-        <UConfigurationCard title="Tabelle" icon="i-lucide-table" type="table">
+        </UPageSection>,
+        <UPageSection title="Tabelle" icon="i-lucide-table" variant="table">
           <Table />
-        </UConfigurationCard>,
-        <UConfigurationCard
+        </UPageSection>,
+        <UPageSection
           title="Tabelle + Teleport"
           icon="i-lucide-table"
-          type="table"
+          variant="table"
           badge={{ label: String(rows.length) }}
         >
           <HeaderTeleport />
           <Table />
-        </UConfigurationCard>,
-        <UConfigurationCard title="Formular" icon="i-lucide-square-pen">
+        </UPageSection>,
+        <UPageSection title="Formular" icon="i-lucide-square-pen">
           <UForm form={form} submitLabel="Speichern">
             <UField
               field={form.fields.name.$use()}
               v-slots={{ default: ({ bind }) => [<UInput class="w-full" {...bind} />] }}
             />
           </UForm>
-        </UConfigurationCard>,
-        <UConfigurationCard
+        </UPageSection>,
+        <UPageSection
           title="Nur Header (ohne Inhalt)"
           icon="i-lucide-panel-top"
           actions={[{ label: 'Aktion' }]}
         />,
-        <UConfigurationCard
+        <UPageSection
           title="Ein sehr langer Titel, der zeigt, wie sich der Header verhält, wenn kaum Platz bleibt"
           icon="i-lucide-wrap-text"
           badge={{ label: 'Badge' }}
           actions={manyActions}
         >
           <Placeholder />
-        </UConfigurationCard>,
+        </UPageSection>,
+        <UPageSection title="Mit Sections" icon="i-lucide-list">
+          <div class="flex flex-col gap-6">
+            <USection title="Nur Titel">
+              <UAttribute label="Projektnummer">P-0042</UAttribute>
+              <UAttribute label="Kunde">Nordwind GmbH</UAttribute>
+            </USection>
+            <USection
+              title="Icon + Badge + Aside"
+              icon="i-lucide-tag"
+              badge={{ label: 'Neu' }}
+              aside="2 offen"
+            >
+              <UAttribute label="Telefon">{null}</UAttribute>
+              <UAttribute label="Stadt">12345 Musterstadt</UAttribute>
+            </USection>
+            <USection
+              title="Eine Aktion"
+              icon="i-lucide-mouse-pointer-click"
+              actions={[{ label: 'Bearbeiten', icon: 'i-lucide-pencil' }]}
+            >
+              <UAttribute label="Straße">Musterstraße 1</UAttribute>
+            </USection>
+            <USection
+              title="Slot + viele Aktionen (Overflow)"
+              icon="i-lucide-ellipsis"
+              actions={manyActions}
+              v-slots={vSlots(USection, {
+                actions: () => [
+                  <UButton label="Slot-Aktion" icon="i-lucide-puzzle" size="xs" variant="soft" />,
+                ],
+                default: () => [
+                  <UAttribute label="Notiz" wide>
+                    Abstimmung jeden Montag um 10 Uhr.
+                  </UAttribute>,
+                ],
+              })}
+            />
+            <USection
+              title="Tabelle"
+              icon="i-lucide-table"
+              aside={`${rows.length} Einträge`}
+              variant="table"
+            >
+              <Table />
+            </USection>
+          </div>
+        </UPageSection>,
       ]
 
       return () => (
