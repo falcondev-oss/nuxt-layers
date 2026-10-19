@@ -119,14 +119,14 @@ export default defineSetupComponent(
                 to: '/section',
               },
               {
-                label: 'Konfiguration',
+                label: 'Page Section',
                 icon: 'i-lucide-sliders-horizontal',
-                to: '/configuration-card',
+                to: '/page-section',
               },
               {
-                label: 'Konfiguration Sandbox',
+                label: 'Page Section Sandbox',
                 icon: 'i-lucide-flask-conical',
-                to: '/configuration-card-sandbox',
+                to: '/page-section-sandbox',
               },
               {
                 label: 'Einstellungen',

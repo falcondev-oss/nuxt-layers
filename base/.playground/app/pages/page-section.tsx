@@ -2,11 +2,11 @@ import { Teleport } from 'vue'
 import { z } from 'zod'
 import {
   UButton,
-  UConfigurationCard,
   UContainer,
   UField,
   UForm,
   UInput,
+  UPageSection,
   USwitch,
   UTable,
 } from '#components'
@@ -45,13 +45,13 @@ const MembersTable = defineSetupComponent((_: object) =>
 
 export default defineSetupComponent((_: object) =>
   options(_, {
-    name: 'ConfigurationCardPage',
+    name: 'PageSectionPage',
     props: [],
     emits: [],
     setup: () => {
       definePageMeta({
         layout: 'shell',
-        title: 'Konfiguration',
+        title: 'Page Section',
       })
 
       const organisation = ref({ name: 'Nordwind GmbH' })
@@ -71,31 +71,31 @@ export default defineSetupComponent((_: object) =>
 
       return () => (
         <UContainer class="flex max-w-3xl flex-col gap-8 py-6">
-          <UConfigurationCard title="Organisation" icon="i-lucide-building-2">
+          <UPageSection title="Organisation" icon="i-lucide-building-2">
             <UForm form={form} submitLabel="Speichern">
               <UField
                 field={form.fields.name.$use()}
                 v-slots={{ default: ({ bind }) => [<UInput class="w-full" {...bind} />] }}
               />
             </UForm>
-          </UConfigurationCard>
+          </UPageSection>
 
-          <UConfigurationCard
+          <UPageSection
             title="Mitglieder"
             icon="i-lucide-users"
-            type="table"
+            variant="table"
             badge={{ label: String(members.length) }}
           >
             <MembersTable />
-          </UConfigurationCard>
+          </UPageSection>
 
-          <UConfigurationCard
+          <UPageSection
             title="Benachrichtigungen"
             icon="i-lucide-bell"
             actions={[
               { label: 'Beta anzeigen', onClick: () => (showBeta.value = !showBeta.value) },
             ]}
-            v-slots={vSlots(UConfigurationCard, {
+            v-slots={vSlots(UPageSection, {
               actions: () => [
                 <UButton icon="i-lucide-send" label="Test senden" size="sm" variant="soft" />,
               ],
@@ -110,7 +110,7 @@ export default defineSetupComponent((_: object) =>
           />
 
           {showBeta.value ? (
-            <UConfigurationCard
+            <UPageSection
               title="Beta"
               icon="i-lucide-flask-conical"
               badge={{ label: 'Neu', color: 'info' }}
