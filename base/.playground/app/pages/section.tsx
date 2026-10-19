@@ -1,52 +1,52 @@
 import { UAttribute, UBadge, UButton, UContainer, UDash, USection, UTable } from '#components'
 
-const invoices = [
-  { number: 'RE-2026-0412', date: '03.10.2026', amount: '1.240,00 €' },
-  { number: 'RE-2026-0388', date: '01.09.2026', amount: '980,50 €' },
+const milestones = [
+  { name: 'Konzept', due: '03.10.2026', owner: 'Tom Weinhold' },
+  { name: 'Design', due: '01.11.2026', owner: 'Mara Lindqvist' },
 ]
 
 function render() {
   return (
     <UContainer class="flex max-w-3xl flex-col gap-10 py-6">
-      <USection title="Stammdaten">
-        <UAttribute label="Kundennummer">
-          <span class="font-medium">K-10427</span>
+      <USection title="Projekt">
+        <UAttribute label="Projektnummer">
+          <span class="font-medium">P-0042</span>
         </UAttribute>
-        <UAttribute label="Firma">Nordwind GmbH</UAttribute>
+        <UAttribute label="Kunde">Nordwind GmbH</UAttribute>
         <UAttribute label="Ansprechpartner">Tom Weinhold</UAttribute>
         <UAttribute label="Telefon">{null}</UAttribute>
         <UAttribute label="Status">
           <UBadge label="Aktiv" color="success" variant="subtle" />
         </UAttribute>
-        <UAttribute label="USt-IdNr.">{undefined}</UAttribute>
+        <UAttribute label="Budget">{undefined}</UAttribute>
         <UAttribute label="Notiz" wide>
-          Lieferungen nur werktags zwischen 7 und 15 Uhr. Zufahrt über das Tor an der Rückseite,
-          vorher beim Pförtner melden.
+          Abstimmung jeden Montag um 10 Uhr. Protokolle liegen im geteilten Projektordner, offene
+          Punkte gehen vorher per Mail an alle Beteiligten.
         </UAttribute>
       </USection>
 
-      <USection title="Rechnungen" aside={`${invoices.length} offen`}>
+      <USection title="Meilensteine" aside={`${milestones.length} offen`}>
         <UTable
           class="col-span-full"
-          data={invoices}
+          data={milestones}
           columns={[
-            { accessorKey: 'number', header: 'Nummer' },
-            { accessorKey: 'date', header: 'Datum' },
-            { accessorKey: 'amount', header: 'Betrag' },
+            { accessorKey: 'name', header: 'Name' },
+            { accessorKey: 'due', header: 'Fällig' },
+            { accessorKey: 'owner', header: 'Verantwortlich' },
           ]}
         />
       </USection>
 
       <USection
-        title="Adresse"
-        aside="Hauptsitz"
+        title="Ort"
+        aside="Büro"
         v-slots={vSlots(USection, {
           actions: () => [
             <UButton icon="i-lucide-pencil" size="xs" color="neutral" variant="ghost" />,
           ],
           default: () => [
-            <UAttribute label="Straße">Hafenstraße 12</UAttribute>,
-            <UAttribute label="Ort">20457 Hamburg</UAttribute>,
+            <UAttribute label="Straße">Musterstraße 1</UAttribute>,
+            <UAttribute label="Stadt">12345 Musterstadt</UAttribute>,
           ],
         })}
       />

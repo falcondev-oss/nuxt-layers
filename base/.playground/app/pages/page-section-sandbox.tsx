@@ -185,8 +185,8 @@ export default defineSetupComponent((_: object) =>
         <UPageSection title="Mit Sections" icon="i-lucide-list">
           <div class="flex flex-col gap-6">
             <USection title="Nur Titel">
-              <UAttribute label="Kundennummer">K-10427</UAttribute>
-              <UAttribute label="Firma">Nordwind GmbH</UAttribute>
+              <UAttribute label="Projektnummer">P-0042</UAttribute>
+              <UAttribute label="Kunde">Nordwind GmbH</UAttribute>
             </USection>
             <USection
               title="Icon + Badge + Aside"
@@ -195,14 +195,14 @@ export default defineSetupComponent((_: object) =>
               aside="2 offen"
             >
               <UAttribute label="Telefon">{null}</UAttribute>
-              <UAttribute label="Ort">20457 Hamburg</UAttribute>
+              <UAttribute label="Stadt">12345 Musterstadt</UAttribute>
             </USection>
             <USection
               title="Eine Aktion"
               icon="i-lucide-mouse-pointer-click"
               actions={[{ label: 'Bearbeiten', icon: 'i-lucide-pencil' }]}
             >
-              <UAttribute label="Straße">Hafenstraße 12</UAttribute>
+              <UAttribute label="Straße">Musterstraße 1</UAttribute>
             </USection>
             <USection
               title="Slot + viele Aktionen (Overflow)"
@@ -214,7 +214,7 @@ export default defineSetupComponent((_: object) =>
                 ],
                 default: () => [
                   <UAttribute label="Notiz" wide>
-                    Lieferungen nur werktags zwischen 7 und 15 Uhr.
+                    Abstimmung jeden Montag um 10 Uhr.
                   </UAttribute>,
                 ],
               })}
