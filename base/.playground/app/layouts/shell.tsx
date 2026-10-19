@@ -119,6 +119,16 @@ export default defineSetupComponent(
                 to: '/section',
               },
               {
+                label: 'Konfiguration',
+                icon: 'i-lucide-sliders-horizontal',
+                to: '/configuration-card',
+              },
+              {
+                label: 'Konfiguration Sandbox',
+                icon: 'i-lucide-flask-conical',
+                to: '/configuration-card-sandbox',
+              },
+              {
                 label: 'Einstellungen',
                 icon: 'i-lucide-settings',
                 children: [
