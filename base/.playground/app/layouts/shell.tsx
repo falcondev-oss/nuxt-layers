@@ -114,6 +114,11 @@ export default defineSetupComponent(
                 to: '/dialog',
               },
               {
+                label: 'Section',
+                icon: 'i-lucide-list',
+                to: '/section',
+              },
+              {
                 label: 'Einstellungen',
                 icon: 'i-lucide-settings',
                 children: [
