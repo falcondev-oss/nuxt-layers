@@ -38,7 +38,7 @@ type PresetOptions = Partial<AskOptions>
  * Asks the user in a modal and resolves with the answer. Closing the modal any other way than
  * confirming answers with `false` / `undefined`.
  *
- * Name candidates: `useDialog`, `useAsk`, `usePrompt`, `useConfirm` (replacing the current one).
+ * Name candidates: `useDialog`, `useAsk`, `usePrompt`, `useConfirm`.
  */
 export const useDialog = createGlobalState(() => {
   const overlay = useOverlay()

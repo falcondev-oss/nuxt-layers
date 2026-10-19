@@ -1,5 +1,5 @@
 import { onBeforeRouteLeave } from '#app'
-import { useConfirm } from './confirm'
+import { useDialog } from './useDialog'
 
 export function usePreventPageLeave(
   preventPageLeave: MaybeRefOrGetter<boolean> = true,
@@ -15,17 +15,19 @@ export function usePreventPageLeave(
     return opts?.leaveDescription
   })
 
-  const confirm = useConfirm()
+  const dialog = useDialog()
 
+  // Nuxt's wrapper takes `next`, so the guard's return value is ignored and `next` must always be called
   onBeforeRouteLeave(async (_, __, next) => {
     if (!toValue(preventPageLeave)) return next()
 
-    const allowLeave = await confirm({
-      title: opts?.leaveTitle || 'Ungespeicherte Änderungen',
-      text:
-        opts?.leaveDescription || 'Es gibt ungespeicherte Änderungen. Seite trotzdem verlassen?',
-      confirmLabel: 'Verlassen',
-    })
-    if (allowLeave) return next()
+    next(
+      await dialog.askDiscard({
+        title: opts?.leaveTitle || 'Ungespeicherte Änderungen',
+        description:
+          opts?.leaveDescription || 'Es gibt ungespeicherte Änderungen. Seite trotzdem verlassen?',
+        confirmLabel: 'Verlassen',
+      }),
+    )
   })
 }
