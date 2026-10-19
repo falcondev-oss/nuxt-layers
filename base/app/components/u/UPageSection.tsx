@@ -5,9 +5,9 @@ import { cardActionsTargetKey } from '../../composables/useCardActionsTarget'
 import { useFreeSpace } from '../../composables/useFreeSpace'
 
 /**
- * A titled card. The `actions` slot sits in its header, before `actions`; content can teleport
- * there too, see `useCardActionsTarget`. Without a default slot only the header shows.
- * `type: 'table'` drops the body padding, so a table sits flush.
+ * A titled section of a page, its content in a card. The `actions` slot sits in its header,
+ * before `actions`; content can teleport there too, see `useCardActionsTarget`. Without a default
+ * slot only the header shows. `variant: 'table'` drops the body padding, so a table sits flush.
  */
 export default defineSetupComponent(
   (_: {
@@ -15,7 +15,7 @@ export default defineSetupComponent(
       title: string
       icon?: string
       badge?: BadgeProps
-      type?: 'default' | 'table'
+      variant?: 'default' | 'table'
       actions?: ButtonProps[]
     }
     slots: {
@@ -24,8 +24,8 @@ export default defineSetupComponent(
     }
   }) =>
     options(_, {
-      name: 'UConfigurationCard',
-      props: ['title', 'icon', 'badge', 'type', 'actions'],
+      name: 'UPageSection',
+      props: ['title', 'icon', 'badge', 'variant', 'actions'],
       emits: [],
       setup: (props, { slots }) => {
         const targetId = useId()
@@ -34,12 +34,16 @@ export default defineSetupComponent(
         return () => (
           <section aria-label={props.title} class="flex flex-col gap-2">
             <div class="flex items-center gap-2">
-              {props.icon ? <UIcon name={props.icon} class="text-primary size-4.5" /> : null}
+              {props.icon ? (
+                <UIcon name={props.icon} class="text-primary size-4.5 shrink-0" />
+              ) : null}
               <h3 class="text-highlighted text-base leading-tight font-semibold">{props.title}</h3>
-              {props.badge ? <UBadge variant="subtle" color="primary" {...props.badge} /> : null}
-              <div class="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2">
+              {props.badge ? (
+                <UBadge variant="subtle" color="primary" class="shrink-0" {...props.badge} />
+              ) : null}
+              <div class="ml-auto flex min-w-8 flex-1 items-center justify-end gap-2">
                 {props.actions?.length || slots.actions ? (
-                  <div {...useFreeSpace.free} class="min-w-0">
+                  <div {...useFreeSpace.free} class="min-w-8">
                     <UOverflowButtons>
                       {slots.actions?.()}
                       {props.actions?.map((action) => (
@@ -59,8 +63,8 @@ export default defineSetupComponent(
 
             {slots.default ? (
               <UCard
-                class={props.type === 'table' ? 'overflow-visible' : undefined}
-                ui={props.type === 'table' ? { body: 'p-0!' } : undefined}
+                class={props.variant === 'table' ? 'overflow-visible' : undefined}
+                ui={props.variant === 'table' ? { body: 'p-0!' } : undefined}
               >
                 <div class="flex h-full flex-col">{slots.default()}</div>
               </UCard>
