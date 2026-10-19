@@ -3,20 +3,22 @@ import type { ButtonProps } from '@nuxt/ui'
 import type { VNode } from 'vue'
 import type { Toast } from '#ui/composables'
 import { Teleport } from 'vue'
-import { UActions } from '#components'
+import { UActions, UDisabled } from '#components'
+
+export type UFormProps = {
+  form: FormHandle
+  submitLabel?: string
+  submitButtonProps?: ButtonProps
+  actions?: ButtonProps[]
+  actionsTeleportTo?: string
+  disableSubmitIfUnchanged?: boolean
+  successToast?: Partial<Toast>
+  preventPageLeave?: boolean
+}
 
 export default defineSetupComponent(
   (_: {
-    props: {
-      form: FormHandle
-      submitLabel?: string
-      submitButtonProps?: ButtonProps
-      actions?: ButtonProps[]
-      actionsTeleportTo?: string
-      disableSubmitIfUnchanged?: boolean
-      successToast?: Partial<Toast>
-      preventPageLeave?: boolean
-    }
+    props: UFormProps
     slots: {
       default: () => VNode[]
     }
@@ -43,12 +45,11 @@ export default defineSetupComponent(
         )
 
         const toast = useToast()
-        let unhook: (() => void) | null = null
+        // the cleanup also runs on unmount, so a form outliving this component doesn't keep the hook
         watch(
           () => props.form,
-          (form) => {
-            unhook?.()
-            unhook = form.hooks.addHooks({
+          (form, _, onCleanup) => {
+            const unhook = form.hooks.addHooks({
               afterSubmit(result) {
                 if (!result.success || !props.successToast) return
 
@@ -58,6 +59,7 @@ export default defineSetupComponent(
                 })
               },
             })
+            onCleanup(unhook)
           },
           { immediate: true },
         )
@@ -100,7 +102,10 @@ export default defineSetupComponent(
               void props.form.submit()
             }}
           >
-            {slots.default?.()}
+            <UDisabled
+              disabled={props.form.isLoading}
+              v-slots={{ default: () => slots.default?.() ?? [] }}
+            />
             <div
               style={{
                 display: rootErrors.value?.length || !props.actionsTeleportTo ? undefined : 'none',

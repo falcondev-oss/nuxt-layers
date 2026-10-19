@@ -104,6 +104,21 @@ export default defineSetupComponent(
                 to: '/langer-titel',
               },
               {
+                label: 'Formular-Modal',
+                icon: 'i-lucide-square-pen',
+                to: '/form-modal',
+              },
+              {
+                label: 'Dialog',
+                icon: 'i-lucide-message-circle-question',
+                to: '/dialog',
+              },
+              {
+                label: 'Section',
+                icon: 'i-lucide-list',
+                to: '/section',
+              },
+              {
                 label: 'Einstellungen',
                 icon: 'i-lucide-settings',
                 children: [
