@@ -3,7 +3,7 @@ import type { ButtonProps } from '@nuxt/ui'
 import type { VNode } from 'vue'
 import type { Toast } from '#ui/composables'
 import { Teleport } from 'vue'
-import { UActions } from '#components'
+import { UActions, UDisabled } from '#components'
 
 export default defineSetupComponent(
   (_: {
@@ -100,7 +100,10 @@ export default defineSetupComponent(
               void props.form.submit()
             }}
           >
-            {slots.default?.()}
+            <UDisabled
+              disabled={props.form.isLoading}
+              v-slots={{ default: () => slots.default?.() ?? [] }}
+            />
             <div
               style={{
                 display: rootErrors.value?.length || !props.actionsTeleportTo ? undefined : 'none',

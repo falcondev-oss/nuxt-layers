@@ -70,6 +70,7 @@ export default defineSetupComponent(
       emits: [],
       setup: (props, { slots }) => {
         const forwardedProps = useForwardProps(props)
+        const disabledByAncestor = useDisabled()
 
         const isOverMaxLength = computed(() => {
           const field = forwardedProps.value.field
@@ -106,7 +107,7 @@ export default defineSetupComponent(
             'modelValue': field.value,
             'onUpdate:modelValue': (value) => field.handleChange(value),
             'onBlur': () => field.handleBlur(),
-            'disabled': field.disabled,
+            'disabled': field.disabled || disabledByAncestor.value,
             'loading': field.isPending,
             placeholder,
             'modelModifiers': { nullable: true },
