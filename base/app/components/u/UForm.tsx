@@ -43,12 +43,11 @@ export default defineSetupComponent(
         )
 
         const toast = useToast()
-        let unhook: (() => void) | null = null
+        // the cleanup also runs on unmount, so a form outliving this component doesn't keep the hook
         watch(
           () => props.form,
-          (form) => {
-            unhook?.()
-            unhook = form.hooks.addHooks({
+          (form, _, onCleanup) => {
+            const unhook = form.hooks.addHooks({
               afterSubmit(result) {
                 if (!result.success || !props.successToast) return
 
@@ -58,6 +57,7 @@ export default defineSetupComponent(
                 })
               },
             })
+            onCleanup(unhook)
           },
           { immediate: true },
         )
