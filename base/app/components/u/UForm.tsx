@@ -5,18 +5,20 @@ import type { Toast } from '#ui/composables'
 import { Teleport } from 'vue'
 import { UActions, UDisabled } from '#components'
 
+export type UFormProps = {
+  form: FormHandle
+  submitLabel?: string
+  submitButtonProps?: ButtonProps
+  actions?: ButtonProps[]
+  actionsTeleportTo?: string
+  disableSubmitIfUnchanged?: boolean
+  successToast?: Partial<Toast>
+  preventPageLeave?: boolean
+}
+
 export default defineSetupComponent(
   (_: {
-    props: {
-      form: FormHandle
-      submitLabel?: string
-      submitButtonProps?: ButtonProps
-      actions?: ButtonProps[]
-      actionsTeleportTo?: string
-      disableSubmitIfUnchanged?: boolean
-      successToast?: Partial<Toast>
-      preventPageLeave?: boolean
-    }
+    props: UFormProps
     slots: {
       default: () => VNode[]
     }
