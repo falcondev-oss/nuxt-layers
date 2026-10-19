@@ -18,11 +18,15 @@ declare module 'vue' {
     // `v-slots` is what `@vue/babel-plugin-jsx` turns into slot children, so the name has
     // to be spelled that way to reach the runtime at all.
     //
-    // Deliberately loose: this only makes `v-slots` an accepted prop name on every
-    // component. `Slots` would reject it for any component whose slots are declared as an
-    // interface without an index signature (most of @nuxt/ui). The real check is the
-    // `vSlots()` helper below, which types the object against the target's own slots.
-    'v-slots'?: Record<string, any>
+    // Makes `v-slots` an accepted prop name on every component. `Slots` would reject it for
+    // any component whose slots are declared as an interface without an index signature
+    // (most of @nuxt/ui), so it has to be permissive here.
+    //
+    // `unknown` rather than `Record<string, any>`: this intersects with the typed `v-slots`
+    // that `defineSetupComponent` puts in `PublicProps`, and an index signature there accepts
+    // any key. `unknown` intersects away, so a raw `v-slots={{ ... }}` on a component built
+    // here is checked against its own slots. Other components need the `vSlots()` helper.
+    'v-slots'?: unknown
   }
 }
 
