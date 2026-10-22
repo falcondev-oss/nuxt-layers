@@ -109,6 +109,16 @@ export default defineSetupComponent(
                 to: '/form-modal',
               },
               {
+                label: 'Entity-Modal',
+                icon: 'i-lucide-database',
+                to: '/entity-crud-modal',
+              },
+              {
+                label: 'Entity-Modal Sandbox',
+                icon: 'i-lucide-flask-conical',
+                to: '/entity-crud-modal-sandbox',
+              },
+              {
                 label: 'Dialog',
                 icon: 'i-lucide-message-circle-question',
                 to: '/dialog',

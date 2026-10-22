@@ -5,12 +5,15 @@ import type { UFormProps } from './UForm'
 import modalTheme from '#build/ui/modal'
 import { UButton, UForm, UModal } from '#components'
 
+export type UFormModalFormProps = Omit<UFormProps, 'form' | 'actionsTeleportTo'> &
+  FormHTMLAttributes
+
 export default defineSetupComponent(
   (_: {
     props: ModalProps &
       EmitsToProps<AsEmits<ModalEmits>> & {
         form: FormHandle
-        formProps?: Omit<UFormProps, 'form' | 'actionsTeleportTo'> & FormHTMLAttributes
+        formProps?: UFormModalFormProps
       }
     // the rest reaches `UModal` as inherited attributes
     propKeys: 'form' | 'formProps'
