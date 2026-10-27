@@ -1,12 +1,19 @@
 import type { ButtonProps, RadioGroupItem } from '@nuxt/ui'
+import type { VNodeChild } from 'vue'
 import type { GetItemValue } from '#ui/types'
-import { UButton, UModal, URadioGroup } from '#components'
+import type { TemplateParts } from '../../../utils/display'
+import { TemplateText, UButton, UModal, URadioGroup } from '#components'
 
 export type AskOptions = {
   title: string
-  description?: string
+  /** A `templateParts` text shows its values highlighted, e.g. the name of what gets deleted. */
+  description?: string | TemplateParts
+  /** Content above the items, e.g. a warning or an input. Renders reactively. */
+  body?: () => VNodeChild
   confirmLabel?: string
   cancelLabel?: string
+  /** Disables confirming while it returns `true`, e.g. until an input in `body` is filled. */
+  confirmDisabled?: () => boolean
   /** Color of the confirm button and the radios. */
   color?: ButtonProps['color']
 }
@@ -35,8 +42,10 @@ export default defineSetupComponent(
       props: [
         'title',
         'description',
+        'body',
         'confirmLabel',
         'cancelLabel',
+        'confirmDisabled',
         'color',
         'items',
         'defaultValue',
@@ -51,50 +60,64 @@ export default defineSetupComponent(
         const confirm = () =>
           emit('close', props.items ? picked.value : ({ value: undefined } as never))
 
-        return () => (
-          <UModal
-            title={props.title}
-            description={props.description}
-            close={false}
-            ui={{
-              header: 'min-h-0 border-b-0 pb-0',
-              body: 'sm:pt-4',
-              title: 'text-lg',
-              description: 'mt-0 text-base',
-            }}
-            v-slots={vSlots(UModal, {
-              body: props.items
-                ? () => [
-                    <URadioGroup
-                      modelValue={picked.value?.value}
-                      onUpdate:modelValue={(value) => {
-                        picked.value = { value }
-                      }}
-                      items={props.items}
-                      variant="table"
+        return () => {
+          const description = props.description
+
+          return (
+            <UModal
+              title={props.title}
+              description={typeof description === 'string' ? description : undefined}
+              close={false}
+              ui={{
+                header: 'min-h-0 border-b-0 pb-0',
+                body: 'sm:pt-4',
+                title: 'text-lg',
+                description: 'mt-0 text-base',
+              }}
+              v-slots={vSlots(UModal, {
+                description:
+                  typeof description === 'object'
+                    ? () => [<TemplateText text={description} />]
+                    : undefined,
+                body:
+                  props.body || props.items
+                    ? () => [
+                        <div class="flex flex-col gap-4">
+                          {props.body?.()}
+                          {props.items ? (
+                            <URadioGroup
+                              modelValue={picked.value?.value}
+                              onUpdate:modelValue={(value) => {
+                                picked.value = { value }
+                              }}
+                              items={props.items}
+                              variant="table"
+                              color={color()}
+                            />
+                          ) : null}
+                        </div>,
+                      ]
+                    : undefined,
+                footer: () => [
+                  <div class="flex w-full justify-end gap-2">
+                    <UButton
+                      color="neutral"
+                      variant="soft"
+                      label={props.cancelLabel ?? 'Abbrechen'}
+                      onClick={() => emit('close', undefined)}
+                    />
+                    <UButton
                       color={color()}
-                    />,
-                  ]
-                : undefined,
-              footer: () => [
-                <div class="flex w-full justify-end gap-2">
-                  <UButton
-                    color="neutral"
-                    variant="soft"
-                    label={props.cancelLabel ?? 'Abbrechen'}
-                    onClick={() => emit('close', undefined)}
-                  />
-                  <UButton
-                    color={color()}
-                    label={props.confirmLabel ?? 'Bestätigen'}
-                    disabled={!!props.items && !picked.value}
-                    onClick={confirm}
-                  />
-                </div>,
-              ],
-            })}
-          />
-        )
+                      label={props.confirmLabel ?? 'Bestätigen'}
+                      disabled={(!!props.items && !picked.value) || !!props.confirmDisabled?.()}
+                      onClick={confirm}
+                    />
+                  </div>,
+                ],
+              })}
+            />
+          )
+        }
       },
     }),
 )

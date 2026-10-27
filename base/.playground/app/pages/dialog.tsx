@@ -1,4 +1,4 @@
-import { UButton, UContainer } from '#components'
+import { UAlert, UButton, UContainer, UInput } from '#components'
 
 const colors = ['primary', 'secondary', 'success', 'info', 'warning', 'error', 'neutral'] as const
 
@@ -131,6 +131,52 @@ export default defineSetupComponent((_: object) =>
                   }),
                 ),
               )}
+            </div>
+          </section>
+
+          <section class="flex flex-col gap-2">
+            <h2 class="font-medium">Inhalt</h2>
+            <div class="flex flex-wrap gap-2">
+              {show('templateParts', () =>
+                dialog.askDelete({
+                  description: templateParts`Soll ${'Website Relaunch'} endgültig gelöscht werden?`,
+                }),
+              )}
+              {show('body und Auswahl', () =>
+                dialog.askSelect({
+                  title: 'Termin löschen?',
+                  description: templateParts`Soll ${'Teammeeting'} gelöscht werden?`,
+                  body: () => (
+                    <UAlert
+                      color="warning"
+                      variant="soft"
+                      icon="lucide:triangle-alert"
+                      title="Dieser Termin gehört zu einer Serie"
+                    />
+                  ),
+                  confirmLabel: 'Löschen',
+                  color: 'error',
+                  items: [
+                    { label: 'Nur diesen Termin', value: 'single' },
+                    { label: 'Diesen und alle folgenden Termine', value: 'future' },
+                  ],
+                }),
+              )}
+              {show('confirmDisabled', () => {
+                const typed = ref('')
+                return dialog.askDelete({
+                  description: templateParts`Zum Bestätigen ${'Website Relaunch'} eingeben.`,
+                  body: () => (
+                    <UInput
+                      modelValue={typed.value}
+                      onUpdate:modelValue={(value) => (typed.value = value)}
+                      placeholder="Website Relaunch"
+                      class="w-full"
+                    />
+                  ),
+                  confirmDisabled: () => typed.value !== 'Website Relaunch',
+                })
+              })}
             </div>
           </section>
         </UContainer>

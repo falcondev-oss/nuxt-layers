@@ -1,18 +1,19 @@
-import type { templateParts } from '../../utils/display'
+import type { TemplateParts } from '../../utils/display'
 import { UBadge } from '#components'
 
 export default defineSetupComponent(
   (_: {
     props: {
-      text: ReturnType<typeof templateParts>
+      text: TemplateParts
     }
   }) =>
     options(_, {
       name: 'TemplateText',
       props: ['text'],
       emits: [],
+      // a `span`, so it also fits where only phrasing content is allowed, like a modal description
       setup: (props) => () => (
-        <p>
+        <span>
           {props.text.strings.map((string, index) => (
             <span key={index}>
               <span>{string}</span>
@@ -25,7 +26,7 @@ export default defineSetupComponent(
               ) : null}
             </span>
           ))}
-        </p>
+        </span>
       ),
     }),
 )
