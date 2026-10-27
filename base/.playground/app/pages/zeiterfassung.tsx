@@ -329,6 +329,7 @@ export default defineSetupComponent((_: object) =>
           icon: 'lucide:lock',
           value: 'lock',
           description: 'Kein Zugriff mehr',
+          class: 'text-error',
           onClick: () => toast.add({ title: 'Sperren', color: 'error' }),
         },
       ]
@@ -485,10 +486,11 @@ export default defineSetupComponent((_: object) =>
                   items={rowActions}
                   v-slots={{
                     prefix: ({ item }: { item: (typeof rowActions)[number] }) => [
+                      // the item's class, so a destructive action's icon matches its label.
                       // at the top, centred on the label's line, not between label and description
                       <UIcon
                         name={item.icon}
-                        class="text-muted mt-0.5 size-4 shrink-0 self-start"
+                        class={['mt-0.5 size-4 shrink-0 self-start', item.class ?? 'text-muted']}
                       />,
                     ],
                     default: () => [

@@ -52,6 +52,8 @@ export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
    * `groups` are ignored.
    */
   onClick?: () => void
+  /** Classes for the row's text, e.g. `text-error` for a destructive action. */
+  class?: string
 }
 export type UniversalSelectMenuFilter = { label: string; value: Primitive }
 
@@ -1267,7 +1269,7 @@ export default defineSetupComponent(
               data-special-row={
                 item.value === null || (row.type === 'action' && item.pinned) ? '' : undefined
               }
-              class="flex min-w-0 flex-col"
+              class={['flex min-w-0 flex-col', item.class]}
             >
               {/* suffix beside the label: a longer description would push it aside */}
               <span class="flex min-w-0 items-center gap-1.5">
