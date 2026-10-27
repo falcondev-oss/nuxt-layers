@@ -79,6 +79,27 @@ export default defineSetupComponent((_: object) =>
               )}
               {show('askRestore ohne Namen', () => dialog.askRestore({ type: 'Projekt' }))}
               {show('askDiscard', () => dialog.askDiscard())}
+              {show('askDelete mit Auswahl', () =>
+                dialog.askDelete({
+                  type: 'Termin',
+                  name: 'Teammeeting',
+                  items: [
+                    { label: 'Nur diesen Termin', value: 'single' },
+                    { label: 'Diesen und alle folgenden Termine', value: 'future' },
+                  ],
+                }),
+              )}
+              {show('askArchive mit defaultValue', () =>
+                dialog.askArchive({
+                  type: 'Projekt',
+                  name: 'Website Relaunch',
+                  items: [
+                    { label: 'Nur das Projekt', value: 'project' },
+                    { label: 'Mit allen Aufgaben', value: 'tasks' },
+                  ],
+                  defaultValue: 'project',
+                }),
+              )}
             </div>
           </section>
 

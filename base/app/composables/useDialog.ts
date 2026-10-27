@@ -47,6 +47,17 @@ const presets = {
 type PresetOptions = Partial<AskOptions>
 
 /**
+ * A preset asks like `askSelect` when it gets `items`, and like `askConfirm` without them. The
+ * `items` overload comes first, so an options object holding `items` never types as a `boolean`.
+ */
+type Preset<In> = {
+  <const T extends RadioGroupItem[]>(
+    opts: In & PresetOptions & Pick<AskSelectOptions<T>, 'items' | 'defaultValue'>,
+  ): Promise<AskSelectValue<T> | undefined>
+  (opts: In & PresetOptions): Promise<boolean>
+}
+
+/**
  * Asks the user in a modal and resolves with the answer. Closing the modal any other way than
  * confirming answers with `false` / `undefined`.
  */
@@ -67,10 +78,14 @@ export const useDialog = createGlobalState(() => {
     return result?.value
   }
 
-  const askAbout =
-    (preset: (subject: Subject) => AskOptions) =>
-    async ({ type, name, ...opts }: Subject & PresetOptions) =>
-      askConfirm({ ...preset({ type, name }), ...opts })
+  async function ask(opts: AskOptions & { items?: RadioGroupItem[] }) {
+    return opts.items ? askSelect({ ...opts, items: opts.items }) : askConfirm(opts)
+  }
+
+  // the casts pick the answer type by `items`, which `ask` decides at runtime
+  const askAbout = (preset: (subject: Subject) => AskOptions) =>
+    (async ({ type, name, ...opts }: Subject & PresetOptions & { items?: RadioGroupItem[] }) =>
+      ask({ ...preset({ type, name }), ...opts })) as Preset<Subject>
 
   return {
     askConfirm,
@@ -78,6 +93,7 @@ export const useDialog = createGlobalState(() => {
     askDelete: askAbout(presets.delete),
     askArchive: askAbout(presets.archive),
     askRestore: askAbout(presets.restore),
-    askDiscard: async (opts?: PresetOptions) => askConfirm({ ...presets.discard(), ...opts }),
+    askDiscard: (async (opts?: PresetOptions & { items?: RadioGroupItem[] }) =>
+      ask({ ...presets.discard(), ...opts })) as Preset<object> & (() => Promise<boolean>),
   }
 })
