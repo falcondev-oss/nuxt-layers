@@ -73,7 +73,10 @@ export default defineSetupComponent(
             {...attrs}
             // an outside click or Escape with unsaved changes asks first, through `close:prevent`
             dismissible={attrs.dismissible ?? (!props.form.isChanged && !saving.value)}
-            onClose:prevent={() => void requestClose()}
+            // a consumer's `dismissible: false` keeps the modal open on an outside click or Escape
+            onClose:prevent={() => {
+              if (attrs.dismissible !== false) void requestClose()
+            }}
             // `UModal`'s x closes right away, so it's replaced with one that asks first
             close={false}
             v-slots={vSlots(UModal, {

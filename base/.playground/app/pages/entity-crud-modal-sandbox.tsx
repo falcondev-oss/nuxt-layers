@@ -7,6 +7,7 @@ type Case = {
   label: string
   load: () => Promise<{ name: string; customer: string }>
   formProps?: { class?: string; successToast?: { description: string } }
+  dismissible?: boolean
 }
 
 const cases: Record<string, Case> = {
@@ -33,6 +34,11 @@ const cases: Record<string, Case> = {
     label: 'Toast mit Beschreibung',
     load: async () => ({ name: 'Intranet', customer: 'Tom Weinhold' }),
     formProps: { successToast: { description: 'Die Änderungen sind für alle sichtbar.' } },
+  },
+  strict: {
+    label: 'Nur über Abbrechen schließbar',
+    load: async () => ({ name: 'Intranet', customer: 'Tom Weinhold' }),
+    dismissible: false,
   },
 }
 
@@ -77,6 +83,7 @@ export default defineSetupComponent((_: object) =>
             onUpdate:open={(value) => (open.value = value)}
             id={caseId.value}
             formProps={cases[caseId.value]!.formProps}
+            dismissible={cases[caseId.value]!.dismissible}
             name="Projekt"
             schema={schema}
             getQueryOptions={(id) => ({
