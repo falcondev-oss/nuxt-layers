@@ -50,6 +50,14 @@ export default defineSetupComponent((_: object) =>
                   cancelLabel: 'Später',
                 }),
               )}
+              {show('Ohne X', () => dialog.askConfirm({ title: 'Fortfahren?', close: false }))}
+              {show('Langer Titel', () =>
+                dialog.askConfirm({
+                  title:
+                    'Sollen alle offenen Aufgaben des Projekts Website Relaunch an Tom Weinhold übergeben werden?',
+                  description: 'Tom Weinhold wird per E-Mail benachrichtigt.',
+                }),
+              )}
               {colors.map((color) =>
                 show(color, () => dialog.askConfirm({ title: `Farbe ${color}?`, color })),
               )}

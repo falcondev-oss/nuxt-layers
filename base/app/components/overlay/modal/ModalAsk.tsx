@@ -17,6 +17,8 @@ export type AskOptions = {
   confirmDisabled?: () => boolean
   /** Color of the confirm button and the radios. */
   color?: ButtonProps['color']
+  /** Shows the X in the header, which cancels like the cancel button. Defaults to `true`. */
+  close?: boolean
 }
 
 /** What picking an item answers: the item itself, or its `value` for an object. */
@@ -52,6 +54,7 @@ export default defineSetupComponent(
         'cancelLabel',
         'confirmDisabled',
         'color',
+        'close',
         'items',
         'defaultValue',
       ],
@@ -68,13 +71,16 @@ export default defineSetupComponent(
         return () => {
           const description = props.description
           const hasBody = !!(description || props.body || props.items)
+          const close = props.close !== false
 
           return (
             <UModal
-              close={false}
+              close={close ? { onClick: () => emit('close', undefined) } : false}
               ui={{
                 // the header border only stays without a body, so a border always sets off the buttons
                 header: hasBody ? 'border-b-0!' : undefined,
+                // the X sits absolutely over the header's end, so a long title keeps clear of it
+                title: close ? 'pe-10 sm:pe-8' : undefined,
                 body: 'pt-0!',
               }}
               v-slots={vSlots(UModal, {
