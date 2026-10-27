@@ -62,42 +62,45 @@ export default defineSetupComponent(
 
         return () => {
           const description = props.description
+          const hasBody = !!(description || props.body || props.items)
 
           return (
             <UModal
               title={props.title}
-              description={typeof description === 'string' ? description : undefined}
               close={false}
               ui={{
-                header: 'min-h-0 border-b-0 pb-0',
-                body: 'sm:pt-4',
-                title: 'text-lg',
-                description: 'mt-0 text-base',
+                // the header border only stays without a body, so a border always sets off the buttons
+                header: hasBody ? 'border-b-0!' : undefined,
+                body: 'pt-0!',
               }}
               v-slots={vSlots(UModal, {
-                description:
-                  typeof description === 'object'
-                    ? () => [<TemplateText text={description} />]
-                    : undefined,
-                body:
-                  props.body || props.items
-                    ? () => [
-                        <div class="flex flex-col gap-4">
-                          {props.body?.()}
-                          {props.items ? (
-                            <URadioGroup
-                              modelValue={picked.value?.value}
-                              onUpdate:modelValue={(value) => {
-                                picked.value = { value }
-                              }}
-                              items={props.items}
-                              variant="table"
-                              color={color()}
-                            />
-                          ) : null}
-                        </div>,
-                      ]
-                    : undefined,
+                body: hasBody
+                  ? () => [
+                      <div class="flex flex-col gap-4">
+                        {description ? (
+                          <p>
+                            {typeof description === 'string' ? (
+                              description
+                            ) : (
+                              <TemplateText text={description} />
+                            )}
+                          </p>
+                        ) : null}
+                        {props.body?.()}
+                        {props.items ? (
+                          <URadioGroup
+                            modelValue={picked.value?.value}
+                            onUpdate:modelValue={(value) => {
+                              picked.value = { value }
+                            }}
+                            items={props.items}
+                            variant="table"
+                            color={color()}
+                          />
+                        ) : null}
+                      </div>,
+                    ]
+                  : undefined,
                 footer: () => [
                   <div class="flex w-full justify-end gap-2">
                     <UButton
