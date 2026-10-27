@@ -77,8 +77,8 @@ export default defineSetupComponent(
             <UModal
               close={close ? { onClick: () => emit('close', undefined) } : false}
               ui={{
-                // the header border only stays without a body, so a border always sets off the buttons
-                header: hasBody ? 'border-b-0!' : undefined,
+                // the border above the buttons comes from the body, so a dialog without a body has none
+                header: 'border-b-0',
                 // the X sits absolutely over the header's end, so a long title keeps clear of it
                 title: close ? 'pe-10 sm:pe-8' : undefined,
                 body: 'pt-0!',
