@@ -26,6 +26,8 @@ Prefer these over hand-rolled equivalents or raw `@nuxt/ui` where one fits.
 | Util            | Use when                                                                                       | Signature                                                                                                  |
 | --------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `templateParts` | Text whose values show highlighted, e.g. the name of what gets deleted in a `useDialog` dialog | Tag function: `` templateParts`Soll ${name} gelöscht werden?` `` → `TemplateParts` (`{ strings, values }`) |
+| `formatEuros`   | Showing an amount of money                                                                     | `formatEuros(1234.5)` → `"1.234,50 €"` (German format, EUR)                                                |
+| `pluralize`     | Choosing singular or plural by a count                                                         | `pluralize(count, 'Serie', 'Serien')`: `singular` when `count === 1`, else `plural`                        |
 
 ## Components
 
