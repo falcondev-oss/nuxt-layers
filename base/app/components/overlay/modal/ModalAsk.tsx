@@ -5,7 +5,8 @@ import type { TemplateParts } from '../../../utils/display'
 import { TemplateText, UButton, UModal, URadioGroup } from '#components'
 
 export type AskOptions = {
-  title: string
+  /** A `templateParts` text shows its values highlighted, e.g. the kind of thing that gets deleted. */
+  title: string | TemplateParts
   /** A `templateParts` text shows its values highlighted, e.g. the name of what gets deleted. */
   description?: string | TemplateParts
   /** Content above the items, e.g. a warning or an input. Renders reactively. */
@@ -29,6 +30,10 @@ export type AskSelectOptions<T extends RadioGroupItem[]> = AskOptions & {
 
 // wrapped, so a picked `null` is told apart from a cancel
 export type AskResult<V> = { value: V } | undefined
+
+function text(value: string | TemplateParts) {
+  return typeof value === 'string' ? <>{value}</> : <TemplateText text={value} />
+}
 
 export default defineSetupComponent(
   <T extends RadioGroupItem[]>(_: {
@@ -66,7 +71,6 @@ export default defineSetupComponent(
 
           return (
             <UModal
-              title={props.title}
               close={false}
               ui={{
                 // the header border only stays without a body, so a border always sets off the buttons
@@ -74,18 +78,11 @@ export default defineSetupComponent(
                 body: 'pt-0!',
               }}
               v-slots={vSlots(UModal, {
+                title: () => [text(props.title)],
                 body: hasBody
                   ? () => [
                       <div class="flex flex-col gap-4">
-                        {description ? (
-                          <p>
-                            {typeof description === 'string' ? (
-                              description
-                            ) : (
-                              <TemplateText text={description} />
-                            )}
-                          </p>
-                        ) : null}
+                        {description ? <p>{text(description)}</p> : null}
                         {props.body?.()}
                         {props.items ? (
                           <URadioGroup

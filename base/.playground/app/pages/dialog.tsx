@@ -59,12 +59,25 @@ export default defineSetupComponent((_: object) =>
           <section class="flex flex-col gap-2">
             <h2 class="font-medium">Presets</h2>
             <div class="flex flex-wrap gap-2">
-              {show('askDelete', () => dialog.askDelete())}
-              {show('askDelete überschrieben', () =>
-                dialog.askDelete({ title: 'Projekt "Website Relaunch" löschen?' }),
+              {show('askDelete', () =>
+                dialog.askDelete({ type: 'Projekt', name: 'Website Relaunch' }),
               )}
-              {show('askArchive', () => dialog.askArchive())}
-              {show('askRestore', () => dialog.askRestore())}
+              {show('askDelete überschrieben', () =>
+                dialog.askDelete({
+                  type: 'Projekt',
+                  name: 'Website Relaunch',
+                  description: 'Alle Aufgaben des Projekts werden mitgelöscht.',
+                }),
+              )}
+              {show('askDelete ohne Namen', () => dialog.askDelete({ type: 'Projekt' }))}
+              {show('askArchive', () =>
+                dialog.askArchive({ type: 'Projekt', name: 'Website Relaunch' }),
+              )}
+              {show('askArchive ohne Namen', () => dialog.askArchive({ type: 'Projekt' }))}
+              {show('askRestore', () =>
+                dialog.askRestore({ type: 'Projekt', name: 'Website Relaunch' }),
+              )}
+              {show('askRestore ohne Namen', () => dialog.askRestore({ type: 'Projekt' }))}
               {show('askDiscard', () => dialog.askDiscard())}
             </div>
           </section>
@@ -138,8 +151,9 @@ export default defineSetupComponent((_: object) =>
             <h2 class="font-medium">Inhalt</h2>
             <div class="flex flex-wrap gap-2">
               {show('templateParts', () =>
-                dialog.askDelete({
-                  description: templateParts`Soll ${'Website Relaunch'} endgültig gelöscht werden?`,
+                dialog.askConfirm({
+                  title: templateParts`${'Website Relaunch'} duplizieren`,
+                  description: templateParts`Die Kopie heißt ${'Website Relaunch (Kopie)'}.`,
                 }),
               )}
               {show('body und Auswahl', () =>
@@ -165,6 +179,8 @@ export default defineSetupComponent((_: object) =>
               {show('confirmDisabled', () => {
                 const typed = ref('')
                 return dialog.askDelete({
+                  type: 'Projekt',
+                  name: 'Website Relaunch',
                   description: templateParts`Zum Bestätigen ${'Website Relaunch'} eingeben.`,
                   body: () => (
                     <UInput

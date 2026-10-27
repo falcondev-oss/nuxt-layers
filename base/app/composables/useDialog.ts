@@ -7,38 +7,48 @@ import type {
 } from '../components/overlay/modal/ModalAsk'
 import { LazyModalAsk } from '#components'
 
+/** What a preset asks about. */
+type Subject = {
+  /** The kind of thing, e.g. `Projekt`. Starts the title. */
+  type: string
+  /** Which one, e.g. `Website Relaunch`. Without it, only `askDelete` has a description. */
+  name?: string
+}
+
 const presets = {
-  delete: {
-    title: 'Wirklich löschen?',
-    description: 'Das kann nicht rückgängig gemacht werden.',
+  delete: ({ type, name }: Subject) => ({
+    title: `${type} löschen`,
+    description: name
+      ? templateParts`Soll ${name} endgültig gelöscht werden?`
+      : 'Das kann nicht rückgängig gemacht werden.',
     confirmLabel: 'Löschen',
     color: 'error',
-  },
-  archive: {
-    title: 'Archivieren?',
+  }),
+  archive: ({ type, name }: Subject) => ({
+    title: `${type} archivieren`,
+    description: name ? templateParts`Soll ${name} archiviert werden?` : undefined,
     confirmLabel: 'Archivieren',
     color: 'warning',
-  },
-  restore: {
-    title: 'Wiederherstellen?',
+  }),
+  restore: ({ type, name }: Subject) => ({
+    title: `${type} wiederherstellen`,
+    description: name ? templateParts`Soll ${name} wiederhergestellt werden?` : undefined,
     confirmLabel: 'Wiederherstellen',
-    color: 'primary',
-  },
-  discard: {
+    color: 'success',
+  }),
+  discard: () => ({
     title: 'Änderungen verwerfen?',
     description: 'Ungespeicherte Änderungen gehen verloren.',
     confirmLabel: 'Verwerfen',
     color: 'error',
-  },
-} as const satisfies Record<string, AskOptions>
+  }),
+} satisfies Record<string, (subject: Subject) => AskOptions>
 
 type PresetOptions = Partial<AskOptions>
 
 /**
  * Asks the user in a modal and resolves with the answer. Closing the modal any other way than
  * confirming answers with `false` / `undefined`.
- *
- * Name candidates: `useDialog`, `useAsk`, `usePrompt`, `useConfirm`.
  */
 export const useDialog = createGlobalState(() => {
   const overlay = useOverlay()
@@ -57,12 +67,17 @@ export const useDialog = createGlobalState(() => {
     return result?.value
   }
 
+  const askAbout =
+    (preset: (subject: Subject) => AskOptions) =>
+    async ({ type, name, ...opts }: Subject & PresetOptions) =>
+      askConfirm({ ...preset({ type, name }), ...opts })
+
   return {
     askConfirm,
     askSelect,
-    askDelete: async (opts?: PresetOptions) => askConfirm({ ...presets.delete, ...opts }),
-    askArchive: async (opts?: PresetOptions) => askConfirm({ ...presets.archive, ...opts }),
-    askRestore: async (opts?: PresetOptions) => askConfirm({ ...presets.restore, ...opts }),
-    askDiscard: async (opts?: PresetOptions) => askConfirm({ ...presets.discard, ...opts }),
+    askDelete: askAbout(presets.delete),
+    askArchive: askAbout(presets.archive),
+    askRestore: askAbout(presets.restore),
+    askDiscard: async (opts?: PresetOptions) => askConfirm({ ...presets.discard(), ...opts }),
   }
 })
