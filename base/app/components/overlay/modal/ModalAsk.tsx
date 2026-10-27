@@ -77,6 +77,8 @@ export default defineSetupComponent(
             <UModal
               close={close ? { onClick: () => emit('close', undefined) } : false}
               ui={{
+                // from `sm` up as wide as its content, between 24rem and the default `max-w-lg`
+                content: 'sm:w-fit sm:min-w-sm',
                 // the border above the buttons comes from the body, so a dialog without a body has none
                 header: 'border-b-0',
                 // the X sits absolutely over the header's end, so a long title keeps clear of it
@@ -105,7 +107,8 @@ export default defineSetupComponent(
                     ]
                   : undefined,
                 footer: () => [
-                  <div class="flex w-full justify-end gap-2">
+                  // `min-w-22`: about as wide as "Speichern", so a short label doesn't make a tiny button
+                  <div class="flex w-full justify-end gap-2 *:min-w-22 *:justify-center">
                     <UButton
                       color="neutral"
                       variant="soft"

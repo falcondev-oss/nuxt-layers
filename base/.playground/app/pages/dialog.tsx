@@ -50,6 +50,9 @@ export default defineSetupComponent((_: object) =>
                   cancelLabel: 'Später',
                 }),
               )}
+              {show('Kurze Labels', () =>
+                dialog.askConfirm({ title: 'Speichern?', confirmLabel: 'Ja', cancelLabel: 'Nein' }),
+              )}
               {show('Ohne X', () => dialog.askConfirm({ title: 'Fortfahren?', close: false }))}
               {show('Langer Titel', () =>
                 dialog.askConfirm({
