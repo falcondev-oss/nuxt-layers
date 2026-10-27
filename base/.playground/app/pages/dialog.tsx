@@ -53,7 +53,16 @@ export default defineSetupComponent((_: object) =>
               {show('Kurze Labels', () =>
                 dialog.askConfirm({ title: 'Speichern?', confirmLabel: 'Ja', cancelLabel: 'Nein' }),
               )}
-              {show('Ohne X', () => dialog.askConfirm({ title: 'Fortfahren?', close: false }))}
+              {show('Ohne X', () =>
+                dialog.askConfirm({
+                  title: 'Fortfahren?',
+                  description: 'Die Änderungen werden sofort für alle sichtbar.',
+                  close: false,
+                }),
+              )}
+              {show('Nur Titel mit X', () =>
+                dialog.askConfirm({ title: 'Fortfahren?', close: true }),
+              )}
               {show('Langer Titel', () =>
                 dialog.askConfirm({
                   title:

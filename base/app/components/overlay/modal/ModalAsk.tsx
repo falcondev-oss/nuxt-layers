@@ -17,7 +17,10 @@ export type AskOptions = {
   confirmDisabled?: () => boolean
   /** Color of the confirm button and the radios. */
   color?: ButtonProps['color']
-  /** Shows the X in the header, which cancels like the cancel button. Defaults to `true`. */
+  /**
+   * Shows the X in the header, which cancels like the cancel button. Defaults to `true` when the
+   * dialog has more than a title (a description, `body` or items).
+   */
   close?: boolean
 }
 
@@ -71,7 +74,7 @@ export default defineSetupComponent(
         return () => {
           const description = props.description
           const hasBody = !!(description || props.body || props.items)
-          const close = props.close !== false
+          const close = props.close ?? hasBody
 
           return (
             <UModal
