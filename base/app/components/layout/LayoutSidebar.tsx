@@ -152,7 +152,13 @@ export default defineSetupComponent(
                 ],
                 ...(props.userMenu && {
                   footer: ({ collapsed }) => [
-                    <UDropdownMenu items={props.userMenu!.items}>
+                    <UDropdownMenu
+                      items={props.userMenu!.items}
+                      // the collapsed trigger is only an icon wide
+                      ui={{
+                        content: collapsed ? 'w-48' : 'w-(--reka-dropdown-menu-trigger-width)',
+                      }}
+                    >
                       <UButton
                         label={collapsed ? undefined : props.userMenu!.name}
                         trailingIcon={collapsed ? undefined : 'ph:caret-up-down'}
