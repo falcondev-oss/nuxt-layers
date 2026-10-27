@@ -932,10 +932,12 @@ export default defineSetupComponent(
         const specialRows = computed(() => [...tree.value.topActions, ...headRows.value])
 
         // an empty group would still draw its box
-        // nothing to pick shown, only actions: the empty note between the pinned ones and the rest
-        const onlyActions = computed(() => {
+        // items hidden (or loading), only actions shown: the empty note between the pinned ones and
+        // the rest. no items at all, as in a "…" menu: no note
+        const showsEmptyRow = computed(() => {
           const { pinned, groups, list, topActions, actions } = tree.value
           return (
+            (isLoading.value || items.value.length > 0) &&
             headRows.value.length === 0 &&
             pinned.length === 0 &&
             groups.length === 0 &&
@@ -952,7 +954,7 @@ export default defineSetupComponent(
           return [
             isList.value ? [specialRows.value] : specialRows.value.map((row) => [row]),
             [pinnedHeader ? [pinnedHeader, ...pinned] : pinned],
-            onlyActions.value ? [[emptyRow]] : list.length > 0 ? [...boxes, list] : boxes,
+            showsEmptyRow.value ? [[emptyRow]] : list.length > 0 ? [...boxes, list] : boxes,
             [actions],
           ]
             .map((section) => section.filter((rows) => rows.length > 0))
@@ -1766,7 +1768,7 @@ export default defineSetupComponent(
                             <div class={groupBox}>{sheetRows(tree.value.list)}</div>
                           ))}
                         {/* below the pinned actions, as in the dropdown */}
-                        {onlyActions.value && [
+                        {showsEmptyRow.value && [
                           tree.value.topActions.length > 0 && sheetBand(),
                           <p class="text-muted p-4 text-center text-sm">
                             {isLoading.value ? loadingNote() : emptyNote()}

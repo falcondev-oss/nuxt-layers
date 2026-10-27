@@ -310,6 +310,28 @@ export default defineSetupComponent((_: object) =>
           onClick: () => toast.add({ title: 'Tätigkeit anlegen' }),
         },
       ]
+      // actions alone, as in a row's "…" menu: no empty note until the search hides them all
+      const rowActions = [
+        {
+          label: 'Bearbeiten',
+          icon: 'lucide:pencil',
+          value: 'edit',
+          onClick: () => toast.add({ title: 'Bearbeiten' }),
+        },
+        {
+          label: 'Duplizieren',
+          icon: 'lucide:copy',
+          value: 'duplicate',
+          onClick: () => toast.add({ title: 'Duplizieren' }),
+        },
+        {
+          label: 'Sperren',
+          icon: 'lucide:lock',
+          value: 'lock',
+          description: 'Kein Zugriff mehr',
+          onClick: () => toast.add({ title: 'Sperren', color: 'error' }),
+        },
+      ]
 
       return () => (
         <div class="flex flex-col gap-6">
@@ -452,6 +474,33 @@ export default defineSetupComponent((_: object) =>
                     }}
                   />
                 </div>,
+              ],
+            })}
+          />
+          <UCard
+            v-slots={vSlots(UCard, {
+              header: () => [<h2 class="text-highlighted font-semibold">Nur Aktionen</h2>],
+              default: () => [
+                <UUniversalSelectMenu
+                  items={rowActions}
+                  v-slots={{
+                    prefix: ({ item }: { item: (typeof rowActions)[number] }) => [
+                      // at the top, centred on the label's line, not between label and description
+                      <UIcon
+                        name={item.icon}
+                        class="text-muted mt-0.5 size-4 shrink-0 self-start"
+                      />,
+                    ],
+                    default: () => [
+                      <UButton
+                        icon="lucide:ellipsis"
+                        color="neutral"
+                        variant="ghost"
+                        aria-label="Aktionen"
+                      />,
+                    ],
+                  }}
+                />,
               ],
             })}
           />
