@@ -33,9 +33,12 @@ export default defineSetupComponent(
         // only the modal's slots receive `close`, the last render's is kept for the hooks below
         let close: (() => void) | undefined
 
+        // `form.isLoading` also covers values that are still loading (or failed to), which must not trap the user
+        const saving = ref(false)
+
         // a pending save can't be left, and unsaved changes are only dropped once the user agrees to
         async function requestClose() {
-          if (props.form.isLoading) return
+          if (saving.value) return
           if (props.form.isChanged) {
             if (!(await dialog.askDiscard())) return
             // the form usually outlives the modal, so the discarded edits would show on reopening
@@ -47,9 +50,14 @@ export default defineSetupComponent(
         watch(
           () => props.form,
           (form, _, onCleanup) => {
+            saving.value = false
             onCleanup(
               form.hooks.addHooks({
+                beforeSubmit() {
+                  saving.value = true
+                },
                 afterSubmit({ success }) {
+                  saving.value = false
                   if (success) close?.()
                 },
               }),
@@ -64,7 +72,7 @@ export default defineSetupComponent(
           <UModal
             {...attrs}
             // an outside click or Escape with unsaved changes asks first, through `close:prevent`
-            dismissible={attrs.dismissible ?? (!props.form.isChanged && !props.form.isLoading)}
+            dismissible={attrs.dismissible ?? (!props.form.isChanged && !saving.value)}
             onClose:prevent={() => void requestClose()}
             // `UModal`'s x closes right away, so it's replaced with one that asks first
             close={false}
@@ -83,7 +91,7 @@ export default defineSetupComponent(
                         variant="ghost"
                         aria-label="Schließen"
                         {...(typeof attrs.close === 'object' ? attrs.close : {})}
-                        disabled={props.form.isLoading}
+                        disabled={saving.value}
                         onClick={() => void requestClose()}
                       />,
                     ]),
@@ -108,7 +116,7 @@ export default defineSetupComponent(
                     color="neutral"
                     variant="soft"
                     label="Abbrechen"
-                    disabled={props.form.isLoading}
+                    disabled={saving.value}
                     onClick={() => void requestClose()}
                   />
                 </div>,
