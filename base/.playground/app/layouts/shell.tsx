@@ -173,7 +173,7 @@ export default defineSetupComponent(
               ],
             }}
             v-slots={vSlots(LayoutSidebar, {
-              logo: () => [
+              'logo': () => [
                 <div class="flex items-center gap-2">
                   <UIcon name="i-lucide-orbit" class="text-primary size-6 shrink-0" />
                   <span class="text-highlighted text-lg leading-none font-semibold">
@@ -181,8 +181,14 @@ export default defineSetupComponent(
                   </span>
                 </div>,
               ],
-              icon: () => [<UIcon name="i-lucide-orbit" class="text-primary size-6" />],
-              default: () => [
+              'icon': () => [<UIcon name="i-lucide-orbit" class="text-primary size-6" />],
+              'user-label': ({ name }) => [
+                <span class="flex flex-col">
+                  <span class="truncate">{name}</span>
+                  <span class="text-muted truncate text-xs font-normal">Administrator</span>
+                </span>,
+              ],
+              'default': () => [
                 <LayoutNavbar
                   navbar={navbar.value}
                   tabs={tabs.value}

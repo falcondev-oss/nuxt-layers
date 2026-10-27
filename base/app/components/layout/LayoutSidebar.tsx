@@ -44,9 +44,10 @@ export default defineSetupComponent(
     /** `items-*` and `bottom-items-*` are the slots of the navigation menus, e.g. `items-<item.slot>`
      * for the content of an item with `slot` set */
     slots: {
-      default: () => VNode[]
-      logo?: () => VNode[]
-      icon?: () => VNode[]
+      'default': () => VNode[]
+      'logo'?: () => VNode[]
+      'icon'?: () => VNode[]
+      'user-label'?: (props: { name: string }) => VNode[]
     } & AddPropertyPrefix<NavigationMenuSlots, 'items'> &
       AddPropertyPrefix<NavigationMenuSlots, 'bottom-items'>
   }) =>
@@ -173,6 +174,17 @@ export default defineSetupComponent(
                           leadingIcon: 'text-accented',
                           trailingIcon: 'text-dimmed',
                         }}
+                        v-slots={vSlots(UButton, {
+                          ...(!collapsed &&
+                            slots['user-label'] && {
+                              // `min-w-0`: lets a `truncate` inside shrink beside the avatar and caret
+                              default: () => [
+                                <span class="min-w-0 text-start">
+                                  {slots['user-label']!({ name: props.userMenu!.name })}
+                                </span>,
+                              ],
+                            }),
+                        })}
                       />
                     </UDropdownMenu>,
                   ],
