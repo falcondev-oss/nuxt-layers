@@ -84,7 +84,7 @@ export default defineSetupComponent(
           >
             <UDashboardSidebar
               {...props.sidebar}
-              class="bg-white"
+              class="bg-default"
               mode="drawer"
               collapsible
               ui={{

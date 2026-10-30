@@ -36,6 +36,15 @@
       transform: translateX(250%);
     }
   }
+  .dark .spa-loader {
+    background: oklch(20.5% 0 none); /* neutral-900 */
+  }
+  .dark .spa-loader__bar {
+    background: oklch(26.9% 0 none); /* neutral-800 */
+  }
+  .dark .spa-loader__bar span {
+    background: oklch(70.8% 0 none); /* neutral-400 */
+  }
   @media (prefers-reduced-motion: reduce) {
     .spa-loader__bar span {
       animation: none;

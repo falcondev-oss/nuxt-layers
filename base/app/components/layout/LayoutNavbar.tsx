@@ -189,7 +189,7 @@ export default defineSetupComponent(
                         <UDashboardNavbar
                           ui={navbarUi.value}
                           {...useFreeSpace.root}
-                          class="bg-white"
+                          class="bg-default"
                           title={props.navbar.title}
                           v-slots={vSlots(UDashboardNavbar, {
                             left: () => [
@@ -268,7 +268,7 @@ export default defineSetupComponent(
                             }),
                         }}
                         {...useFreeSpace.root}
-                        class={['bg-white', (props.tabs || props.tools?.left) && '*:first:-ml-2']}
+                        class={['bg-default', (props.tabs || props.tools?.left) && '*:first:-ml-2']}
                         v-slots={vSlots(UDashboardToolbar, {
                           ...((props.tabs || props.tools?.left) && {
                             left: () => [
@@ -341,7 +341,7 @@ export default defineSetupComponent(
                   ? [
                       <UDashboardToolbar
                         ui={props.toolbarUi}
-                        class="min-h-fit! bg-white"
+                        class="bg-default min-h-fit!"
                         v-slots={vSlots(UDashboardToolbar, {
                           default: () => [<div class="-ml-2 shrink-0">{toolsMenu(true)}</div>],
                         })}

@@ -21,7 +21,7 @@ export default defineSetupComponent(
             variant="soft"
             class={[
               'ring-accented px-1.5! py-1.5! ring ring-inset',
-              props.modelValue && 'bg-white',
+              props.modelValue && 'bg-default',
             ]}
             label={props.label}
             ui={{ label: props.modelValue ? undefined : 'text-toned' }}
@@ -37,7 +37,7 @@ export default defineSetupComponent(
                     'flex size-5 items-center justify-center rounded-sm transition-colors',
                     props.modelValue
                       ? 'bg-primary text-inverted'
-                      : 'text-muted bg-white/50 shadow-[inset_0_0_2px_1px_rgb(0_0_0/0.04),inset_0_0_2px_rgb(0_0_0/0.1)]',
+                      : 'text-muted bg-default/50 shadow-[inset_0_0_2px_1px_rgb(0_0_0/0.04),inset_0_0_2px_rgb(0_0_0/0.1)]',
                   ]}
                 >
                   <Icon name={props.icon} class="size-4" />
