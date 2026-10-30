@@ -1,4 +1,5 @@
 import { useRouteParams } from '@vueuse/router'
+import { matchedRouteKey } from 'vue-router'
 
 export function useRouteParamString(
   paramName: string,
@@ -27,10 +28,12 @@ export function useRouteParamString(paramName: string, options?: { optional?: bo
     { immediate: true },
   )
 
-  onBeforeRouteLeave((_, __, next) => {
-    stop()
-    next()
-  })
+  // outside a page (e.g. in a layout) there is no route record to attach a leave guard to
+  if (inject(matchedRouteKey, null)?.value)
+    onBeforeRouteLeave(() => {
+      stop()
+      return true
+    })
 
   return computed({
     get: () => paramRef.value,

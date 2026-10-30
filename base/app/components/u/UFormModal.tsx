@@ -14,15 +14,17 @@ export default defineSetupComponent(
       EmitsToProps<AsEmits<ModalEmits>> & {
         form: FormHandle
         formProps?: UFormModalFormProps
+        /** the footer button that closes without saving, default "Abbrechen" */
+        cancelLabel?: string
       }
     // the rest reaches `UModal` as inherited attributes
-    propKeys: 'form' | 'formProps'
+    propKeys: 'form' | 'formProps' | 'cancelLabel'
     // `body` holds the form fields, the footer holds the form's buttons
     slots: Omit<ModalSlots, 'footer'>
   }) =>
     options(_, {
       name: 'UFormModal',
-      props: ['form', 'formProps'],
+      props: ['form', 'formProps', 'cancelLabel'],
       emits: [],
       // placed by hand, so `close` and `dismissible` can be overridden below
       inheritAttrs: false,
@@ -118,7 +120,7 @@ export default defineSetupComponent(
                   <UButton
                     color="neutral"
                     variant="soft"
-                    label="Abbrechen"
+                    label={props.cancelLabel ?? 'Abbrechen'}
                     disabled={saving.value}
                     onClick={() => void requestClose()}
                   />

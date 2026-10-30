@@ -109,6 +109,11 @@ export default defineSetupComponent(
                 to: '/form-modal',
               },
               {
+                label: 'Formular-Modal Sandbox',
+                icon: 'i-lucide-flask-conical',
+                to: '/form-modal-sandbox',
+              },
+              {
                 label: 'Entity-Modal',
                 icon: 'i-lucide-database',
                 to: '/entity-crud-modal',

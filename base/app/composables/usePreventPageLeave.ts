@@ -1,4 +1,3 @@
-import { onBeforeRouteLeave } from '#app'
 import { useDialog } from './useDialog'
 
 export function usePreventPageLeave(
@@ -17,17 +16,17 @@ export function usePreventPageLeave(
 
   const dialog = useDialog()
 
-  // Nuxt's wrapper takes `next`, so the guard's return value is ignored and `next` must always be called
-  onBeforeRouteLeave(async (_, __, next) => {
-    if (!toValue(preventPageLeave)) return next()
+  // what Nuxt's `onBeforeRouteLeave` does (a global guard, so it also works in a modal), minus the
+  // `next` parameter it passes through, which vue-router 5 warns about
+  const removeGuard = useRouter().beforeEach(async () => {
+    if (!toValue(preventPageLeave)) return true
 
-    next(
-      await dialog.askDiscard({
-        title: opts?.leaveTitle || 'Ungespeicherte Änderungen',
-        description:
-          opts?.leaveDescription || 'Es gibt ungespeicherte Änderungen. Seite trotzdem verlassen?',
-        confirmLabel: 'Verlassen',
-      }),
-    )
+    return dialog.askDiscard({
+      title: opts?.leaveTitle || 'Ungespeicherte Änderungen',
+      description:
+        opts?.leaveDescription || 'Es gibt ungespeicherte Änderungen. Seite trotzdem verlassen?',
+      confirmLabel: 'Verlassen',
+    })
   })
+  onScopeDispose(removeGuard)
 }
