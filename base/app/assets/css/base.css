@@ -14,7 +14,11 @@
   }
 
   body {
-    background: color-mix(in oklch, var(--ui-color-neutral-50) 50%, white);
+    background: color-mix(in oklch, var(--ui-color-neutral-50) 50%, var(--ui-bg));
+  }
+
+  .dark body {
+    background: color-mix(in oklch, var(--ui-color-neutral-950) 50%, var(--ui-bg));
   }
 
   button:not(:disabled),
