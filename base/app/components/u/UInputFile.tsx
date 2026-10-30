@@ -40,7 +40,7 @@ export default defineSetupComponent(
     options(_, {
       name: 'UInputFile',
       props: ['modelValue', 'multiple', 'compression'],
-      emits: ['change', 'compressed', 'update:modelValue'],
+      emits: ['change', 'reject', 'compressed', 'update:modelValue'],
       setup: (props, { emit }) => {
         type Files = Multiple extends true ? File[] : File
 
@@ -125,6 +125,7 @@ export default defineSetupComponent(
               void forwardFiles(files)
             }}
             onChange={(event) => emit('change', event)}
+            onReject={(files) => emit('reject', files)}
           />
         )
       },
