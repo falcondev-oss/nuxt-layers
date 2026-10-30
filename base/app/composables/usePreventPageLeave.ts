@@ -16,10 +16,10 @@ export function usePreventPageLeave(
 
   const dialog = useDialog()
 
-  // a global guard rather than `onBeforeRouteLeave`, so it also works outside a page (e.g. in a modal);
-  // Nuxt's `onBeforeRouteLeave` passes `next` through, which vue-router 5 warns about
-  const removeGuard = useRouter().beforeEach(async (to, from) => {
-    if (to === from || !toValue(preventPageLeave)) return true
+  // what Nuxt's `onBeforeRouteLeave` does (a global guard, so it also works in a modal), minus the
+  // `next` parameter it passes through, which vue-router 5 warns about
+  const removeGuard = useRouter().beforeEach(async () => {
+    if (!toValue(preventPageLeave)) return true
 
     return dialog.askDiscard({
       title: opts?.leaveTitle || 'Ungespeicherte Änderungen',
