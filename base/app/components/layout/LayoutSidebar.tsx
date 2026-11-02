@@ -31,7 +31,8 @@ export default defineSetupComponent(
         iconSrc?: string
       }
       search?: DashboardSearchProps
-      items?: NavigationMenuItem[]
+      /** nested arrays render as groups with a separator between them */
+      items?: ArrayOrNested<NavigationMenuItem>
       bottomItems?: NavigationMenuItem[]
       userMenu?: {
         name: string
