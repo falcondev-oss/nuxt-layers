@@ -73,86 +73,91 @@ export default defineSetupComponent(
                 },
               ],
             }}
+            // each group is set apart by a separator
             items={[
-              {
-                label: 'Übersicht',
-                icon: 'i-lucide-layout-dashboard',
-              },
-              {
-                label: 'Projekte',
-                icon: 'i-lucide-folder-kanban',
-                badge: '6',
-                to: '/',
-              },
-              {
-                label: 'Aufgaben',
-                icon: 'i-lucide-circle-check',
-                badge: '23',
-              },
-              {
-                label: 'Kunden',
-                icon: 'i-lucide-building-2',
-              },
-              {
-                label: 'Zeiterfassung',
-                icon: 'i-lucide-timer',
-                to: '/zeiterfassung',
-              },
-              {
-                label: 'Langer Titel',
-                icon: 'i-lucide-wrap-text',
-                to: '/langer-titel',
-              },
-              {
-                label: 'Formular-Modal',
-                icon: 'i-lucide-square-pen',
-                to: '/form-modal',
-              },
-              {
-                label: 'Formular-Modal Sandbox',
-                icon: 'i-lucide-flask-conical',
-                to: '/form-modal-sandbox',
-              },
-              {
-                label: 'Entity-Modal',
-                icon: 'i-lucide-database',
-                to: '/entity-crud-modal',
-              },
-              {
-                label: 'Entity-Modal Sandbox',
-                icon: 'i-lucide-flask-conical',
-                to: '/entity-crud-modal-sandbox',
-              },
-              {
-                label: 'Dialog',
-                icon: 'i-lucide-message-circle-question',
-                to: '/dialog',
-              },
-              {
-                label: 'Section',
-                icon: 'i-lucide-list',
-                to: '/section',
-              },
-              {
-                label: 'Page Section',
-                icon: 'i-lucide-sliders-horizontal',
-                to: '/page-section',
-              },
-              {
-                label: 'Page Section Sandbox',
-                icon: 'i-lucide-flask-conical',
-                to: '/page-section-sandbox',
-              },
-              {
-                label: 'Einstellungen',
-                icon: 'i-lucide-settings',
-                children: [
-                  { label: 'Organisation' },
-                  { label: 'Mitglieder' },
-                  { label: 'Benachrichtigungen' },
-                  { label: 'Abrechnung' },
-                ],
-              },
+              [
+                {
+                  label: 'Übersicht',
+                  icon: 'i-lucide-layout-dashboard',
+                },
+                {
+                  label: 'Projekte',
+                  icon: 'i-lucide-folder-kanban',
+                  badge: '6',
+                  to: '/',
+                },
+                {
+                  label: 'Aufgaben',
+                  icon: 'i-lucide-circle-check',
+                  badge: '23',
+                },
+                {
+                  label: 'Kunden',
+                  icon: 'i-lucide-building-2',
+                },
+                {
+                  label: 'Zeiterfassung',
+                  icon: 'i-lucide-timer',
+                  to: '/zeiterfassung',
+                },
+              ],
+              [
+                {
+                  label: 'Langer Titel',
+                  icon: 'i-lucide-wrap-text',
+                  to: '/langer-titel',
+                },
+                {
+                  label: 'Formular-Modal',
+                  icon: 'i-lucide-square-pen',
+                  to: '/form-modal',
+                },
+                {
+                  label: 'Formular-Modal Sandbox',
+                  icon: 'i-lucide-flask-conical',
+                  to: '/form-modal-sandbox',
+                },
+                {
+                  label: 'Entity-Modal',
+                  icon: 'i-lucide-database',
+                  to: '/entity-crud-modal',
+                },
+                {
+                  label: 'Entity-Modal Sandbox',
+                  icon: 'i-lucide-flask-conical',
+                  to: '/entity-crud-modal-sandbox',
+                },
+                {
+                  label: 'Dialog',
+                  icon: 'i-lucide-message-circle-question',
+                  to: '/dialog',
+                },
+                {
+                  label: 'Section',
+                  icon: 'i-lucide-list',
+                  to: '/section',
+                },
+                {
+                  label: 'Page Section',
+                  icon: 'i-lucide-sliders-horizontal',
+                  to: '/page-section',
+                },
+                {
+                  label: 'Page Section Sandbox',
+                  icon: 'i-lucide-flask-conical',
+                  to: '/page-section-sandbox',
+                },
+                {
+                  label: 'Einstellungen',
+                  icon: 'i-lucide-settings',
+                  children: [
+                    { label: 'Organisation' },
+                    { label: 'Mitglieder' },
+                    { label: 'Benachrichtigungen' },
+                    { label: 'Abrechnung' },
+                  ],
+                },
+              ],
             ]}
             bottomItems={[
               {
