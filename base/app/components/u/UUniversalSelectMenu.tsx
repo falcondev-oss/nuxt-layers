@@ -1,10 +1,10 @@
 import type { InputProps, SelectMenuProps } from '@nuxt/ui'
-import type { FunctionalComponent, VNode } from 'vue'
+import type { FunctionalComponent, VNode, VNodeChild } from 'vue'
 import { useResizeObserver } from '@vueuse/core'
 import { Slot } from 'reka-ui'
 import { chunk, isNonNull, isNonNullish } from 'remeda'
 import { Comment, Fragment, h, isVNode, Teleport } from 'vue'
-import { UButton, UIcon, UInput, UModal, USelectMenu, UTabs } from '#components'
+import { UButton, UIcon, UInput, UModal, USelectMenu, UTabs, UTooltip } from '#components'
 
 type Primitive = string | number | boolean | null
 
@@ -31,6 +31,17 @@ export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
   /**
    * Labels of the groups the item is listed under. Groups appear in the order they're first used
    * across `items`. When no item has groups, the menu is a flat list without a view toggle.
+   *
+   * An item whose `label` names a group is that group's item: its row is the group's header,
+   * and clicking it picks it (multiple select: see `explicitGroups`), while the chevron collapses.
+   * A search matching the group item keeps all its items; a nested group item's own group shows
+   * only by its own match. A filter still hides those it fails. While both pass the group item,
+   * the header picks it; else a multiple select's header click toggles only the shown items.
+   * Without `explicitGroups`, a group item under a filter stands for only its items the filter
+   * passes, nested ones too.
+   *
+   * In a multiple select, a group item's row shows `+N` beside its label for its picked items that
+   * the view hides, as a search or the list view does. Its tooltip shows them as a tree.
    */
   groups?: string[]
   /**
@@ -41,6 +52,10 @@ export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
   /**
    * Shows the item greyed out and unclickable. Toggle-all, a group header and Enter skip it, so a
    * pick it already has stays. Their checkboxes still count it, as its row shows it.
+   *
+   * A disabled group item's header in a multiple select still toggles the group's shown items,
+   * never the group item. Its label is muted, and its checkbox shows them muted, as they don't
+   * pick it.
    *
    * On the `null` item, it disables clearing: the trigger's x hides.
    */
@@ -60,7 +75,8 @@ export type UniversalSelectMenuFilter = { label: string; value: Primitive }
 // `rowKey`: `USelectMenu`'s value for the row, one string space for item and group rows.
 // wraps the item: its own keys (e.g. a `type`) would reach `USelectMenu` and mistype the row
 // `disabled`: the item's, where `USelectMenu` reads it
-type ItemRow<T> = { type: 'item'; rowKey: string; item: T; disabled?: boolean }
+// `coveredBy`: the picked group item that covers this one (`explicitGroups`); makes it `disabled`
+type ItemRow<T> = { type: 'item'; rowKey: string; item: T; disabled?: boolean; coveredBy?: T }
 type ActionRow<T> = { type: 'action'; rowKey: string; item: T; disabled?: boolean }
 
 // a slot's output, or `undefined` if it rendered nothing, for a `??` default: Vue wraps every
@@ -89,10 +105,80 @@ type GroupRow<V> = {
   ungrouped?: boolean
   // the pinned items' header; never collapses
   pinned?: boolean
+  // the group item: the header picks it, and is `disabled` while it's covered (single: or disabled)
+  // `matches`: the filter and the search pass it, so the header and Enter pick it; else the header
+  // toggles the shown items (single: collapses, with no radio)
+  groupItem?: { value: V; matches: boolean }
+  disabled?: boolean
 }
 
 // collapsed: no `rows`, while `header.shown` still holds its matches
 type Group<T extends UniversalSelectMenuItem> = { header: GroupRow<T['value']>; rows: ItemRow<T>[] }
+
+// the header's group item, as Enter picks it: only while it matches
+function matchingGroupItem<V>({ groupItem }: GroupRow<V>) {
+  return groupItem?.matches ? [groupItem.value] : []
+}
+
+// group items: the first item named like a group stands for it. a group item inside its own
+// group, directly or through others, is a plain item, and `onCycle` gets that group's label
+function buildGroupGraph<T extends UniversalSelectMenuItem>(
+  items: T[],
+  onCycle: (label: string) => void,
+) {
+  type V = T['value']
+  const groupItemOf = new Map<string, T>()
+  const childrenOf = new Map<V, V[]>()
+  const descendantsOf = new Map<V, Set<V>>()
+  // innermost first, as `order` lists them
+  const ancestorsOf = new Map<V, V[]>()
+  // children before their group items, so one pass derives nested groups
+  const order: V[] = []
+  const labels = new Set(items.flatMap((item) => item.groups ?? []))
+  for (const item of items)
+    if (item.value !== null && labels.has(item.label) && !groupItemOf.has(item.label))
+      groupItemOf.set(item.label, item)
+  const linkChildren = () => {
+    childrenOf.clear()
+    for (const [label, groupItem] of groupItemOf)
+      childrenOf.set(
+        groupItem.value,
+        items.filter((item) => item.groups?.includes(label)).map(({ value }) => value),
+      )
+  }
+  const descendants = (groupItem: V) => {
+    const found = new Set<V>()
+    const stack = [...(childrenOf.get(groupItem) ?? [])]
+    while (stack.length > 0) {
+      const value = stack.pop()!
+      if (found.has(value)) continue
+      found.add(value)
+      stack.push(...(childrenOf.get(value) ?? []))
+    }
+    return found
+  }
+  linkChildren()
+  // all found before any is dropped: dropping one would open the cycle for the others
+  const cyclic = [...groupItemOf].filter(([, groupItem]) =>
+    descendants(groupItem.value).has(groupItem.value),
+  )
+  for (const [label] of cyclic) {
+    groupItemOf.delete(label)
+    onCycle(label)
+  }
+  linkChildren()
+  for (const groupItem of childrenOf.keys()) descendantsOf.set(groupItem, descendants(groupItem))
+  const visit = (groupItem: V) => {
+    if (order.includes(groupItem)) return
+    for (const child of childrenOf.get(groupItem)!) if (childrenOf.has(child)) visit(child)
+    order.push(groupItem)
+  }
+  for (const groupItem of childrenOf.keys()) visit(groupItem)
+  for (const groupItem of order)
+    for (const value of descendantsOf.get(groupItem)!)
+      ancestorsOf.set(value, [...(ancestorsOf.get(value) ?? []), groupItem])
+  return { groupItemOf, childrenOf, descendantsOf, ancestorsOf, order }
+}
 
 type ModelValue<V, Multiple extends boolean> = (Multiple extends true ? NonNullable<V>[] : V) | null
 
@@ -109,7 +195,7 @@ type AllRow<V> = {
   // what the click picks: the shown ones, so a search or filter picks only its matches. once all
   // of them are picked, the click unpicks every item, the hidden ones too
   shown: V[]
-  // what the checkbox reflects: all items, ignoring search and filter
+  // what the checkbox reflects: all items but group items, ignoring search and filter
   checked: boolean | 'indeterminate'
 }
 
@@ -164,14 +250,29 @@ function radio(checked: boolean) {
   )
 }
 
-function checkbox(checked: boolean | 'indeterminate', icons: { check: string; minus: string }) {
+// `muted`: checked by coverage only, not by a pick of its own. `mini`: as the +N tooltip's tree
+function checkbox(
+  checked: boolean | 'indeterminate',
+  icons: { check: string; minus: string },
+  { muted = false, mini = false } = {},
+) {
   return (
-    <span class="ring-accented pointer-events-none size-4 shrink-0 overflow-hidden rounded-sm ring ring-inset">
+    <span
+      class={[
+        'ring-accented pointer-events-none shrink-0 overflow-hidden rounded-sm ring ring-inset',
+        mini ? 'size-3' : 'size-4',
+      ]}
+    >
       {checked && (
-        <span class="bg-primary text-inverted flex size-full items-center justify-center">
+        <span
+          class={[
+            'flex size-full items-center justify-center',
+            muted ? 'bg-accented text-default' : 'bg-primary text-inverted',
+          ]}
+        >
           <UIcon
             name={checked === 'indeterminate' ? icons.minus : icons.check}
-            class="size-3.5 shrink-0"
+            class={[mini ? 'size-2.5' : 'size-3.5', 'shrink-0']}
           />
         </span>
       )}
@@ -255,6 +356,26 @@ export default defineSetupComponent(
       group?: boolean
       /** Lists items without `groups` flat below the groups, instead of in a group of their own. */
       listUngrouped?: boolean
+      /**
+       * How a picked group item (an item named like a group) treats the group's items, in a
+       * multiple select. Without a group item, a group only groups its items visually.
+       *
+       * `false` (default): the group item is picked exactly while every item in the group is, so
+       * clicking it toggles them all, and all of them are in the model. An unpicked disabled item
+       * keeps the group item unpicked.
+       *
+       * `true`: picking the group item picks only it. Its group's items show checked and not
+       * clickable, with a tooltip naming the group item. Picking the group item drops their
+       * direct picks; ones the model already holds beside it stay, with a plain checkbox instead of
+       * the muted one. Picking items doesn't pick the group item: its checkbox shows them muted,
+       * checked once all are, else indeterminate. While a search or filter passes only items, not
+       * the group item, the header click toggles the shown items; a picked group item still unpicks.
+       * A nested group item among the shown items is picked as a group, not as its items; toggle-all
+       * picks only items.
+       *
+       * Groups nest: a group item listed in another group is covered by that group's item too.
+       */
+      explicitGroups?: boolean
       /** Header of the group that holds the items without `groups`. Default: "Ohne Gruppe". */
       ungroupedLabel?: string
       /**
@@ -332,14 +453,18 @@ export default defineSetupComponent(
        * while the model is `undefined`.
        */
       'default': (props: { open: boolean; loading: boolean; picks: T[] }) => VNode[]
-      /** Before the label, in the rows (actions too) and in the trigger with one pick. */
-      'prefix': (props: { item: T }) => VNode[]
+      /**
+       * Before the label, in the rows (actions too) and in the trigger with one pick. In these
+       * four item slots, `coveredBy` is the picked group item that covers this one with
+       * `explicitGroups`, if any.
+       */
+      'prefix': (props: { item: T; coveredBy?: T }) => VNode[]
       /** Replaces the item's `description`. Rendering nothing falls back to it. */
-      'description': (props: { item: T }) => VNode[]
-      /** Beside the label in the rows, e.g. a badge. */
-      'suffix': (props: { item: T }) => VNode[]
+      'description': (props: { item: T; coveredBy?: T }) => VNode[]
+      /** Beside the label in the rows and in a group item's header, e.g. a badge. */
+      'suffix': (props: { item: T; coveredBy?: T }) => VNode[]
       /** Replaces the item's `hint` at the end of the row. Rendering nothing falls back to it. */
-      'hint': (props: { item: T }) => VNode[]
+      'hint': (props: { item: T; coveredBy?: T }) => VNode[]
       /** Label of a filter option in the filter dropdown. */
       'filter-item': (props: { item: F }) => VNode[]
       /**
@@ -362,6 +487,7 @@ export default defineSetupComponent(
       | 'items'
       | 'group'
       | 'listUngrouped'
+      | 'explicitGroups'
       | 'ungroupedLabel'
       | 'pinnedLabel'
       | 'filter'
@@ -385,6 +511,7 @@ export default defineSetupComponent(
         'items',
         'group',
         'listUngrouped',
+        'explicitGroups',
         'ungroupedLabel',
         'pinnedLabel',
         'filter',
@@ -505,7 +632,55 @@ export default defineSetupComponent(
 
         // mid-load: a missing or stale list would drop picks for good. `[]` is loaded, empty
         const isLoading = computed(() => !!props.loading || props.items === undefined)
-        const known = computed(() => new Set(items.value.map((item) => item.value)))
+        const byValue = computed(() => new Map(items.value.map((item) => [item.value, item])))
+        const known = computed(() => new Set(byValue.value.keys()))
+        // left out of every pick the user didn't make row by row
+        const disabledValues = computed(
+          () => new Set(items.value.filter((item) => item.disabled).map((item) => item.value)),
+        )
+
+        // a dev warning once per group that contains its own group item
+        const warnedGroups = new Set<string>()
+        const groupGraph = computed(() =>
+          buildGroupGraph(items.value, (label) => {
+            if (!import.meta.dev || warnedGroups.has(label)) return
+            warnedGroups.add(label)
+            console.warn(`UUniversalSelectMenu: group "${label}" contains its own group item`)
+          }),
+        )
+
+        // multiple only: single select picks a group item like any item
+        const groupMode = computed(() =>
+          props.multiple ? (props.explicitGroups ? 'explicit' : 'implicit') : undefined,
+        )
+
+        // explicit groups: covered value → the group item covering it, the innermost picked one
+        const coverersIn = (picks: Set<T['value']>) => {
+          const coverers = new Map<T['value'], T>()
+          if (groupMode.value !== 'explicit' || picks.size === 0) return coverers
+          for (const [value, ancestors] of groupGraph.value.ancestorsOf) {
+            const coverer = ancestors.find((ancestor) => picks.has(ancestor))
+            if (coverer !== undefined) coverers.set(value, byValue.value.get(coverer)!)
+          }
+          return coverers
+        }
+
+        // implicit groups: a group item is picked exactly while all its items are, unless disabled
+        function syncGroupItems(picks: Set<T['value']>) {
+          if (groupMode.value !== 'implicit') return picks
+          const disabled = disabledValues.value
+          const { childrenOf, order } = groupGraph.value
+          if (order.length === 0) return picks
+          const next = new Set(picks)
+          // an unpicked disabled item keeps its group item unpicked
+          for (const groupItem of order) {
+            if (disabled.has(groupItem)) continue
+            if (childrenOf.get(groupItem)!.every((value) => next.has(value))) next.add(groupItem)
+            else next.delete(groupItem)
+          }
+          return next
+        }
+
         // a `null` item is the clear: single picks it by the clear's `null`, multiple clears by it.
         // `items` is deduped, so one at most
         const nullItem = computed(() => items.value.find((item) => item.value === null))
@@ -517,13 +692,48 @@ export default defineSetupComponent(
             return new Set<T['value']>()
           return new Set([value])
         })
-        // only values an item holds: a stale one looks unpicked (clear x, footer) even while a
-        // one-way binding keeps it in the model. mid-load all: a draft opened then would drop one
-        // not listed yet
+        // only values an item holds, as the groups have them: a stale one looks unpicked (clear x,
+        // footer) even while a one-way binding keeps it in the model. mid-load all: a draft opened
+        // then would drop one not listed yet
         const committed = computed(() =>
-          isLoading.value ? model.value : known.value.intersection(model.value),
+          isLoading.value ? model.value : syncGroupItems(known.value.intersection(model.value)),
         )
         const selected = computed(() => draft.value ?? committed.value)
+        const coverers = computed(() => coverersIn(selected.value))
+        // what the checkboxes show: covered values count as checked
+        const checkedValues = computed(() =>
+          coverers.value.size === 0
+            ? selected.value
+            : new Set([...selected.value, ...coverers.value.keys()]),
+        )
+        // a group item's box: plain only for its own pick. explicit groups or disabled: its items
+        // check it, muted, as they don't pick it (all: checked, some: indeterminate). implicit
+        // groups: they pick it, so some only make it indeterminate
+        const groupItemBox = (value: T['value'], mini = false) => {
+          const isPicked = selected.value.has(value)
+          if (isPicked || coverers.value.has(value))
+            return checkbox(true, appConfig.ui.icons, { muted: !isPicked, mini })
+          const { childrenOf, descendantsOf } = groupGraph.value
+          const descendants = [...(descendantsOf.get(value) ?? [])]
+          // nested group items are checked by their own items
+          const items = descendants.filter((descendant) => !childrenOf.has(descendant))
+          const itemsPickIt = groupMode.value === 'implicit' && !disabledValues.value.has(value)
+          const isAll =
+            !itemsPickIt && items.length > 0 && items.every((item) => checkedValues.value.has(item))
+          const isSome = descendants.some((descendant) => checkedValues.value.has(descendant))
+          return checkbox(isAll || (isSome && ('indeterminate' as const)), appConfig.ui.icons, {
+            muted: !itemsPickIt,
+            mini,
+          })
+        }
+        // multiple: a row's box; muted while only a group item's coverage checks it
+        const itemBox = (value: T['value'], mini = false) =>
+          groupGraph.value.childrenOf.has(value)
+            ? groupItemBox(value, mini)
+            : checkbox(checkedValues.value.has(value), appConfig.ui.icons, {
+                muted: coverers.value.has(value) && !selected.value.has(value),
+                mini,
+              })
         // picks a pending `onChange` saves: the trigger shows them till it settles
         const savingPicks = ref<Set<T['value']>>()
         // saved (or saving) picks with an item, in item order: mid-load, a value no item holds yet
@@ -548,19 +758,60 @@ export default defineSetupComponent(
           return (props.multiple ? sorted : sorted[0]) as ModelValue<T['value'], Multiple>
         }
 
-        // left out of every pick the user didn't make row by row
-        const disabledValues = computed(
-          () => new Set(items.value.filter((item) => item.disabled).map((item) => item.value)),
+        const activeFilters = computed(() =>
+          props.filter?.options.filter(({ value }) => filterValues.value.includes(value)),
         )
-        const pickable = (values: T['value'][]) =>
+        const passesFilter = (item: T) => {
+          const active = activeFilters.value
+          return !active?.length || props.filter!.fn(item, active)
+        }
+
+        const withoutDisabled = (values: T['value'][]) =>
           values.filter((value) => !disabledValues.value.has(value))
+        // what toggling these changes: no disabled or covered values, and an implicit group item
+        // stands for its items the filter passes, nested ones too
+        const toggleTargets = (values: T['value'][]) => {
+          const { descendantsOf } = groupGraph.value
+          const derives = groupMode.value === 'implicit'
+          const expanded = derives
+            ? values.flatMap((value) => {
+                const descendants = descendantsOf.get(value)
+                if (!descendants) return [value]
+                return [...descendants].filter((descendant) =>
+                  passesFilter(byValue.value.get(descendant)!),
+                )
+              })
+            : values
+          return [...new Set(expanded)].filter(
+            (value) =>
+              !disabledValues.value.has(value) &&
+              !coverers.value.has(value) &&
+              !(derives && descendantsOf.has(value)),
+          )
+        }
 
         const isSaving = ref(false)
         // no writes: mid-load, a pick or save would go out against a partial list
         const isBusy = computed(() => isLoading.value || isSaving.value)
 
-        function update(next: Set<T['value']>) {
+        // explicit groups: a group item picked now replaces its items' direct picks; ones the model
+        // already holds beside it stay
+        function dropDirectPicks(picks: Set<T['value']>) {
+          if (groupMode.value !== 'explicit') return picks
+          const { descendantsOf } = groupGraph.value
+          const next = new Set(picks)
+          for (const groupItem of picks) {
+            const descendants = descendantsOf.get(groupItem)
+            if (!descendants || selected.value.has(groupItem)) continue
+            for (const value of descendants)
+              if (!disabledValues.value.has(value)) next.delete(value)
+          }
+          return next
+        }
+
+        function update(picks: Set<T['value']>) {
           if (isBusy.value) return
+          const next = syncGroupItems(dropDirectPicks(picks))
           if (draft.value) draft.value = next
           else emit('update:modelValue', toValue(next))
         }
@@ -569,6 +820,8 @@ export default defineSetupComponent(
         function toggle(value: T['value']) {
           if (!props.multiple) return update(new Set([value]))
           if (value === null) return update(new Set())
+          if (groupMode.value === 'implicit' && groupGraph.value.childrenOf.has(value))
+            return void toggleMany([value])
           const next = new Set(selected.value)
           if (!next.delete(value)) next.add(value)
           update(next)
@@ -581,10 +834,11 @@ export default defineSetupComponent(
         // clear empties pick before `onChange` settles; keep button till closed
         const isClearing = ref(false)
 
+        // `false`: nothing to toggle
         function toggleMany(all: T['value'][]) {
-          const values = pickable(all)
+          const values = toggleTargets(all)
           // nothing to toggle: no emit of the same picks
-          if (values.length === 0) return
+          if (values.length === 0) return false
           const next = new Set(selected.value)
           const isFullySelected = values.every((value) => next.has(value))
           for (const value of values) {
@@ -592,6 +846,7 @@ export default defineSetupComponent(
             else next.add(value)
           }
           update(next)
+          return true
         }
 
         // group labels, `\0` for the ungrouped box, whose label a real group may share. a search or
@@ -619,30 +874,41 @@ export default defineSetupComponent(
 
         // picks the shown ones; unpicks all, hidden too (bar disabled)
         function toggleAll(shown: T['value'][]) {
-          if (shown.some((value) => !selected.value.has(value))) return toggleMany(shown)
+          if (toggleTargets(shown).some((value) => !selected.value.has(value)))
+            return toggleMany(shown)
           update(new Set([...selected.value].filter((value) => disabledValues.value.has(value))))
         }
 
-        // a header click toggles its group (single: collapses it)
+        // a header click picks its group item, else toggles its group's shown items (single:
+        // collapses it). explicit groups: a picked group item unpicks, its items being covered
         function activate(row: GroupRow<T['value']> | AllRow<T['value']>) {
-          if (row.type === 'all') toggleAll(row.shown)
+          if (row.type === 'all') return void toggleAll(row.shown)
+          const { groupItem } = row
+          if (
+            groupItem &&
+            !disabledValues.value.has(groupItem.value) &&
+            (groupItem.matches ||
+              (groupMode.value === 'explicit' && selected.value.has(groupItem.value)))
+          )
+            pick(groupItem.value)
           else if (props.multiple) toggleMany(row.shown)
           else toggleCollapsed(row)
         }
 
-        // drop values no item holds from an open draft (also once a failed save restores it)
+        // drop values no item holds from an open draft, and match it to the groups (also once a
+        // failed save restores it, or the items change)
         watch(
-          () => [isLoading.value, known.value, draft.value] as const,
+          () => [isLoading.value, known.value, groupGraph.value, draft.value] as const,
           ([isLoading, known]) => {
-            if (isLoading) return
+            if (isLoading || !draft.value) return
             // receiver must be raw: `draft` is a reactive proxy
-            if (draft.value && !known.isSupersetOf(draft.value))
-              draft.value = known.intersection(draft.value)
+            const next = syncGroupItems(known.intersection(draft.value))
+            if (next.symmetricDifference(draft.value).size > 0) draft.value = next
           },
         )
-        // and from the model, on open: a closed menu leaves a one-way binding's value be
+        // and in the model, on open: a closed menu leaves a one-way binding's value be
         watch(isShown, (open) => {
-          if (open && !isLoading.value && committed.value.size < model.value.size)
+          if (open && !isLoading.value && committed.value.symmetricDifference(model.value).size > 0)
             emit('update:modelValue', toValue(committed.value))
         })
 
@@ -705,7 +971,7 @@ export default defineSetupComponent(
         })
 
         function pick(value: T['value']) {
-          if (isBusy.value || disabledValues.value.has(value)) return
+          if (isBusy.value || disabledValues.value.has(value) || coverers.value.has(value)) return
           // single: the saved row changes nothing, so it closes without a save or emit
           if (!props.multiple && draft.value && value === pickedOnOpen.value) return close()
           toggle(value)
@@ -762,12 +1028,16 @@ export default defineSetupComponent(
         })
 
         // `list` holds the rows without a header: the list view's, or the ungrouped ones
-        const toRow = (item: T): ItemRow<T> => ({
-          type: 'item',
-          rowKey: toKey(item.value),
-          item,
-          disabled: item.disabled,
-        })
+        const toRow = (item: T): ItemRow<T> => {
+          const coveredBy = coverers.value.get(item.value)
+          return {
+            type: 'item',
+            rowKey: toKey(item.value),
+            item,
+            disabled: item.disabled || !!coveredBy,
+            coveredBy,
+          }
+        }
 
         const isList = computed(() => view.value === 'list' || !hasGroups.value)
 
@@ -788,10 +1058,6 @@ export default defineSetupComponent(
             matches(item.label) ||
             (item.search !== undefined && matches(item.search))
 
-          const active = props.filter?.options.filter(({ value }) =>
-            filterValues.value.includes(value),
-          )
-          const passesFilter = (item: T) => !active?.length || props.filter!.fn(item, active)
           const isMatch = (item: T) => passesFilter(item) && matchesSearch(item)
 
           // the `null` item is the clear, so it sits apart, above the pinned ones
@@ -859,20 +1125,28 @@ export default defineSetupComponent(
             items: listed.filter((item) => item.groups?.includes(label)),
           }))
           // ungrouped items stay selectable: own group, pinned ones too, or listed below the groups
-          // (a pinned one already is, up top)
-          const ungrouped = listed.filter((item) => !item.groups?.length)
+          // (a pinned one already is, up top). a group item is its group's header instead
+          const { groupItemOf, childrenOf } = groupGraph.value
+          const ungrouped = listed.filter(
+            (item) => !item.groups?.length && !childrenOf.has(item.value),
+          )
           if (!props.listUngrouped && ungrouped.length > 0)
             entries.push({ label: props.ungroupedLabel ?? 'Ohne Gruppe', items: ungrouped })
 
           // one menu group each, so each renders as its own box
           const groups = entries.flatMap<Group<T>>(({ label, items: groupItems }, index) => {
-            // matching group label keeps the whole group
-            const items = groupItems.filter(
-              (item) => passesFilter(item) && (matches(label) || matchesSearch(item)),
-            )
-            if (items.length === 0) return []
             // the ungrouped entry is only ever pushed after the labelled groups
             const ungrouped = index === labels.length
+            const groupItem = ungrouped ? undefined : groupItemOf.get(label)
+            // a nested group shows by its own match, not its outer group's: that one lists it
+            const keepsItems = !!groupItem && matchesSearch(groupItem)
+            const isGroupMatch = !!groupItem && keepsItems && passesFilter(groupItem)
+            // a matching group label or group item keeps the group, its items still filtered. a
+            // matching group item shows even with none: its header picks it
+            const items = groupItems.filter(
+              (item) => passesFilter(item) && (keepsItems || matches(label) || matchesSearch(item)),
+            )
+            if (items.length === 0 && !isGroupMatch) return []
             const isCollapsed = (isNarrowed.value ? narrowedCollapsed : collapsed).value.has(
               collapseKey({ label, ungrouped }),
             )
@@ -885,6 +1159,12 @@ export default defineSetupComponent(
                 shown: items.map((item) => item.value),
                 collapsed: isCollapsed,
                 ungrouped,
+                ...(groupItem && {
+                  groupItem: { value: groupItem.value, matches: isGroupMatch },
+                  // multiple: a disabled group item's header still toggles the shown items
+                  disabled:
+                    (groupItem.disabled && !props.multiple) || coverers.value.has(groupItem.value),
+                }),
               },
               rows: isCollapsed ? [] : items.map(toRow),
             }
@@ -907,16 +1187,18 @@ export default defineSetupComponent(
         const headRows = computed<(ItemRow<T> | AllRow<T['value']>)[]>(() => {
           const { none, pinned, groups, list } = tree.value
           if (!props.multiple || props.hideToggleAll || nullItem.value) return none
-          // a value under several groups counts once; a collapsed group's are left out, as on Enter
-          const shown = pickable([
+          // a value under several groups counts once; a collapsed group's are left out, as on Enter.
+          // only items: group items, as rows too, would pick or expand past the shown ones
+          const { childrenOf } = groupGraph.value
+          const shown = withoutDisabled([
             ...new Set(
-              [...pinned, ...groups.flatMap(({ rows }) => rows), ...list].map(
-                (row) => row.item.value,
-              ),
+              [...pinned, ...groups.flatMap(({ rows }) => rows), ...list]
+                .map((row) => row.item.value)
+                .filter((value) => !childrenOf.has(value)),
             ),
           ])
           if (shown.length === 0) return []
-          const allShownSelected = shown.every((value) => selected.value.has(value))
+          const allShownSelected = toggleTargets(shown).every((value) => selected.value.has(value))
           return [
             {
               type: 'all',
@@ -924,8 +1206,11 @@ export default defineSetupComponent(
               rowKey: '\0all',
               shown,
               checked: checkState(
-                items.value.map((item) => item.value).filter(isNonNull),
-                selected.value,
+                items.value
+                  .map((item) => item.value)
+                  .filter(isNonNull)
+                  .filter((value) => !childrenOf.has(value)),
+                checkedValues.value,
               ),
             },
           ]
@@ -1051,22 +1336,25 @@ export default defineSetupComponent(
             event.stopPropagation()
             if (!searchTerm.value.trim()) return
             // a value under several groups counts once; a collapsed group's are left out
-            const matches = pickable([
+            const matches = withoutDisabled([
               ...new Set(
                 grouped.value
                   .flat()
-                  .flatMap((row) => (row.type === 'item' ? [row.item.value] : [])),
+                  .flatMap((row) =>
+                    row.type === 'item'
+                      ? [row.item.value]
+                      : row.type === 'group'
+                        ? matchingGroupItem(row)
+                        : [],
+                  ),
               ),
             ])
             if (!props.multiple) {
               if (matches.length === 1) pick(matches[0]!)
               return
             }
-            // the `null` item clears, it's no pick
-            const picks = matches.filter(isNonNull)
-            // nothing toggled: Backspace stays a Backspace
-            if (picks.length === 0) return
-            toggleMany(picks)
+            // the `null` item clears, it's no pick. nothing toggled: Backspace stays a Backspace
+            if (!toggleMany(matches.filter(isNonNull))) return
             clearsOnBackspace = true
           },
           { capture: true },
@@ -1197,6 +1485,89 @@ export default defineSetupComponent(
           )
         }
 
+        // a covered row can't be clicked; says what covers it, over its box and label. one trigger
+        // for both, spaced as the row spaces them
+        const coveredTip = (coveredBy: T | undefined, nodes: VNodeChild[]) =>
+          coveredBy
+            ? [
+                <UTooltip
+                  text={`über ${coveredBy.label}`}
+                  content={{ side: 'right' }}
+                  v-slots={{
+                    default: () => (
+                      <span class="flex min-w-0 items-center gap-[inherit]">{nodes}</span>
+                    ),
+                  }}
+                />,
+              ]
+            : nodes
+
+        // values the view shows as a row or a header; a collapsed box's still count
+        const shownValues = computed(() => {
+          const { pinned, groups, list } = tree.value
+          return new Set([
+            ...[...pinned, ...list].map((row) => row.item.value),
+            ...groups.flatMap(({ header }) => [
+              ...header.shown,
+              ...(header.groupItem ? [header.groupItem.value] : []),
+            ]),
+          ])
+        })
+
+        // picks under a group item that the view doesn't show, as the trigger counts them
+        const hiddenPicksUnder = (value: T['value']) => {
+          const descendants = groupGraph.value.descendantsOf.get(value)
+          if (!props.multiple || !descendants) return new Set<T['value']>()
+          return new Set(
+            [...descendants].filter(
+              (descendant) => selected.value.has(descendant) && !shownValues.value.has(descendant),
+            ),
+          )
+        }
+
+        // the hidden picks as a tree; an unpicked or shown group item only places its hidden picks
+        const hiddenPicksTree = (value: T['value'], hidden: Set<T['value']>): VNodeChild[] =>
+          (groupGraph.value.childrenOf.get(value) ?? []).flatMap((child) => {
+            const nested = hiddenPicksTree(child, hidden)
+            if (!hidden.has(child) && nested.length === 0) return []
+            return [
+              // a group stands apart from its siblings
+              <li class={nested.length > 0 && 'not-first:mt-1.5 not-last:mb-1.5'}>
+                <span class={['flex items-center gap-1.5', !hidden.has(child) && 'text-muted']}>
+                  {itemBox(child, true)}
+                  {byValue.value.get(child)!.label}
+                </span>
+                {nested.length > 0 && (
+                  <ul class="border-default ms-1.5 mt-0.5 flex flex-col gap-0.5 border-s ps-2">
+                    {nested}
+                  </ul>
+                )}
+              </li>,
+            ]
+          })
+
+        const hiddenPicksNote = (value: T['value']) => {
+          const hidden = hiddenPicksUnder(value)
+          return (
+            hidden.size > 0 && (
+              <UTooltip
+                content={{ side: 'right' }}
+                ui={{ content: 'h-auto items-start py-1.5' }}
+                v-slots={{
+                  default: () => (
+                    <span class="text-muted shrink-0 text-xs underline decoration-dotted underline-offset-2">
+                      +{hidden.size}
+                    </span>
+                  ),
+                  content: () => (
+                    <ul class="flex flex-col gap-0.5">{hiddenPicksTree(value, hidden)}</ul>
+                  ),
+                }}
+              />
+            )
+          )
+        }
+
         const itemContent = (
           row:
             ItemRow<T> | ActionRow<T> | GroupRow<T['value']> | AllRow<T['value']> | typeof emptyRow,
@@ -1214,20 +1585,33 @@ export default defineSetupComponent(
                 {row.label}
               </span>,
             ]
-          if (row.type === 'group')
+          if (row.type === 'group') {
+            const groupItem = row.groupItem && byValue.value.get(row.groupItem.value)!
+            const groupCoveredBy = groupItem && coverers.value.get(groupItem.value)
             return [
-              props.multiple &&
-                checkbox(checkState(row.values, selected.value), appConfig.ui.icons),
-              <span
-                data-group-header
-                class={
-                  row.ungrouped
-                    ? 'text-muted truncate text-sm'
-                    : 'text-highlighted truncate text-sm font-semibold'
-                }
-              >
-                {row.label}
-              </span>,
+              ...coveredTip(groupCoveredBy, [
+                props.multiple
+                  ? row.groupItem
+                    ? groupItemBox(row.groupItem.value)
+                    : checkbox(checkState(row.values, checkedValues.value), appConfig.ui.icons)
+                  : !!row.groupItem?.matches && radio(selected.value.has(row.groupItem.value)),
+                <span
+                  data-group-header
+                  // single select: the click picks the group item, so the row hovers like an item
+                  data-picks-group-item={!props.multiple && row.groupItem?.matches ? '' : undefined}
+                  class={
+                    row.ungrouped
+                      ? 'text-muted truncate text-sm'
+                      : [
+                          'truncate text-sm font-semibold',
+                          groupItem?.disabled ? 'text-muted' : 'text-highlighted',
+                        ]
+                  }
+                >
+                  {row.label}
+                </span>,
+                groupItem && slots.suffix?.({ item: groupItem, coveredBy: groupCoveredBy }),
+              ]),
               !row.pinned && (
                 <button
                   type="button"
@@ -1237,7 +1621,7 @@ export default defineSetupComponent(
                   // keeps focus in the search input, whose blur would close the menu
                   onMousedown={(event) => event.preventDefault()}
                   onClick={(event) => {
-                    // else row click toggles group (single: collapses)
+                    // else row click toggles group (single without a matching group item: collapses)
                     event.stopPropagation()
                     toggleCollapsed(row)
                   }}
@@ -1249,37 +1633,43 @@ export default defineSetupComponent(
                 </button>
               ),
             ]
+          }
           const { item } = row
-          const description = slotContent(slots.description?.({ item })) ?? item.description
+          const coveredBy = row.type === 'item' ? row.coveredBy : undefined
+          const description =
+            slotContent(slots.description?.({ item, coveredBy })) ?? item.description
           return [
-            // an action picks nothing, so has no box to check
-            row.type === 'action' ? null : props.multiple ? (
-              item.value === null ? (
-                // clears, no pick to check; keeps the labels aligned
-                <span class="size-4 shrink-0" />
+            ...coveredTip(coveredBy, [
+              // an action picks nothing, so has no box to check
+              row.type === 'action' ? null : props.multiple ? (
+                item.value === null ? (
+                  // clears, no pick to check; keeps the labels aligned
+                  <span class="size-4 shrink-0" />
+                ) : (
+                  itemBox(item.value)
+                )
               ) : (
-                checkbox(selected.value.has(item.value), appConfig.ui.icons)
-              )
-            ) : (
-              radio(selected.value.has(item.value))
-            ),
-            ...(slots.prefix?.({ item }) ?? []),
-            // marks a special row: the `null` item or a pinned action, listed with the toggle-all
-            <span
-              data-special-row={
-                item.value === null || (row.type === 'action' && item.pinned) ? '' : undefined
-              }
-              class={['flex min-w-0 flex-col', item.class]}
-            >
-              {/* suffix beside the label: a longer description would push it aside */}
-              <span class="flex min-w-0 items-center gap-1.5">
-                <span class="truncate">{item.label}</span>
-                {slots.suffix?.({ item })}
-              </span>
-              {description && <span class="text-muted truncate text-xs">{description}</span>}
-            </span>,
+                radio(selected.value.has(item.value))
+              ),
+              ...(slots.prefix?.({ item, coveredBy }) ?? []),
+              // marks a special row: the `null` item or a pinned action, listed with the toggle-all
+              <span
+                data-special-row={
+                  item.value === null || (row.type === 'action' && item.pinned) ? '' : undefined
+                }
+                class={['flex min-w-0 flex-col', item.class]}
+              >
+                {/* suffix beside the label: a longer description would push it aside */}
+                <span class="flex min-w-0 items-center gap-1.5">
+                  <span class="truncate">{item.label}</span>
+                  {row.type === 'item' && hiddenPicksNote(item.value)}
+                  {slots.suffix?.({ item, coveredBy })}
+                </span>
+                {description && <span class="text-muted truncate text-xs">{description}</span>}
+              </span>,
+            ]),
             <span class="text-muted ms-auto text-xs">
-              {slotContent(slots.hint?.({ item })) ?? item.hint}
+              {slotContent(slots.hint?.({ item, coveredBy })) ?? item.hint}
             </span>,
           ]
         }
@@ -1556,7 +1946,7 @@ export default defineSetupComponent(
                   ? 'data-highlighted:not-data-disabled:ring-2 data-highlighted:not-data-disabled:ring-inset data-highlighted:not-data-disabled:ring-primary data-highlighted:not-data-disabled:text-default'
                   : // the theme's highlighted text only while hovered; its extra `:not()` outweighs
                     // the theme's class
-                    'hover:not-data-disabled:not-has-data-group-header:bg-elevated data-highlighted:not-data-disabled:not-hover:text-default',
+                    'hover:not-data-disabled:not-has-data-group-header:bg-elevated hover:not-data-disabled:has-data-picks-group-item:bg-elevated data-highlighted:not-data-disabled:not-hover:text-default',
               ]
                 .filter(Boolean)
                 .join(' '),
@@ -1593,8 +1983,6 @@ export default defineSetupComponent(
               if (header) activate(header)
               // the `null` row is never selected: it only shows up as a click, which saves the clear
               else if (props.multiple && keys.includes(toKey(null))) clearAll()
-              else if (props.multiple)
-                update(new Set(keys.map((key) => fromKey(key) as T['value'])))
               else {
                 // changed row: newly picked or unpicked
                 const changed =
@@ -1670,7 +2058,7 @@ export default defineSetupComponent(
                 // one pick with its prefix, as in the list
                 return [
                   <span class={[ui.value(), 'flex items-center gap-1.5']}>
-                    {slots.prefix?.({ item })}
+                    {slots.prefix?.({ item, coveredBy: coverers.value.get(item.value) })}
                     <span class="truncate">{item.label}</span>
                   </span>,
                 ]

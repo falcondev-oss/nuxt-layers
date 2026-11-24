@@ -148,6 +148,11 @@ export default defineSetupComponent(
                   to: '/page-section-sandbox',
                 },
                 {
+                  label: 'Gruppeneinträge',
+                  icon: 'i-lucide-list-checks',
+                  to: '/select-group-items',
+                },
+                {
                   label: 'Einstellungen',
                   icon: 'i-lucide-settings',
                   children: [
