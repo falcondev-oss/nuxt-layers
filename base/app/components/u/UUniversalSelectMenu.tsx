@@ -1,6 +1,6 @@
 import type { InputProps, SelectMenuProps } from '@nuxt/ui'
 import type { FunctionalComponent, VNode, VNodeChild } from 'vue'
-import { useResizeObserver } from '@vueuse/core'
+import { useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { Slot } from 'reka-ui'
 import { chunk, isNonNull, isNonNullish } from 'remeda'
 import { Comment, Fragment, h, isVNode, Teleport } from 'vue'
@@ -936,6 +936,15 @@ export default defineSetupComponent(
         const frozenFooter = ref<{ clear: boolean; save: boolean; label: string }>()
         watch(isShown, (open) => open && (frozenFooter.value = undefined))
 
+        // single pick: the menu stays a moment, so the new pick shows; it ignores all input meanwhile
+        const { start: closeSoon, isPending: isClosing } = useTimeoutFn(
+          () => isShown.value && close(),
+          100,
+          { immediate: false },
+        )
+        // no open, close or action: a save or that close finishes first
+        const isLocked = computed(() => isSaving.value || isClosing.value)
+
         function close() {
           endDraft()
           // prop close skips `USelectMenu`'s blur, and its search reset: the next open keeps the search
@@ -971,7 +980,13 @@ export default defineSetupComponent(
         })
 
         function pick(value: T['value']) {
-          if (isBusy.value || disabledValues.value.has(value) || coverers.value.has(value)) return
+          if (
+            isBusy.value ||
+            isClosing.value ||
+            disabledValues.value.has(value) ||
+            coverers.value.has(value)
+          )
+            return
           // single: the saved row changes nothing, so it closes without a save or emit
           if (!props.multiple && draft.value && value === pickedOnOpen.value) return close()
           toggle(value)
@@ -986,7 +1001,7 @@ export default defineSetupComponent(
           }
           if (!closesOnPick.value) return
           if (draft.value) emit('update:modelValue', toValue(draft.value))
-          close()
+          closeSoon()
         }
 
         async function save(picks: Set<T['value']>) {
@@ -1251,7 +1266,7 @@ export default defineSetupComponent(
 
         // closes first: the action may open something of its own, e.g. a modal
         function runAction(row: ActionRow<T>) {
-          if (isSaving.value) return
+          if (isLocked.value) return
           close()
           row.item.onClick?.()
         }
@@ -1770,6 +1785,7 @@ export default defineSetupComponent(
 
         const hasFooter = computed(() => footer.value.clear || footer.value.save)
 
+        // every close ends the draft, the desktop dismiss too
         function endDraft() {
           if (draft.value) frozenFooter.value = { ...footer.value }
           draft.value = undefined
@@ -1778,7 +1794,7 @@ export default defineSetupComponent(
         // success closes (draft gone): keeps the clear button through the close animation
         function clearAll() {
           // a disabled `null` item: the clear is disabled
-          if (props.disabled || isBusy.value || nullItem.value?.disabled) return
+          if (props.disabled || isBusy.value || isClosing.value || nullItem.value?.disabled) return
           // `null` saved: clearing changes nothing, so it only closes. no model yet: saves the `null`
           if (committed.value.size === 0 && props.modelValue !== undefined) return close()
           const picks = draft.value
@@ -1865,8 +1881,9 @@ export default defineSetupComponent(
             // held shut on mobile, where opening shows the sheet instead
             open={!isMobile.value && isOpen.value}
             onUpdate:open={(open: boolean) => {
-              // save closes once `onChange` settles; a clear's save would close a fresh open
-              if (isSaving.value) return
+              // save closes once `onChange` settles; a clear's save would close a fresh open.
+              // a pending close closes itself
+              if (isLocked.value) return
               // nothing to pick yet; closing still goes through
               if (open && isLoading.value) return
               if (isMobile.value) return open && openSheet()
@@ -2081,7 +2098,7 @@ export default defineSetupComponent(
               fullscreen
               close={false}
               open={!!draft.value}
-              onUpdate:open={(open) => !open && !isSaving.value && close()}
+              onUpdate:open={(open) => !open && !isLocked.value && close()}
               // reka focuses the first tabbable, the search: the keyboard would cover the rows.
               // the dialog takes focus instead, so the trap holds
               content={{
