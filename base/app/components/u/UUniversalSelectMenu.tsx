@@ -2,7 +2,7 @@ import type { InputProps, SelectMenuProps } from '@nuxt/ui'
 import type { FunctionalComponent, VNode, VNodeChild } from 'vue'
 import { useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { Slot } from 'reka-ui'
-import { chunk, isNonNull, isNonNullish } from 'remeda'
+import { chunk, isNonNull, isNonNullish, uniqueBy } from 'remeda'
 import { Comment, Fragment, h, isVNode, Teleport } from 'vue'
 import { UButton, UIcon, UInput, UModal, USelectMenu, UTabs, UTooltip } from '#components'
 
@@ -29,21 +29,25 @@ export type UniversalSelectMenuItem<V extends Primitive = Primitive> = {
    */
   search?: string | null
   /**
-   * Labels of the groups the item is listed under. Groups appear in the order they're first used
-   * across `items`. When no item has groups, the menu is a flat list without a view toggle.
+   * The groups the item is listed under. Groups appear in the order they're first used across
+   * `items`. When no item has groups, the menu is a flat list without a view toggle.
    *
-   * An item whose `label` names a group is that group's item: its row is the group's header,
-   * and clicking it picks it (multiple select: see `explicitGroups`), while the chevron collapses.
-   * A search matching the group item keeps all its items; a nested group item's own group shows
-   * only by its own match. A filter still hides those it fails. While both pass the group item,
-   * the header picks it; else a multiple select's header click toggles only the shown items.
-   * Without `explicitGroups`, a group item under a filter stands for only its items the filter
-   * passes, nested ones too.
+   * A string is a group by that label, which only groups its items visually, even when an item
+   * has the same label. `{ value }` lists the item under the item with that value, its group item:
+   * the group is headed by that item's label, and its row is the header, so two items with the
+   * same label never share a group. A `{ value }` no item holds is dropped, with a dev warning.
+   *
+   * Clicking a group item's header picks it (multiple select: see `explicitGroups`), while the
+   * chevron collapses. A search matching the group item keeps all its items; a nested group item's
+   * own group shows only by its own match. A filter still hides those it fails. While both pass
+   * the group item, the header picks it; else a multiple select's header click toggles only the
+   * shown items. Without `explicitGroups`, a group item under a filter stands for only its items
+   * the filter passes, nested ones too.
    *
    * In a multiple select, a group item's row shows `+N` beside its label for its picked items that
    * the view hides, as a search or the list view does. Its tooltip shows them as a tree.
    */
-  groups?: string[]
+  groups?: (string | { value: NonNullable<V> })[]
   /**
    * Lists the item first, above a divider, and keeps it there while a filter is on. In the tree
    * view it's also listed in its groups, and during a search only there.
@@ -94,6 +98,8 @@ function isContent(node: unknown): boolean {
 
 type GroupRow<V> = {
   type: 'group'
+  // the group's identity (`groupId`), so its collapse survives a label shared with another
+  id: string
   label: string
   rowKey: string
   // what the checkbox reflects: ignores search and filter
@@ -120,30 +126,28 @@ function matchingGroupItem<V>({ groupItem }: GroupRow<V>) {
   return groupItem?.matches ? [groupItem.value] : []
 }
 
-// group items: the first item named like a group stands for it. a group item inside its own
-// group, directly or through others, is a plain item, and `onCycle` gets that group's label
+// `groupsOf`: each item's group ids. `groupItems`: group id → its group item. a group item inside
+// its own group, directly or through others, is a plain item, and `onCycle` gets that group's id
 function buildGroupGraph<T extends UniversalSelectMenuItem>(
   items: T[],
-  onCycle: (label: string) => void,
+  groupsOf: Map<T['value'], string[]>,
+  groupItems: Map<string, T>,
+  onCycle: (id: string) => void,
 ) {
   type V = T['value']
-  const groupItemOf = new Map<string, T>()
+  const groupItemOf = new Map(groupItems)
   const childrenOf = new Map<V, V[]>()
   const descendantsOf = new Map<V, Set<V>>()
   // innermost first, as `order` lists them
   const ancestorsOf = new Map<V, V[]>()
   // children before their group items, so one pass derives nested groups
   const order: V[] = []
-  const labels = new Set(items.flatMap((item) => item.groups ?? []))
-  for (const item of items)
-    if (item.value !== null && labels.has(item.label) && !groupItemOf.has(item.label))
-      groupItemOf.set(item.label, item)
   const linkChildren = () => {
     childrenOf.clear()
-    for (const [label, groupItem] of groupItemOf)
+    for (const [id, groupItem] of groupItemOf)
       childrenOf.set(
         groupItem.value,
-        items.filter((item) => item.groups?.includes(label)).map(({ value }) => value),
+        items.filter((item) => groupsOf.get(item.value)?.includes(id)).map(({ value }) => value),
       )
   }
   const descendants = (groupItem: V) => {
@@ -162,9 +166,9 @@ function buildGroupGraph<T extends UniversalSelectMenuItem>(
   const cyclic = [...groupItemOf].filter(([, groupItem]) =>
     descendants(groupItem.value).has(groupItem.value),
   )
-  for (const [label] of cyclic) {
-    groupItemOf.delete(label)
-    onCycle(label)
+  for (const [id] of cyclic) {
+    groupItemOf.delete(id)
+    onCycle(id)
   }
   linkChildren()
   for (const groupItem of childrenOf.keys()) descendantsOf.set(groupItem, descendants(groupItem))
@@ -238,6 +242,13 @@ const groupBox = 'p-0 rounded-md border border-default overflow-hidden'
 const toKey = (value: Primitive) => JSON.stringify(value)
 const fromKey = (key: string) => JSON.parse(key) as Primitive
 const groupKey = (index: number) => `\0${index}`
+
+// a group's identity: its label, or its group item's value behind a NUL, as no label starts
+function groupId(group: string | { value: Primitive }) {
+  return typeof group === 'string' ? group : `\0${toKey(group.value)}`
+}
+// the ungrouped box's id: a value's id never is a bare NUL, as `toKey` is never empty
+const ungroupedId = '\0'
 
 // `URadioGroup`'s radio look; it only renders whole groups
 function radio(checked: boolean) {
@@ -357,8 +368,8 @@ export default defineSetupComponent(
       /** Lists items without `groups` flat below the groups, instead of in a group of their own. */
       listUngrouped?: boolean
       /**
-       * How a picked group item (an item named like a group) treats the group's items, in a
-       * multiple select. Without a group item, a group only groups its items visually.
+       * How a picked group item (the item a `{ value }` group names) treats the group's items, in
+       * a multiple select. Without a group item, a group only groups its items visually.
        *
        * `false` (default): the group item is picked exactly while every item in the group is, so
        * clicking it toggles them all, and all of them are in the model. An unpicked disabled item
@@ -550,8 +561,6 @@ export default defineSetupComponent(
         const items = computed(() => {
           if (!props.items) return []
           const byValue = new Map<T['value'], T>()
-          // only repeated values with groups get one; merged into their row once, at the end
-          const groupsOf = new Map<T['value'], Set<string>>()
           for (const item of props.items) {
             if (item.onClick) continue
             if (item.value === undefined) {
@@ -560,23 +569,59 @@ export default defineSetupComponent(
             }
             const first = byValue.get(item.value)
             if (!first) byValue.set(item.value, item)
-            else if (item.groups?.length) {
-              let groups = groupsOf.get(item.value)
-              if (!groups) groupsOf.set(item.value, (groups = new Set(first.groups)))
-              for (const group of item.groups) groups.add(group)
-            }
+            else if (item.groups?.length)
+              byValue.set(item.value, {
+                ...first,
+                groups: uniqueBy([...(first.groups ?? []), ...item.groups], groupId),
+              })
           }
-          if (groupsOf.size === 0) return [...byValue.values()]
-          return Array.from(byValue.values(), (item) => {
-            const groups = groupsOf.get(item.value)
-            return groups ? { ...item, groups: [...groups] } : item
-          })
+          return [...byValue.values()]
         })
 
+        const byValue = computed(() => new Map(items.value.map((item) => [item.value, item])))
+
+        const warned = new Set<string>()
+        function warnOnce(message: string) {
+          if (!import.meta.dev || warned.has(message)) return
+          warned.add(message)
+          console.warn(`UUniversalSelectMenu: ${message}`)
+        }
+
+        // each item's group ids, without `{ value }`s no item holds; group id → its group item, for a
+        // `{ value }`
+        const groupInfo = computed(() => {
+          const groupsOf = new Map<T['value'], string[]>()
+          const groupItems = new Map<string, T>()
+          for (const item of items.value) {
+            // the `null` item is the clear, listed apart: never in a group, nor a group item
+            if (item.value === null || !item.groups) continue
+            const ids: string[] = []
+            for (const group of item.groups) {
+              const id = groupId(group)
+              if (typeof group !== 'string') {
+                if (group.value === null) {
+                  warnOnce('the `null` item can’t be a group item')
+                  continue
+                }
+                const groupItem = byValue.value.get(group.value)
+                if (!groupItem) {
+                  // still loading: the item may yet come
+                  if (!props.loading)
+                    warnOnce(`no item holds the group value ${toKey(group.value)}`)
+                  continue
+                }
+                groupItems.set(id, groupItem)
+              }
+              ids.push(id)
+            }
+            if (ids.length > 0) groupsOf.set(item.value, ids)
+          }
+          return { groupsOf, groupItems }
+        })
+        const groupLabel = (id: string) => groupInfo.value.groupItems.get(id)?.label ?? id
+
         const view = ref<'tree' | 'list'>('tree')
-        const hasGroups = computed(
-          () => props.group !== false && items.value.some((item) => !!item.groups?.length),
-        )
+        const hasGroups = computed(() => props.group !== false && groupInfo.value.groupsOf.size > 0)
         // groups gone: reset, so they return in the tree
         watch(hasGroups, (has) => {
           if (!has) view.value = 'tree'
@@ -643,22 +688,18 @@ export default defineSetupComponent(
 
         // mid-load: a missing or stale list would drop picks for good. `[]` is loaded, empty
         const isLoading = computed(() => !!props.loading || props.items === undefined)
-        const byValue = computed(() => new Map(items.value.map((item) => [item.value, item])))
         const known = computed(() => new Set(byValue.value.keys()))
         // left out of every pick the user didn't make row by row
         const disabledValues = computed(
           () => new Set(items.value.filter((item) => item.disabled).map((item) => item.value)),
         )
 
-        // a dev warning once per group that contains its own group item
-        const warnedGroups = new Set<string>()
-        const groupGraph = computed(() =>
-          buildGroupGraph(items.value, (label) => {
-            if (!import.meta.dev || warnedGroups.has(label)) return
-            warnedGroups.add(label)
-            console.warn(`UUniversalSelectMenu: group "${label}" contains its own group item`)
-          }),
-        )
+        const groupGraph = computed(() => {
+          const { groupsOf, groupItems } = groupInfo.value
+          return buildGroupGraph(items.value, groupsOf, groupItems, (id) =>
+            warnOnce(`group "${groupLabel(id)}" contains its own group item`),
+          )
+        })
 
         // multiple only: single select picks a group item like any item
         const groupMode = computed(() =>
@@ -860,9 +901,8 @@ export default defineSetupComponent(
           return true
         }
 
-        // group labels, `\0` for the ungrouped box, whose label a real group may share. a search or
-        // filter collapses its own, from all expanded, so its matches show; a new search term or
-        // filter expands them again
+        // group ids, `\0` for the ungrouped box. a search or filter collapses its own, from all
+        // expanded, so its matches show; a new search term or filter expands them again
         const collapsed = ref(new Set<string>())
         const narrowedCollapsed = ref(new Set<string>())
         const isNarrowed = computed(
@@ -870,16 +910,10 @@ export default defineSetupComponent(
         )
         watch([searchTerm, filterValues], () => (narrowedCollapsed.value = new Set()))
 
-        const collapseKey = ({
-          label,
-          ungrouped,
-        }: Pick<GroupRow<unknown>, 'label' | 'ungrouped'>) => (ungrouped ? '\0' : label)
-
-        function toggleCollapsed(row: GroupRow<T['value']>) {
+        function toggleCollapsed({ id }: GroupRow<T['value']>) {
           const set = isNarrowed.value ? narrowedCollapsed : collapsed
           const next = new Set(set.value)
-          const key = collapseKey(row)
-          if (!next.delete(key)) next.add(key)
+          if (!next.delete(id)) next.add(id)
           set.value = next
         }
 
@@ -1092,7 +1126,8 @@ export default defineSetupComponent(
 
           // tree view, searching: a match in a box (the ungrouped one too) shows there only.
           // filtering doesn't: a pinned match stays up top as well
-          const inBox = (item: T) => !!item.groups?.length || !props.listUngrouped
+          const { groupsOf } = groupInfo.value
+          const inBox = (item: T) => groupsOf.has(item.value) || !props.listUngrouped
           const pinned = listed
             .filter(
               (item) => item.pinned && isMatch(item) && (isList.value || !search || !inBox(item)),
@@ -1107,6 +1142,7 @@ export default defineSetupComponent(
                 ? { type: 'label' as const, label, rowKey: '\0pinned' }
                 : {
                     type: 'group' as const,
+                    id: '\0pinned',
                     label,
                     rowKey: '\0pinned',
                     values: listed.filter((item) => item.pinned).map((item) => item.value),
@@ -1145,25 +1181,29 @@ export default defineSetupComponent(
           }
 
           // an item may sit in several groups; listed under each, pinned ones too
-          const labels = [...new Set(listed.flatMap((item) => item.groups ?? []))]
-          const entries = labels.map((label) => ({
-            label,
-            items: listed.filter((item) => item.groups?.includes(label)),
+          const ids = [...new Set(listed.flatMap((item) => groupsOf.get(item.value) ?? []))]
+          const entries = ids.map((id) => ({
+            id,
+            label: groupLabel(id),
+            items: listed.filter((item) => groupsOf.get(item.value)?.includes(id)),
           }))
           // ungrouped items stay selectable: own group, pinned ones too, or listed below the groups
           // (a pinned one already is, up top). a group item is its group's header instead
           const { groupItemOf, childrenOf } = groupGraph.value
           const ungrouped = listed.filter(
-            (item) => !item.groups?.length && !childrenOf.has(item.value),
+            (item) => !groupsOf.has(item.value) && !childrenOf.has(item.value),
           )
           if (!props.listUngrouped && ungrouped.length > 0)
-            entries.push({ label: props.ungroupedLabel ?? 'Ohne Gruppe', items: ungrouped })
+            entries.push({
+              id: ungroupedId,
+              label: props.ungroupedLabel ?? 'Ohne Gruppe',
+              items: ungrouped,
+            })
 
           // one menu group each, so each renders as its own box
-          const groups = entries.flatMap<Group<T>>(({ label, items: groupItems }, index) => {
-            // the ungrouped entry is only ever pushed after the labelled groups
-            const ungrouped = index === labels.length
-            const groupItem = ungrouped ? undefined : groupItemOf.get(label)
+          const groups = entries.flatMap<Group<T>>(({ id, label, items: groupItems }, index) => {
+            const ungrouped = id === ungroupedId
+            const groupItem = ungrouped ? undefined : groupItemOf.get(id)
             // a nested group shows by its own match, not its outer group's: that one lists it
             const keepsItems = !!groupItem && matchesSearch(groupItem)
             const isGroupMatch = !!groupItem && keepsItems && passesFilter(groupItem)
@@ -1173,12 +1213,11 @@ export default defineSetupComponent(
               (item) => passesFilter(item) && (keepsItems || matches(label) || matchesSearch(item)),
             )
             if (items.length === 0 && !isGroupMatch) return []
-            const isCollapsed = (isNarrowed.value ? narrowedCollapsed : collapsed).value.has(
-              collapseKey({ label, ungrouped }),
-            )
+            const isCollapsed = (isNarrowed.value ? narrowedCollapsed : collapsed).value.has(id)
             return {
               header: {
                 type: 'group',
+                id,
                 label,
                 rowKey: groupKey(index),
                 values: groupItems.map((item) => item.value),

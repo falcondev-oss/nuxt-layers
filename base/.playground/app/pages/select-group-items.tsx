@@ -1,17 +1,23 @@
 import type { VNodeChild } from 'vue'
 import { UBadge, UCard, UContainer, UUniversalSelectMenu } from '#components'
 
-type Item = { label: string; value: string; groups?: string[]; disabled?: boolean }
+type Item = {
+  label: string
+  value: string
+  hint?: string
+  groups?: (string | { value: string })[]
+  disabled?: boolean
+}
 
-// `Website Relaunch` and `Mobile App` are group items: each is named like its group
+// `Website Relaunch` and `Mobile App` are group items: their items name them by `{ value }`
 const projects: Item[] = [
   { label: 'Website Relaunch', value: 'relaunch' },
-  { label: 'Design', value: 'design', groups: ['Website Relaunch'] },
-  { label: 'Frontend', value: 'frontend', groups: ['Website Relaunch'] },
-  { label: 'Backend', value: 'backend', groups: ['Website Relaunch'] },
+  { label: 'Design', value: 'design', groups: [{ value: 'relaunch' }] },
+  { label: 'Frontend', value: 'frontend', groups: [{ value: 'relaunch' }] },
+  { label: 'Backend', value: 'backend', groups: [{ value: 'relaunch' }] },
   { label: 'Mobile App', value: 'app' },
-  { label: 'iOS', value: 'ios', groups: ['Mobile App'] },
-  { label: 'Android', value: 'android', groups: ['Mobile App'] },
+  { label: 'iOS', value: 'ios', groups: [{ value: 'app' }] },
+  { label: 'Android', value: 'android', groups: [{ value: 'app' }] },
   // no group item: grouped only visually
   { label: 'Intranet', value: 'intranet', groups: ['Weitere'] },
   { label: 'Shop', value: 'shop', groups: ['Weitere'] },
@@ -20,10 +26,19 @@ const projects: Item[] = [
 // `Mobile App` is listed under `Nordwind AG`, so its group nests in that one
 const nested: Item[] = [
   { label: 'Nordwind AG', value: 'nordwind' },
-  { label: 'Mobile App', value: 'app', groups: ['Nordwind AG'] },
-  { label: 'Wartung', value: 'wartung', groups: ['Nordwind AG'] },
-  { label: 'iOS', value: 'ios', groups: ['Mobile App'] },
-  { label: 'Android', value: 'android', groups: ['Mobile App'] },
+  { label: 'Mobile App', value: 'app', groups: [{ value: 'nordwind' }] },
+  { label: 'Wartung', value: 'wartung', groups: [{ value: 'nordwind' }] },
+  { label: 'iOS', value: 'ios', groups: [{ value: 'app' }] },
+  { label: 'Android', value: 'android', groups: [{ value: 'app' }] },
+]
+
+// two group items with the same label: each heads only the items that name its value
+const sameLabels: Item[] = [
+  { label: 'Mobile App', value: 'app-nordwind', hint: 'Nordwind AG' },
+  { label: 'iOS', value: 'ios-nordwind', groups: [{ value: 'app-nordwind' }] },
+  { label: 'Android', value: 'android-nordwind', groups: [{ value: 'app-nordwind' }] },
+  { label: 'Mobile App', value: 'app-suedhafen', hint: 'Südhafen GmbH' },
+  { label: 'iOS', value: 'ios-suedhafen', groups: [{ value: 'app-suedhafen' }] },
 ]
 
 type StatusItem = Item & { status?: 'aktiv' | 'archiviert'; search?: string }
@@ -33,23 +48,23 @@ type StatusItem = Item & { status?: 'aktiv' | 'archiviert'; search?: string }
 // filter passes it. searching `Nordwind` matches `Website Relaunch` by its search text alone
 const withStatus: StatusItem[] = [
   { label: 'Website Relaunch', value: 'relaunch', status: 'aktiv', search: 'Nordwind AG' },
-  { label: 'Design', value: 'design', groups: ['Website Relaunch'], status: 'aktiv' },
-  { label: 'Frontend', value: 'frontend', groups: ['Website Relaunch'], status: 'archiviert' },
-  { label: 'Backend', value: 'backend', groups: ['Website Relaunch'], status: 'aktiv' },
-  { label: 'Abnahme', value: 'abnahme', groups: ['Website Relaunch'] },
+  { label: 'Design', value: 'design', groups: [{ value: 'relaunch' }], status: 'aktiv' },
+  { label: 'Frontend', value: 'frontend', groups: [{ value: 'relaunch' }], status: 'archiviert' },
+  { label: 'Backend', value: 'backend', groups: [{ value: 'relaunch' }], status: 'aktiv' },
+  { label: 'Abnahme', value: 'abnahme', groups: [{ value: 'relaunch' }] },
   { label: 'Mobile App', value: 'app', status: 'archiviert' },
-  { label: 'iOS', value: 'ios', groups: ['Mobile App'], status: 'aktiv' },
-  { label: 'Android', value: 'android', groups: ['Mobile App'], status: 'aktiv' },
+  { label: 'iOS', value: 'ios', groups: [{ value: 'app' }], status: 'aktiv' },
+  { label: 'Android', value: 'android', groups: [{ value: 'app' }], status: 'aktiv' },
 ]
 
 // `Aktiv` fails `Nordwind AG`, so its header toggles its shown items. `Mobile App`, its header
 // or its row, then stands for `Android` only, not the hidden `iOS`
 const nestedWithStatus: StatusItem[] = [
   { label: 'Nordwind AG', value: 'nordwind', status: 'archiviert' },
-  { label: 'Mobile App', value: 'app', groups: ['Nordwind AG'], status: 'aktiv' },
-  { label: 'Wartung', value: 'wartung', groups: ['Nordwind AG'], status: 'aktiv' },
-  { label: 'iOS', value: 'ios', groups: ['Mobile App'], status: 'archiviert' },
-  { label: 'Android', value: 'android', groups: ['Mobile App'], status: 'aktiv' },
+  { label: 'Mobile App', value: 'app', groups: [{ value: 'nordwind' }], status: 'aktiv' },
+  { label: 'Wartung', value: 'wartung', groups: [{ value: 'nordwind' }], status: 'aktiv' },
+  { label: 'iOS', value: 'ios', groups: [{ value: 'app' }], status: 'archiviert' },
+  { label: 'Android', value: 'android', groups: [{ value: 'app' }], status: 'aktiv' },
 ]
 
 const statusFilter = {
@@ -79,12 +94,17 @@ const statusSlots = {
 
 const withDisabled: Item[] = [
   { label: 'Website Relaunch', value: 'relaunch' },
-  { label: 'Design', value: 'design', groups: ['Website Relaunch'] },
-  { label: 'Frontend (gesperrt)', value: 'frontend', groups: ['Website Relaunch'], disabled: true },
+  { label: 'Design', value: 'design', groups: [{ value: 'relaunch' }] },
+  {
+    label: 'Frontend (gesperrt)',
+    value: 'frontend',
+    groups: [{ value: 'relaunch' }],
+    disabled: true,
+  },
   // a disabled group item: its header toggles only its items
   { label: 'Mobile App', value: 'app', disabled: true },
-  { label: 'iOS', value: 'ios', groups: ['Mobile App'] },
-  { label: 'Android', value: 'android', groups: ['Mobile App'] },
+  { label: 'iOS', value: 'ios', groups: [{ value: 'app' }] },
+  { label: 'Android', value: 'android', groups: [{ value: 'app' }] },
 ]
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
@@ -127,6 +147,7 @@ export default defineSetupComponent((_: object) =>
       const implicitFiltered = ref<string[] | null>(null)
       const explicitFiltered = ref<string[] | null>(null)
       const implicitNestedFiltered = ref<string[] | null>(null)
+      const explicitSameLabels = ref<string[] | null>(null)
       const single = ref<string | null>(null)
 
       return () => (
@@ -192,6 +213,15 @@ export default defineSetupComponent((_: object) =>
               explicitGroups
               items={nested}
               v-model={explicitNested.value}
+              placeholder="Wählen"
+            />
+          ))}
+          {demo('Explizit, gleichnamige Gruppeneinträge', explicitSameLabels.value, () => (
+            <UUniversalSelectMenu
+              multiple
+              explicitGroups
+              items={sameLabels}
+              v-model={explicitSameLabels.value}
               placeholder="Wählen"
             />
           ))}
