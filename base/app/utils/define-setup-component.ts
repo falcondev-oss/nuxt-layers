@@ -193,12 +193,13 @@ export function defineSetupComponent<const T extends ComponentTypes>(
   const booleans = new Set(opts.booleanProps)
   // oxlint-disable-next-line typescript/no-unsafe-return, typescript/no-unsafe-argument
   return defineComponent(opts.setup as any, {
-    // `null` accepts any type, as a plain name does; `default: undefined` stops Vue from
-    // turning an absent boolean prop into `false`
+    // `{}` accepts any type, as a plain name does, and unlike `null` it is safe for code that
+    // reads `props[key].default` (reka-ui's `useForwardProps`); `default: undefined` stops Vue
+    // from turning an absent boolean prop into `false`
     props: Object.fromEntries(
       opts.props.map((key) => [
         key,
-        booleans.has(key) ? { type: Boolean, default: undefined } : null,
+        booleans.has(key) ? { type: Boolean, default: undefined } : {},
       ]),
     ),
     emits: opts.emits as unknown as string[],
