@@ -113,6 +113,13 @@ interface SetupConfig<T extends ComponentTypes> {
   name?: string
   /** Vue's `inheritAttrs`. Set to `false` to place `ctx.attrs` yourself. */
   inheritAttrs?: boolean
+  /**
+   * Props Vue casts like a declared `boolean` prop, so a bare `<X multiple />` sets `true`.
+   *
+   * `props` registers names without a runtime type, which Vue does not cast: the bare
+   * attribute arrives as `''`, which is falsy. An absent prop stays `undefined`, not `false`.
+   */
+  booleanProps?: readonly PropKeys<T>[]
   setup: (
     props: Field<T, 'props'> & EmitsToProps<Field<T, 'emits'>>,
     ctx: Omit<
@@ -144,6 +151,7 @@ type LooseSetupConfig = {
   emits: readonly string[]
   name?: string
   inheritAttrs?: boolean
+  booleanProps?: readonly string[]
   setup: (...args: any) => any
 } & OptionsBrand
 
@@ -182,9 +190,17 @@ export function defineSetupComponent<const T extends ComponentTypes>(
 > {
   // oxlint-disable-next-line typescript/no-unsafe-argument
   const opts = options_({} as any)
+  const booleans = new Set(opts.booleanProps)
   // oxlint-disable-next-line typescript/no-unsafe-return, typescript/no-unsafe-argument
   return defineComponent(opts.setup as any, {
-    props: opts.props as unknown as string[],
+    // `null` accepts any type, as a plain name does; `default: undefined` stops Vue from
+    // turning an absent boolean prop into `false`
+    props: Object.fromEntries(
+      opts.props.map((key) => [
+        key,
+        booleans.has(key) ? { type: Boolean, default: undefined } : null,
+      ]),
+    ),
     emits: opts.emits as unknown as string[],
     name: opts.name,
     inheritAttrs: opts.inheritAttrs,

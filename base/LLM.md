@@ -100,4 +100,5 @@ Forms use `useForm` from `@falcondev-oss/form-vue` (auto-imported).
 ## Writing components in this layer
 
 - Define components with `defineSetupComponent((_: { props, emits?, slots?, propKeys?, expose? }) => options(_, { name, props: [...], emits: [...], setup }))`. Types come from the `_` annotation; `props` lists runtime keys.
+- List every `boolean` prop in `booleanProps: [...]` too. Otherwise the shorthand `<X multiple />` passes `''`, which is falsy.
 - Pass slots to third-party components with `v-slots={vSlots(Component, { ... })}` for type checking.

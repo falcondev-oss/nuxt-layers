@@ -526,6 +526,17 @@ export default defineSetupComponent(
         'hideSearch',
         'hideToggleAll',
       ],
+      booleanProps: [
+        'group',
+        'listUngrouped',
+        'explicitGroups',
+        'multiple',
+        'disabled',
+        'loading',
+        'clear',
+        'hideSearch',
+        'hideToggleAll',
+      ],
       emits: ['update:modelValue'],
       // two roots (the menu and its mobile sheet), so the attributes are placed by hand
       inheritAttrs: false,
